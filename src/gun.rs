@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct Gun;
+pub struct Gun {
+    pub last_fired: f64,
+}
 
 pub fn setup_gun_base(mut commands: Commands) {
     let y = -201. + 32.; // (-600/2 - 500 + 64/2)
@@ -28,7 +30,7 @@ pub fn setup_gun(mut commands: Commands) {
             transform: Transform::from_translation(Vec3::new(0., y, 0.)),
             ..Default::default()
         })
-        .insert(Gun);
+        .insert(Gun { last_fired: 0. });
 }
 
 fn move_gun(

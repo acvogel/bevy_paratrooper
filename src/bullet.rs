@@ -50,7 +50,8 @@ fn shoot_gun(
     mut commands: Commands,
     keyboard_input: Res<Input<KeyCode>>,
     asset_server: Res<AssetServer>,
-    mut query: Query<(&Gun, &Transform)>,
+    mut query: Query<(&mut Gun, &Transform)>,
+    time: Res<Time>,
     //texture_atlas: Res<TextureAtlas>,
     //texture_atlases: Mut<Assets<TextureAtlas>>,
 ) {
@@ -71,27 +72,32 @@ fn shoot_gun(
     //    })
     //    .insert(Bullet { speed: 100. });
     if keyboard_input.pressed(KeyCode::Space) {
-        for (_gun, transform) in query.iter_mut() {
-            let mut bullet_transform = transform.clone();
-            bullet_transform.translation =
-                bullet_transform.translation + 30. * bullet_transform.local_y();
-            commands
-                .spawn_bundle(SpriteBundle {
-                    texture: bullet_handle.clone(),
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::splat(24.)),
+        for (mut gun, transform) in query.iter_mut() {
+            // check can fire
+            if time.seconds_since_startup() - gun.last_fired > 0.5 {
+                gun.last_fired = time.seconds_since_startup();
+
+                let mut bullet_transform = transform.clone();
+                bullet_transform.translation =
+                    bullet_transform.translation + 30. * bullet_transform.local_y();
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        texture: bullet_handle.clone(),
+                        sprite: Sprite {
+                            custom_size: Some(Vec2::splat(24.)),
+                            ..Default::default()
+                        },
+                        // Rectangle bullets
+                        //sprite: Sprite {
+                        //    color: Color::rgb(0.0, 0., 1.0),
+                        //    custom_size: Some(Vec2::new(10., 10.)),
+                        //    ..Default::default()
+                        //},
+                        transform: bullet_transform,
                         ..Default::default()
-                    },
-                    // Rectangle bullets
-                    //sprite: Sprite {
-                    //    color: Color::rgb(0.0, 0., 1.0),
-                    //    custom_size: Some(Vec2::new(10., 10.)),
-                    //    ..Default::default()
-                    //},
-                    transform: bullet_transform,
-                    ..Default::default()
-                })
-                .insert(Bullet { speed: 100. });
+                    })
+                    .insert(Bullet { speed: 100. });
+            }
         }
     }
 }
@@ -109,7 +115,7 @@ fn collision_system(
                 bullet_transform.translation,
                 Vec2::new(24., 24.),
             );
-            if let Some(collision) = collision_check {
+            if let Some(_collision) = collision_check {
                 println!("IT'S A HIT!");
                 commands.entity(aircraft_entity).despawn();
                 commands.entity(bullet_entity).despawn();
