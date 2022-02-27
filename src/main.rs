@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 
-//const ground_level = -600.
-
-mod gun;
-use crate::gun::*;
-
-mod bullet;
+use aircraft::AircraftPlugin;
 use bullet::BulletPlugin;
+use gun::GunPlugin;
+
+mod aircraft;
+mod bullet;
+mod gun;
 
 fn main() {
     App::new()
@@ -20,6 +20,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(GunPlugin)
         .add_plugin(BulletPlugin)
+        .add_plugin(AircraftPlugin)
         .add_startup_system(setup_camera)
         .add_startup_system(setup_ground)
         .add_system(bevy::input::system::exit_on_esc_system)

@@ -63,6 +63,5 @@ impl Plugin for GunPlugin {
         app.add_startup_system(setup_gun)
             .add_startup_system(setup_gun_base)
             .add_system(move_gun);
-        //.add_system(shoot_gun);
     }
 }
