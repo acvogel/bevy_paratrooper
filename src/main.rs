@@ -3,10 +3,12 @@ use bevy::prelude::*;
 use aircraft::AircraftPlugin;
 use bullet::BulletPlugin;
 use gun::GunPlugin;
+use score::ScorePlugin;
 
 mod aircraft;
 mod bullet;
 mod gun;
+mod score;
 
 fn main() {
     App::new()
@@ -21,6 +23,7 @@ fn main() {
         .add_plugin(GunPlugin)
         .add_plugin(BulletPlugin)
         .add_plugin(AircraftPlugin)
+        .add_plugin(ScorePlugin)
         .add_startup_system(setup_camera)
         .add_startup_system(setup_ground)
         .add_system(bevy::input::system::exit_on_esc_system)

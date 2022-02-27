@@ -3,6 +3,7 @@ use bevy::sprite::collide_aabb::collide;
 
 use crate::aircraft::Aircraft;
 use crate::gun::Gun;
+use crate::score::Score;
 
 #[derive(Component)]
 pub struct Bullet {
@@ -52,6 +53,7 @@ fn shoot_gun(
     asset_server: Res<AssetServer>,
     mut query: Query<(&mut Gun, &Transform)>,
     time: Res<Time>,
+    mut score: ResMut<Score>,
     //texture_atlas: Res<TextureAtlas>,
     //texture_atlases: Mut<Assets<TextureAtlas>>,
 ) {
@@ -76,6 +78,7 @@ fn shoot_gun(
             // check can fire
             if time.seconds_since_startup() - gun.last_fired > 0.5 {
                 gun.last_fired = time.seconds_since_startup();
+                score.shots += 1;
 
                 let mut bullet_transform = transform.clone();
                 bullet_transform.translation =
@@ -106,6 +109,7 @@ fn collision_system(
     mut commands: Commands,
     mut aircraft: Query<(Entity, &Aircraft, &Transform)>,
     mut bullets: Query<(Entity, &Bullet, &Transform)>,
+    mut score: ResMut<Score>,
 ) {
     for (aircraft_entity, _aircraft, aircraft_transform) in aircraft.iter_mut() {
         for (bullet_entity, _bullet, bullet_transform) in bullets.iter_mut() {
@@ -119,6 +123,7 @@ fn collision_system(
                 println!("IT'S A HIT!");
                 commands.entity(aircraft_entity).despawn();
                 commands.entity(bullet_entity).despawn();
+                score.aircraft_kills += 1;
             }
         }
     }
