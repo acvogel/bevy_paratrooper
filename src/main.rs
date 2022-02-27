@@ -8,7 +8,7 @@ use crate::gun::*;
 fn main() {
     App::new()
         .insert_resource(WindowDescriptor {
-            title: "paratrooper".to_string(),
+            title: "Paratrooper".to_string(),
             width: 1280.,
             height: 720.,
             vsync: true,
@@ -18,8 +18,6 @@ fn main() {
         .add_plugin(GunPlugin)
         .add_startup_system(setup_camera)
         .add_startup_system(setup_ground)
-        //.add_startup_system(setup_gun_base)
-        //.add_startup_system(setup_gun)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
 }
