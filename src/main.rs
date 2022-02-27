@@ -5,6 +5,9 @@ use bevy::prelude::*;
 mod gun;
 use crate::gun::*;
 
+mod bullet;
+use bullet::BulletPlugin;
+
 fn main() {
     App::new()
         .insert_resource(WindowDescriptor {
@@ -16,6 +19,7 @@ fn main() {
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(GunPlugin)
+        .add_plugin(BulletPlugin)
         .add_startup_system(setup_camera)
         .add_startup_system(setup_ground)
         .add_system(bevy::input::system::exit_on_esc_system)
