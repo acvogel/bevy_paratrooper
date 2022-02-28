@@ -3,6 +3,7 @@ use bevy::sprite::collide_aabb::collide;
 
 use crate::aircraft::Aircraft;
 use crate::gun::Gun;
+use crate::paratrooper::Paratrooper;
 use crate::score::Score;
 
 #[derive(Component)]
@@ -109,10 +110,14 @@ fn collision_system(
     mut commands: Commands,
     mut aircraft: Query<(Entity, &Aircraft, &Transform)>,
     mut bullets: Query<(Entity, &Bullet, &Transform)>,
+    mut paratroopers: Query<(Entity, &Paratrooper, &Transform)>,
     mut score: ResMut<Score>,
 ) {
-    for (aircraft_entity, _aircraft, aircraft_transform) in aircraft.iter_mut() {
-        for (bullet_entity, _bullet, bullet_transform) in bullets.iter_mut() {
+    for (bullet_entity, _bullet, bullet_transform) in bullets.iter_mut() {
+        let mut despawn_bullet = false;
+
+        // Shoot Aircraft
+        for (aircraft_entity, _aircraft, aircraft_transform) in aircraft.iter_mut() {
             let collision_check = collide(
                 aircraft_transform.translation,
                 Vec2::new(30., 10.), // TODO use sprite values
@@ -120,11 +125,31 @@ fn collision_system(
                 Vec2::new(24., 24.),
             );
             if let Some(_collision) = collision_check {
-                println!("IT'S A HIT!");
+                println!("aircraft hit");
+                despawn_bullet = true;
                 commands.entity(aircraft_entity).despawn();
-                commands.entity(bullet_entity).despawn();
                 score.aircraft_kills += 1;
             }
+        }
+
+        // Shoot Paratroopers
+        for (paratrooper_entity, _paratrooper, paratrooper_transform) in paratroopers.iter_mut() {
+            let collision_check = collide(
+                paratrooper_transform.translation,
+                0.5 * Vec2::new(89., 123.), // XXX paratrooper size, hit box is way too big
+                bullet_transform.translation,
+                Vec2::new(24., 24.),
+            );
+            if let Some(_collision) = collision_check {
+                info!("paratrooper hit");
+                despawn_bullet = true;
+                commands.entity(paratrooper_entity).despawn();
+                score.paratrooper_kills += 1;
+            }
+        }
+
+        if despawn_bullet {
+            commands.entity(bullet_entity).despawn();
         }
     }
 }
