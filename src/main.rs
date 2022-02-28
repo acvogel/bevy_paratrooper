@@ -5,6 +5,7 @@ use bullet::BulletPlugin;
 use gun::GunPlugin;
 use paratrooper::ParatrooperPlugin;
 use score::ScorePlugin;
+use terrain::TerrainPlugin;
 
 mod aircraft;
 mod bullet;
@@ -12,6 +13,7 @@ mod consts;
 mod gun;
 mod paratrooper;
 mod score;
+mod terrain;
 
 fn main() {
     App::new()
@@ -29,8 +31,8 @@ fn main() {
         .add_plugin(AircraftPlugin)
         .add_plugin(ParatrooperPlugin)
         .add_plugin(ScorePlugin)
+        .add_plugin(TerrainPlugin)
         .add_startup_system(setup_camera)
-        .add_startup_system(setup_ground)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
 }
@@ -38,16 +40,4 @@ fn main() {
 fn setup_camera(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
-}
-
-fn setup_ground(mut commands: Commands) {
-    commands.spawn_bundle(SpriteBundle {
-        sprite: Sprite {
-            color: Color::rgb(0., 0.68, 0.32),
-            custom_size: Some(Vec2::new(1280., 600.)),
-            ..Default::default()
-        },
-        transform: Transform::from_translation(Vec3::new(0., consts::GROUND_Y, 0.)),
-        ..Default::default()
-    });
 }
