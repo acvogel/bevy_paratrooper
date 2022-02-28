@@ -17,6 +17,7 @@ fn main() {
             width: 1280.,
             height: 720.,
             vsync: true,
+            resizable: false,
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
@@ -32,6 +33,7 @@ fn main() {
 
 fn setup_camera(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands.spawn_bundle(UiCameraBundle::default());
 }
 
 fn setup_ground(mut commands: Commands) {
