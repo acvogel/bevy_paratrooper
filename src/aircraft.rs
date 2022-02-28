@@ -23,10 +23,10 @@ fn should_spawn_aircraft() -> bool {
 fn spawn_aircraft_system(mut commands: Commands, _time: Res<Time>) {
     if should_spawn_aircraft() {
         let aircraft = create_aircraft();
-        info!(
-            "Spawning velocity_x {} position {}",
-            aircraft.velocity_x, aircraft.position.translation
-        );
+        //info!(
+        //    "Spawning velocity_x {} position {}",
+        //    aircraft.velocity_x, aircraft.position.translation
+        //);
         commands
             .spawn_bundle(SpriteBundle {
                 sprite: Sprite {

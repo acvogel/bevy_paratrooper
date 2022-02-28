@@ -6,20 +6,13 @@ pub struct Score {
     pub aircraft_kills: u32,
     pub aircraft_escapes: u32,
     pub paratrooper_kills: u32,
+    pub paratroopers_landed: u32,
 }
 
 #[derive(Component)]
 pub struct ClockText;
 
-//fn print_score(score: Res<Score>) {
-//    info!(
-//        "Score: shots {} aa {} ap {}",
-//        score.shots, score.aircraft_kills, score.paratrooper_kills
-//    );
-//}
-
 fn update_clock(time: Res<Time>, mut query: Query<&mut Text, With<ClockText>>) {
-    info!("update clock");
     for mut text in query.iter_mut() {
         text.sections[0].value = get_clock_string(time.seconds_since_startup());
     }
@@ -50,7 +43,7 @@ fn setup_score_ui(mut commands: Commands, time: Res<Time>, asset_server: Res<Ass
                 get_clock_string(time.seconds_since_startup()),
                 TextStyle {
                     font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: 100.,
+                    font_size: 60.,
                     color: Color::RED,
                 },
                 TextAlignment {

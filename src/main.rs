@@ -3,11 +3,14 @@ use bevy::prelude::*;
 use aircraft::AircraftPlugin;
 use bullet::BulletPlugin;
 use gun::GunPlugin;
+use paratrooper::ParatrooperPlugin;
 use score::ScorePlugin;
 
 mod aircraft;
 mod bullet;
+mod consts;
 mod gun;
+mod paratrooper;
 mod score;
 
 fn main() {
@@ -24,6 +27,7 @@ fn main() {
         .add_plugin(GunPlugin)
         .add_plugin(BulletPlugin)
         .add_plugin(AircraftPlugin)
+        .add_plugin(ParatrooperPlugin)
         .add_plugin(ScorePlugin)
         .add_startup_system(setup_camera)
         .add_startup_system(setup_ground)
@@ -43,7 +47,7 @@ fn setup_ground(mut commands: Commands) {
             custom_size: Some(Vec2::new(1280., 600.)),
             ..Default::default()
         },
-        transform: Transform::from_translation(Vec3::new(0., -500., 0.)),
+        transform: Transform::from_translation(Vec3::new(0., consts::GROUND_Y, 0.)),
         ..Default::default()
     });
 }
