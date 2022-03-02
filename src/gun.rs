@@ -1,33 +1,37 @@
 use bevy::prelude::*;
 
+use crate::consts;
+
 #[derive(Component)]
 pub struct Gun {
     pub last_fired: f64,
 }
 
 pub fn setup_gun_base(mut commands: Commands) {
-    let y = -201. + 32.; // (-600/2 - 500 + 64/2)
+    let h = 64.;
+    let w = 64.;
+    let y = consts::GROUND_Y + 0.5 * h;
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(-0.1, 0.1, 0.1),
-            custom_size: Some(Vec2::new(64., 64.)),
+            custom_size: Some(Vec2::new(w, h)),
             ..Default::default()
         },
-        transform: Transform::from_translation(Vec3::new(0., y, 1.)),
+        transform: Transform::from_translation(Vec3::new(0., y, 2.)),
         ..Default::default()
     });
 }
 
 pub fn setup_gun(mut commands: Commands) {
-    let y = -201. + 32. + 40.;
+    let y = consts::GROUND_Y + 64.;
     commands
         .spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::rgb(0.0, 0., 0.),
+                color: Color::rgb(0.32, 0.36, 0.41),
                 custom_size: Some(Vec2::new(20., 60.)),
                 ..Default::default()
             },
-            transform: Transform::from_translation(Vec3::new(0., y, 0.)),
+            transform: Transform::from_translation(Vec3::new(0., y, 1.)),
             ..Default::default()
         })
         .insert(Gun { last_fired: 0. });

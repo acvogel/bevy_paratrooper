@@ -1,11 +1,11 @@
 use crate::aircraft::Aircraft;
+use crate::consts;
 use crate::score::Score;
 use bevy::prelude::*;
 use rand::Rng;
 
 const PARATROOPER_VELOCITY: f32 = 50.;
-const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.05;
-const PARATROOPER_Y: f32 = -150.;
+const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.001;
 
 #[derive(Component)]
 pub struct Paratrooper {
@@ -39,7 +39,6 @@ fn spawn_paratroopers(
                         ..Default::default()
                     },
                     transform: paratrooper_transform,
-                    //visibility: Visibility { is_visible: true },
                     ..Default::default()
                 })
                 .insert(Paratrooper {
@@ -55,12 +54,13 @@ fn paratrooper_physics(
     mut query: Query<(&mut Paratrooper, &mut Transform)>,
 ) {
     for (mut paratrooper, mut transform) in query.iter_mut() {
+        // TODO figure out bottom of paratrooper vs middle. +height. how we do.
         match paratrooper.state {
             ParatrooperState::Falling => {
                 let drop = PARATROOPER_VELOCITY * time.delta_seconds();
-                transform.translation.y = PARATROOPER_Y.max(transform.translation.y - drop);
+                transform.translation.y = consts::GROUND_Y.max(transform.translation.y - drop);
                 // No longer falling on the ground
-                if transform.translation.y - PARATROOPER_Y < 0.0000001 {
+                if transform.translation.y - consts::GROUND_Y < 0.0000001 {
                     paratrooper.state = ParatrooperState::Walking;
                     score.paratroopers_landed += 1;
                 }

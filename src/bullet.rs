@@ -2,14 +2,22 @@ use bevy::prelude::*;
 use bevy::sprite::collide_aabb::collide;
 
 use crate::aircraft::Aircraft;
+use crate::consts;
 use crate::gun::Gun;
 use crate::paratrooper::Paratrooper;
 use crate::score::Score;
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Bullet {
     pub speed: f32,
 }
+//impl Default for Bullet {
+//    fn default() -> Self {
+//        Bullet {
+//            speed: consts::BULLET_SPEED,
+//        }
+//    }
+//}
 
 /// Load bullet assets
 fn setup_bullets(
@@ -77,7 +85,7 @@ fn shoot_gun(
     if keyboard_input.pressed(KeyCode::Space) {
         for (mut gun, transform) in query.iter_mut() {
             // check can fire
-            if time.seconds_since_startup() - gun.last_fired > 0.5 {
+            if time.seconds_since_startup() - gun.last_fired > consts::GUN_COOLDOWN {
                 gun.last_fired = time.seconds_since_startup();
                 score.shots += 1;
 
@@ -100,7 +108,9 @@ fn shoot_gun(
                         transform: bullet_transform,
                         ..Default::default()
                     })
-                    .insert(Bullet { speed: 100. });
+                    .insert(Bullet {
+                        speed: consts::BULLET_SPEED,
+                    });
             }
         }
     }

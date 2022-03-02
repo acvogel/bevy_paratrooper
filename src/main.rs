@@ -19,8 +19,8 @@ fn main() {
     App::new()
         .insert_resource(WindowDescriptor {
             title: "Paratrooper".to_string(),
-            width: 1280.,
-            height: 720.,
+            width: consts::WINDOW_WIDTH,
+            height: consts::WINDOW_HEIGHT,
             vsync: true,
             resizable: false,
             ..Default::default()

@@ -43,7 +43,7 @@ fn spawn_aircraft_system(mut commands: Commands, _time: Res<Time>) {
 
 fn create_aircraft() -> Aircraft {
     let mut rng = rand::thread_rng();
-    let y = rng.gen_range(-100. ..350.);
+    let y = rng.gen_range(0. ..350.);
     let heading_right = rng.gen_bool(0.5);
     let speed = rng.gen_range(0.8..1.4) * AIRCRAFT_SPEED;
     if heading_right {
