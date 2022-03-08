@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use rand::Rng;
 
 const PARATROOPER_VELOCITY: f32 = 50.;
-const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.001;
+const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.003;
 
 #[derive(Component)]
 pub struct Paratrooper {

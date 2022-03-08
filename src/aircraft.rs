@@ -11,30 +11,30 @@ pub struct Aircraft {
 }
 
 const AIRCRAFT_SPEED: f32 = 40.;
-const SPAWN_PROBABILITY: f32 = 0.008;
+const AIRCRAFT_SPAWN_PROBABILITY: f32 = 0.008;
 const SPAWN_LEFT_X: f32 = -640.;
 const SPAWN_RIGHT_X: f32 = 640.;
 
 fn should_spawn_aircraft() -> bool {
     let mut rng = rand::thread_rng();
-    rng.gen_range(0.0..1.0) < SPAWN_PROBABILITY
+    rng.gen_range(0.0..1.0) < AIRCRAFT_SPAWN_PROBABILITY
 }
 
-fn spawn_aircraft_system(mut commands: Commands, _time: Res<Time>) {
+fn spawn_aircraft_system(mut commands: Commands, _time: Res<Time>, asset_server: Res<AssetServer>) {
     if should_spawn_aircraft() {
         let aircraft = create_aircraft();
-        //info!(
-        //    "Spawning velocity_x {} position {}",
-        //    aircraft.velocity_x, aircraft.position.translation
-        //);
         commands
+            // spawn aircraft texture here
             .spawn_bundle(SpriteBundle {
+                // 412 x 114 pixels. 0.3 scale.
+                texture: asset_server.load("gfx/planes/paraplane1.png"), // XXX handle
                 sprite: Sprite {
-                    color: Color::rgb(1.0, 0., 0.),
-                    custom_size: Some(Vec2::new(30., 10.)),
+                    //custom_size: Some(Vec2::new(412., 114.)),
+                    flip_x: aircraft.velocity_x < 0.,
                     ..Default::default()
                 },
-                transform: aircraft.position,
+                transform: aircraft.position.with_scale(Vec3::splat(0.3)),
+
                 ..Default::default()
             })
             .insert(aircraft);
@@ -43,9 +43,9 @@ fn spawn_aircraft_system(mut commands: Commands, _time: Res<Time>) {
 
 fn create_aircraft() -> Aircraft {
     let mut rng = rand::thread_rng();
-    let y = rng.gen_range(0. ..350.);
+    let y = rng.gen_range(0. ..350.); // TODO clearance lanes to avoid existing planes, unless same direction
     let heading_right = rng.gen_bool(0.5);
-    let speed = rng.gen_range(0.8..1.4) * AIRCRAFT_SPEED;
+    let speed = rng.gen_range(0.8..1.3) * AIRCRAFT_SPEED;
     if heading_right {
         Aircraft {
             velocity_x: speed,
@@ -83,11 +83,16 @@ fn despawn_aircraft(
     }
 }
 
+fn setup_aircraft_system(mut commands: Commands, asset_server: ResMut<AssetServer>) {
+    //commands.insert_resource(asset_server.load("gfx/planes/paraplane1.png") as Handle<Image>);
+}
+
 pub struct AircraftPlugin;
 
 impl Plugin for AircraftPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(spawn_aircraft_system)
+        app.add_startup_system(setup_aircraft_system)
+            .add_system(spawn_aircraft_system)
             .add_system(despawn_aircraft)
             .add_system(fly_aircraft);
     }

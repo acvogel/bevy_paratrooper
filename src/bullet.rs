@@ -130,7 +130,8 @@ fn collision_system(
         for (aircraft_entity, _aircraft, aircraft_transform) in aircraft.iter_mut() {
             let collision_check = collide(
                 aircraft_transform.translation,
-                Vec2::new(30., 10.), // TODO use sprite values
+                // 412 x 114 pixels. 0.3 scale
+                Vec2::new(412. * 0.3, 114. * 0.3),
                 bullet_transform.translation,
                 Vec2::new(24., 24.),
             );
