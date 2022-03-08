@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Clone, Copy)]
 pub struct Score {
     pub shots: u32,
     pub aircraft_kills: u32,
@@ -12,16 +12,21 @@ pub struct Score {
 #[derive(Component)]
 pub struct ClockText;
 
-fn update_clock(time: Res<Time>, mut query: Query<&mut Text, With<ClockText>>) {
+fn update_clock(time: Res<Time>, mut query: Query<&mut Text, With<ClockText>>, score: Res<Score>) {
     for mut text in query.iter_mut() {
-        text.sections[0].value = get_clock_string(time.seconds_since_startup());
+        text.sections[0].value = get_clock_string(time.seconds_since_startup(), *score);
     }
 }
 
-fn get_clock_string(seconds_since_startup: f64) -> String {
+fn get_clock_string(seconds_since_startup: f64, score: Score) -> String {
     let minutes = (seconds_since_startup / 60.).floor();
     let seconds = (seconds_since_startup % 60.).floor();
-    format!("{:02}:{:02}", minutes, seconds)
+    let clock_str = format!(
+        "{:02}:{:02}\nShots: {}\nPlanes: {}\nTroops: {}",
+        minutes, seconds, score.shots, score.aircraft_kills, score.paratrooper_kills
+    );
+
+    clock_str
 }
 
 // UI: simple text somewhere like upper left for now
@@ -30,7 +35,6 @@ fn setup_score_ui(mut commands: Commands, time: Res<Time>, asset_server: Res<Ass
     commands
         .spawn_bundle(TextBundle {
             style: Style {
-                align_self: AlignSelf::Center,
                 position_type: PositionType::Absolute,
                 position: Rect {
                     top: Val::Px(15.),
@@ -40,10 +44,11 @@ fn setup_score_ui(mut commands: Commands, time: Res<Time>, asset_server: Res<Ass
                 ..Default::default()
             },
             text: Text::with_section(
-                get_clock_string(time.seconds_since_startup()),
+                "",
+                //get_clock_string(time.seconds_since_startup(), Score::default()),
                 TextStyle {
                     font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: 60.,
+                    font_size: 40.,
                     color: Color::RED,
                 },
                 TextAlignment {
@@ -54,7 +59,6 @@ fn setup_score_ui(mut commands: Commands, time: Res<Time>, asset_server: Res<Ass
             ..Default::default()
         })
         .insert(ClockText);
-    // TODO stats on shots, kills, escapes. should be icons using the same sprites, up in the corner or bottom.
 }
 
 pub struct ScorePlugin;
