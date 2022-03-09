@@ -65,7 +65,7 @@ fn paratrooper_physics(
                 let min_y = consts::GROUND_Y + 0.25 * paratrooper.display_size.y;
                 transform.translation.y = min_y.max(transform.translation.y - drop);
                 // No longer falling on the ground
-                if math.abs(transform.translation.y - min_y) < 0.0000001 {
+                if (transform.translation.y - min_y).abs() < 0.0000001 {
                     info!("paratrooper landed");
                     paratrooper.state = ParatrooperState::Walking;
                     score.paratroopers_landed += 1;

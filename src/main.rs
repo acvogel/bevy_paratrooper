@@ -1,5 +1,7 @@
 use bevy::prelude::*;
+use bevy_kira_audio::{Audio, AudioPlugin};
 
+use crate::audio::AudioStatePlugin;
 use aircraft::AircraftPlugin;
 use bullet::BulletPlugin;
 use events::*;
@@ -9,6 +11,7 @@ use score::ScorePlugin;
 use terrain::TerrainPlugin;
 
 mod aircraft;
+mod audio;
 mod bullet;
 mod consts;
 mod events;
@@ -36,6 +39,8 @@ fn main() {
         .add_plugin(ParatrooperPlugin)
         .add_plugin(ScorePlugin)
         .add_plugin(TerrainPlugin)
+        .add_plugin(AudioStatePlugin)
+        .add_plugin(AudioPlugin)
         .add_startup_system(setup_camera)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
