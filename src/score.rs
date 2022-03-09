@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::events::*;
+
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct Score {
     pub shots: u32,
@@ -11,6 +13,21 @@ pub struct Score {
 
 #[derive(Component)]
 pub struct ClockText;
+
+fn kill_listener_system(mut events: EventReader<BulletCollisionEvent>, mut score: ResMut<Score>) {
+    for bullet_collision_event in events.iter() {
+        match bullet_collision_event.collision_type {
+            CollisionType::Paratrooper => score.paratrooper_kills += 1,
+            CollisionType::Aircraft => score.aircraft_kills += 1,
+        }
+    }
+}
+
+fn gun_listener_system(mut events: EventReader<GunshotEvent>, mut score: ResMut<Score>) {
+    for _gunshot in events.iter() {
+        score.shots += 1;
+    }
+}
 
 fn update_clock(time: Res<Time>, mut query: Query<&mut Text, With<ClockText>>, score: Res<Score>) {
     for mut text in query.iter_mut() {
@@ -67,6 +84,8 @@ impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Score>()
             .add_startup_system(setup_score_ui)
+            .add_system(kill_listener_system)
+            .add_system(gun_listener_system)
             .add_system(update_clock);
     }
 }

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use aircraft::AircraftPlugin;
 use bullet::BulletPlugin;
+use events::*;
 use gun::GunPlugin;
 use paratrooper::ParatrooperPlugin;
 use score::ScorePlugin;
@@ -10,6 +11,7 @@ use terrain::TerrainPlugin;
 mod aircraft;
 mod bullet;
 mod consts;
+mod events;
 mod gun;
 mod paratrooper;
 mod score;
@@ -25,6 +27,8 @@ fn main() {
             resizable: false,
             ..Default::default()
         })
+        .add_event::<BulletCollisionEvent>()
+        .add_event::<GunshotEvent>()
         .add_plugins(DefaultPlugins)
         .add_plugin(GunPlugin)
         .add_plugin(BulletPlugin)

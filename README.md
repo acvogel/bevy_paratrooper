@@ -4,10 +4,11 @@ X bullet collisions with planes and associated despawns
 * explosion animation
 X paratrooper drops
 * gun cooldown or bullet limit
-* score
+x score
 * sound effects
 * paratrooper shots?
-* background image
+X background image
 * webasm build and deploy
+* heron or bevy_rapier for physics
 
 https://opengameart.org/content/war-on-water-gfx

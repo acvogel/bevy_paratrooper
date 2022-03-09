@@ -5,11 +5,14 @@ use bevy::prelude::*;
 use rand::Rng;
 
 const PARATROOPER_VELOCITY: f32 = 50.;
+const PARATROOPER_WALK_SPEED: f32 = 10.;
 const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.003;
+//const PARATROOPER_SIZE: Vec2 = Vec2::new(89., 123.);
 
 #[derive(Component)]
 pub struct Paratrooper {
     state: ParatrooperState,
+    display_size: Vec2,
 }
 
 enum ParatrooperState {
@@ -31,11 +34,12 @@ fn spawn_paratroopers(
         if rng.gen_range(0.0..1.0) < PARATROOPER_SPAWN_PROBABILITY {
             let mut paratrooper_transform = transform.clone();
             paratrooper_transform.scale = Vec3::splat(0.5);
+            let sprite_size = Vec2::new(89., 123.);
             commands
                 .spawn_bundle(SpriteBundle {
                     texture: asset_server.load("gfx/paratroopers/paratrooperfly1.png"),
                     sprite: Sprite {
-                        custom_size: Some(Vec2::new(89., 123.)),
+                        custom_size: Some(sprite_size),
                         ..Default::default()
                     },
                     transform: paratrooper_transform,
@@ -43,6 +47,7 @@ fn spawn_paratroopers(
                 })
                 .insert(Paratrooper {
                     state: ParatrooperState::Falling,
+                    display_size: sprite_size,
                 });
         }
     }
@@ -54,19 +59,24 @@ fn paratrooper_physics(
     mut query: Query<(&mut Paratrooper, &mut Transform)>,
 ) {
     for (mut paratrooper, mut transform) in query.iter_mut() {
-        // TODO figure out bottom of paratrooper vs middle. +height. how we do.
         match paratrooper.state {
             ParatrooperState::Falling => {
                 let drop = PARATROOPER_VELOCITY * time.delta_seconds();
-                transform.translation.y = consts::GROUND_Y.max(transform.translation.y - drop);
+                let min_y = consts::GROUND_Y + 0.25 * paratrooper.display_size.y;
+                transform.translation.y = min_y.max(transform.translation.y - drop);
                 // No longer falling on the ground
-                if transform.translation.y - consts::GROUND_Y < 0.0000001 {
+                if math.abs(transform.translation.y - min_y) < 0.0000001 {
+                    info!("paratrooper landed");
                     paratrooper.state = ParatrooperState::Walking;
                     score.paratroopers_landed += 1;
                 }
             }
             ParatrooperState::Walking => {
-                // TODO walking
+                if transform.translation.x > 0. {
+                    transform.translation.x -= PARATROOPER_WALK_SPEED * time.delta_seconds();
+                } else {
+                    transform.translation.x += PARATROOPER_WALK_SPEED * time.delta_seconds();
+                }
             }
         }
     }

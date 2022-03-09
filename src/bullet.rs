@@ -3,6 +3,7 @@ use bevy::sprite::collide_aabb::collide;
 
 use crate::aircraft::Aircraft;
 use crate::consts;
+use crate::events::*;
 use crate::gun::Gun;
 use crate::paratrooper::Paratrooper;
 use crate::score::Score;
@@ -62,7 +63,7 @@ fn shoot_gun(
     asset_server: Res<AssetServer>,
     mut query: Query<(&mut Gun, &Transform)>,
     time: Res<Time>,
-    mut score: ResMut<Score>,
+    mut event_writer: EventWriter<GunshotEvent>,
     //texture_atlas: Res<TextureAtlas>,
     //texture_atlases: Mut<Assets<TextureAtlas>>,
 ) {
@@ -86,8 +87,9 @@ fn shoot_gun(
         for (mut gun, transform) in query.iter_mut() {
             // check can fire
             if time.seconds_since_startup() - gun.last_fired > consts::GUN_COOLDOWN {
+                event_writer.send(GunshotEvent);
                 gun.last_fired = time.seconds_since_startup();
-                score.shots += 1;
+                //score.shots += 1;
 
                 let mut bullet_transform = transform.clone();
                 bullet_transform.translation =
@@ -121,7 +123,7 @@ fn collision_system(
     mut aircraft: Query<(Entity, &Aircraft, &Transform)>,
     mut bullets: Query<(Entity, &Bullet, &Transform)>,
     mut paratroopers: Query<(Entity, &Paratrooper, &Transform)>,
-    mut score: ResMut<Score>,
+    mut event_writer: EventWriter<BulletCollisionEvent>,
 ) {
     for (bullet_entity, _bullet, bullet_transform) in bullets.iter_mut() {
         let mut despawn_bullet = false;
@@ -136,10 +138,12 @@ fn collision_system(
                 Vec2::new(24., 24.),
             );
             if let Some(_collision) = collision_check {
-                println!("aircraft hit");
                 despawn_bullet = true;
                 commands.entity(aircraft_entity).despawn();
-                score.aircraft_kills += 1;
+                event_writer.send(BulletCollisionEvent {
+                    translation: aircraft_transform.translation,
+                    collision_type: CollisionType::Aircraft,
+                });
             }
         }
 
@@ -152,10 +156,12 @@ fn collision_system(
                 Vec2::new(24., 24.),
             );
             if let Some(_collision) = collision_check {
-                info!("paratrooper hit");
                 despawn_bullet = true;
                 commands.entity(paratrooper_entity).despawn();
-                score.paratrooper_kills += 1;
+                event_writer.send(BulletCollisionEvent {
+                    translation: bullet_transform.translation,
+                    collision_type: CollisionType::Paratrooper,
+                });
             }
         }
 
