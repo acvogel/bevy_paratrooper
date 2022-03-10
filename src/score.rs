@@ -47,7 +47,7 @@ fn get_clock_string(seconds_since_startup: f64, score: Score) -> String {
 }
 
 // UI: simple text somewhere like upper left for now
-fn setup_score_ui(mut commands: Commands, time: Res<Time>, asset_server: Res<AssetServer>) {
+fn setup_score_ui(mut commands: Commands, _time: Res<Time>, asset_server: Res<AssetServer>) {
     // Top center Timer MM:SS
     commands
         .spawn_bundle(TextBundle {

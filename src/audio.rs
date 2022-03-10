@@ -1,13 +1,12 @@
 use crate::GunshotEvent;
-use bevy::asset::Asset;
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioPlugin, AudioSource};
+use bevy_kira_audio::{Audio, AudioSource};
 
 struct AudioState {
     gunshot_handle: Handle<AudioSource>,
 }
 
-fn setup_audio_system(mut commands: Commands, mut asset_server: ResMut<AssetServer>) {
+fn setup_audio_system(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     let gunshot_handle = asset_server.load("audio/gunshotjbudden_P9IlJlC.mp3");
     let audio_state = AudioState {
         gunshot_handle: gunshot_handle,

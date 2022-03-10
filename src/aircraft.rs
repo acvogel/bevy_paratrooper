@@ -83,7 +83,7 @@ fn despawn_aircraft(
     }
 }
 
-fn setup_aircraft_system(mut commands: Commands, asset_server: ResMut<AssetServer>) {
+fn setup_aircraft_system(mut _commands: Commands, _asset_server: ResMut<AssetServer>) {
     //commands.insert_resource(asset_server.load("gfx/planes/paraplane1.png") as Handle<Image>);
 }
 

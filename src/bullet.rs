@@ -6,7 +6,6 @@ use crate::consts;
 use crate::events::*;
 use crate::gun::Gun;
 use crate::paratrooper::Paratrooper;
-use crate::score::Score;
 
 #[derive(Component, Default)]
 pub struct Bullet {
