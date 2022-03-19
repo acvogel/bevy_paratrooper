@@ -5,11 +5,11 @@ use bevy_rapier2d::prelude::*;
 const GROUND_COLOR: Color = Color::rgb(0., 0.68, 0.32);
 
 // TODO
-// 1. paratroopers don't collide with each other
+// X. paratroopers don't collide with each other
 // 2. ground collider matches the ground sprite
 // 3. gun collider
 // 4. intersection event paratrooper -> gun collider?
-// 5. non-bouncing paratroopers
+// X. non-bouncing paratroopers (done mostly)
 
 // other project:
 // separate the sprite for parachute and paratrooper
