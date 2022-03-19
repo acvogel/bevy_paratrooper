@@ -24,7 +24,6 @@ fn spawn_aircraft_system(mut commands: Commands, _time: Res<Time>, asset_server:
     if should_spawn_aircraft() {
         let aircraft = create_aircraft();
         commands
-            // spawn aircraft texture here
             .spawn_bundle(SpriteBundle {
                 // 412 x 114 pixels. 0.3 scale.
                 texture: asset_server.load("gfx/planes/paraplane1.png"), // XXX handle

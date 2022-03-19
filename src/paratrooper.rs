@@ -2,6 +2,7 @@ use crate::aircraft::Aircraft;
 use crate::consts;
 use crate::score::Score;
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
 const PARATROOPER_VELOCITY: f32 = 50.;
@@ -35,20 +36,50 @@ fn spawn_paratroopers(
             let mut paratrooper_transform = transform.clone();
             paratrooper_transform.scale = Vec3::splat(0.5);
             let sprite_size = Vec2::new(89., 123.);
-            commands
-                .spawn_bundle(SpriteBundle {
-                    texture: asset_server.load("gfx/paratroopers/paratrooperfly1.png"),
-                    sprite: Sprite {
-                        custom_size: Some(sprite_size),
-                        ..Default::default()
-                    },
-                    transform: paratrooper_transform,
+            let sprite_bundle = SpriteBundle {
+                texture: asset_server.load("gfx/paratroopers/paratrooperfly1.png"),
+                sprite: Sprite {
+                    custom_size: Some(sprite_size),
                     ..Default::default()
-                })
-                .insert(Paratrooper {
-                    state: ParatrooperState::Falling,
-                    display_size: sprite_size,
-                });
+                },
+                transform: paratrooper_transform,
+                ..Default::default()
+            };
+
+            let paratrooper = Paratrooper {
+                state: ParatrooperState::Falling,
+                display_size: sprite_size,
+            };
+
+            let collider = ColliderBundle {
+                shape: ColliderShape::cuboid(89. / 4., 123. / 4.).into(), // XXX bad shape?
+                flags: ColliderFlags {
+                    // No collisions with other paratroopers
+                    collision_groups: InteractionGroups::new(0b0001, 0b1110),
+                    ..Default::default()
+                }
+                .into(),
+                ..Default::default()
+            };
+
+            let body = RigidBodyBundle {
+                body_type: RigidBodyTypeComponent(RigidBodyType::Dynamic),
+                // should be relative to sprite center, like 0.5*x, 0.5*y width/height
+                position: [
+                    paratrooper_transform.translation.x,
+                    paratrooper_transform.translation.y,
+                ]
+                .into(),
+                ..Default::default()
+            };
+
+            commands
+                .spawn_bundle(sprite_bundle)
+                .insert_bundle(body)
+                .insert_bundle(collider)
+                .insert(paratrooper)
+                .insert(ColliderDebugRender::with_id(1))
+                .insert(ColliderPositionSync::Discrete);
         }
     }
 }
@@ -58,6 +89,7 @@ fn paratrooper_physics(
     mut score: ResMut<Score>,
     mut query: Query<(&mut Paratrooper, &mut Transform)>,
 ) {
+    // XXX will need to move the sprite bundle to match the rigid body position?
     for (mut paratrooper, mut transform) in query.iter_mut() {
         match paratrooper.state {
             ParatrooperState::Falling => {
@@ -68,7 +100,7 @@ fn paratrooper_physics(
                 if (transform.translation.y - min_y).abs() < 0.0000001 {
                     info!("paratrooper landed");
                     paratrooper.state = ParatrooperState::Walking;
-                    score.paratroopers_landed += 1;
+                    score.paratroopers_landed += 1; // todo add event for score update
                 }
             }
             ParatrooperState::Walking => {
