@@ -143,35 +143,6 @@ fn paratrooper_landing_system(
     }
 }
 
-//    time: Res<Time>,
-//    mut score: ResMut<Score>,
-//    mut query: Query<(&mut Paratrooper, &mut Transform)>,
-//) {
-//    // XXX will need to move the sprite bundle to match the rigid body position?
-//    for (mut paratrooper, mut transform) in query.iter_mut() {
-//        match paratrooper.state {
-//            ParatrooperState::Falling => {
-//                let drop = PARATROOPER_VELOCITY * time.delta_seconds();
-//                let min_y = consts::GROUND_Y + 0.25 * paratrooper.display_size.y;
-//                transform.translation.y = min_y.max(transform.translation.y - drop);
-//                // No longer falling on the ground
-//                if (transform.translation.y - min_y).abs() < f32::EPSILON {
-//                    info!("paratrooper landed");
-//                    paratrooper.state = ParatrooperState::Walking;
-//                    score.paratroopers_landed += 1; // todo add event for score update
-//                }
-//            }
-//            ParatrooperState::Walking => {
-//                if transform.translation.x > 0. {
-//                    transform.translation.x -= PARATROOPER_WALK_SPEED * time.delta_seconds();
-//                } else {
-//                    transform.translation.x += PARATROOPER_WALK_SPEED * time.delta_seconds();
-//                }
-//            }
-//        }
-//    }
-//}
-
 pub struct ParatrooperPlugin;
 
 impl Plugin for ParatrooperPlugin {
