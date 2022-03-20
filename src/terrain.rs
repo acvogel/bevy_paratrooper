@@ -7,24 +7,9 @@ const GROUND_COLOR: Color = Color::rgb(0., 0.68, 0.32);
 #[derive(Component)]
 pub struct Ground;
 
-// TODO
-// X. paratroopers don't collide with each other
-// X. ground collider matches the ground sprite
-// X. gun collider
-// 4. intersection event paratrooper -> gun collider?
-// X. non-bouncing paratroopers (done mostly)
-
-// other project:
-// separate the sprite for parachute and paratrooper
-// deploy parachute after dropping and modify drag accordingly
-// terminal velocity on paratrooper
-// parachute despawn after paratrooper landing (collision event detection)
-
 fn setup_ground(mut commands: Commands) {
     let custom_size = Some(Vec2::new(consts::WINDOW_WIDTH, consts::GROUND_THICKNESS));
-    // starting point: window bottom + 1/2 thickness
     let y = (-consts::WINDOW_HEIGHT + consts::GROUND_THICKNESS) / 2.;
-    //let y = consts::GROUND_Y / 2.; // middle of ground
     let sprite_bundle = SpriteBundle {
         sprite: Sprite {
             color: GROUND_COLOR,

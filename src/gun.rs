@@ -49,7 +49,7 @@ pub fn setup_gun(mut commands: Commands) {
                 custom_size: Some(Vec2::new(20., 60.)),
                 ..Default::default()
             },
-            transform: Transform::from_translation(Vec3::new(0., y, 1.)),
+            transform: Transform::from_translation(Vec3::new(0., y, 2.)),
             ..Default::default()
         })
         .insert(Gun { last_fired: 0. });

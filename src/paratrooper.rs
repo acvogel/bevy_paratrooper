@@ -1,15 +1,13 @@
 use crate::aircraft::Aircraft;
-use crate::score::Score;
 use crate::terrain::Ground;
-use crate::{consts, LandingEvent};
+use crate::LandingEvent;
 use bevy::prelude::*;
+use bevy_rapier2d::na::Isometry2;
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
-const PARATROOPER_VELOCITY: f32 = 50.;
 const PARATROOPER_WALK_SPEED: f32 = 10.;
 const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.003;
-//const PARATROOPER_SIZE: Vec2 = Vec2::new(89., 123.);
 
 #[derive(Component)]
 pub struct Paratrooper {
@@ -34,9 +32,7 @@ fn spawn_paratroopers(
     let mut rng = rand::thread_rng();
     for (_aircraft, transform) in query.iter_mut() {
         if rng.gen_range(0.0..1.0) < PARATROOPER_SPAWN_PROBABILITY {
-            // XXX lazy copied scale from aircraft.rs
-            let paratrooper_transform =
-                Transform::from_translation(transform.translation).with_scale(Vec3::splat(0.3));
+            let paratrooper_transform = transform.clone();
             let sprite_size = Vec2::new(89., 123.);
             let sprite_bundle = SpriteBundle {
                 texture: asset_server.load("gfx/paratroopers/paratrooperfly1.png"),
@@ -46,10 +42,6 @@ fn spawn_paratroopers(
                 },
                 transform: paratrooper_transform,
                 ..Default::default()
-            };
-
-            let paratrooper = Paratrooper {
-                state: ParatrooperState::Falling,
             };
 
             let collider = ColliderBundle {
@@ -70,12 +62,12 @@ fn spawn_paratroopers(
                 .into(),
                 ..Default::default()
             };
-            let body = RigidBodyBundle {
+            let rigid_body = RigidBodyBundle {
                 body_type: RigidBodyTypeComponent(RigidBodyType::Dynamic),
-                position: [
+                position: Isometry2::translation(
                     paratrooper_transform.translation.x,
                     paratrooper_transform.translation.y,
-                ]
+                )
                 .into(),
                 mass_properties: RigidBodyMassProps {
                     flags: RigidBodyMassPropsFlags::ROTATION_LOCKED,
@@ -86,13 +78,16 @@ fn spawn_paratroopers(
                 ..Default::default()
             };
 
+            let paratrooper = Paratrooper {
+                state: ParatrooperState::Falling,
+            };
+
             commands
-                .spawn_bundle(body)
+                .spawn_bundle(rigid_body)
+                .insert(RigidBodyPositionSync::Discrete)
                 .insert_bundle(collider)
-                .insert(paratrooper)
-                //.insert(ColliderDebugRender::with_id(1))
                 .insert_bundle(sprite_bundle)
-                .insert(ColliderPositionSync::Discrete);
+                .insert(paratrooper);
         }
     }
 }
@@ -107,35 +102,33 @@ fn paratrooper_landing_system(
         &mut RigidBodyVelocityComponent,
         &RigidBodyMassPropsComponent,
     )>,
-    ground_query: Query<(Entity, &Ground)>,
+    ground_query: Query<Entity, With<Ground>>,
     mut event_writer: EventWriter<LandingEvent>,
 ) {
-    let ground_entity = ground_query
-        .iter()
-        .next()
-        .expect("No ground entity spawned!")
-        .0;
     for contact_event in contact_events.iter() {
-        for (paratrooper_entity, mut paratrooper, transform, mut rb_vel, _rb_mprops) in
-            paratrooper_query.iter_mut()
-        {
-            if let ContactEvent::Started(handle1, handle2) = contact_event {
-                // Ground / Paratrooper contact
-                if (paratrooper_entity == handle1.entity() && ground_entity == handle2.entity())
-                    || (ground_entity == handle1.entity() && paratrooper_entity == handle2.entity())
-                {
-                    if paratrooper.state != ParatrooperState::Walking {
-                        info!("Landing event {:?}", contact_event);
-                        paratrooper.state = ParatrooperState::Walking;
-                        event_writer.send(LandingEvent);
+        for ground_entity in ground_query.iter() {
+            for (paratrooper_entity, mut paratrooper, transform, mut rb_vel, _rb_mprops) in
+                paratrooper_query.iter_mut()
+            {
+                if let ContactEvent::Started(handle1, handle2) = contact_event {
+                    // Ground / Paratrooper contact
+                    if (paratrooper_entity == handle1.entity() && ground_entity == handle2.entity())
+                        || (ground_entity == handle1.entity()
+                            && paratrooper_entity == handle2.entity())
+                    {
+                        if paratrooper.state != ParatrooperState::Walking {
+                            paratrooper.state = ParatrooperState::Walking;
+                            event_writer.send(LandingEvent);
 
-                        // Walk towards gun.
-                        let multiplier = if transform.translation.x > 0.0 {
-                            -1.
-                        } else {
-                            1.
-                        };
-                        rb_vel.linvel = Vec2::new(multiplier * PARATROOPER_WALK_SPEED, 0.0).into();
+                            // Walk towards gun.
+                            let multiplier = if transform.translation.x > 0.0 {
+                                -1.
+                            } else {
+                                1.
+                            };
+                            rb_vel.linvel =
+                                Vec2::new(multiplier * PARATROOPER_WALK_SPEED, 0.0).into();
+                        }
                     }
                 }
             }

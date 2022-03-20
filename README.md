@@ -10,6 +10,12 @@ x score
 X background image
 * webasm build and deploy
 * heron or bevy_rapier for physics
+* intersection event paratrooper -> gun collider?
+* separate the sprite for parachute and paratrooper
+* deploy parachute after dropping and modify drag accordingly
+* terminal velocity on paratrooper
+* parachute despawn after paratrooper landing (collision event detection)
+
 
 https://opengameart.org/content/war-on-water-gfx
 

@@ -12,8 +12,8 @@ pub struct Aircraft {
 
 const AIRCRAFT_SPEED: f32 = 40.;
 const AIRCRAFT_SPAWN_PROBABILITY: f32 = 0.008;
-const SPAWN_LEFT_X: f32 = -640.;
-const SPAWN_RIGHT_X: f32 = 640.;
+const SPAWN_LEFT_X: f32 = -600.;
+const SPAWN_RIGHT_X: f32 = 600.;
 
 fn should_spawn_aircraft() -> bool {
     let mut rng = rand::thread_rng();
