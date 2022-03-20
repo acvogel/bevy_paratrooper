@@ -4,10 +4,13 @@ use bevy_rapier2d::prelude::*;
 
 const GROUND_COLOR: Color = Color::rgb(0., 0.68, 0.32);
 
+#[derive(Component)]
+pub struct Ground;
+
 // TODO
 // X. paratroopers don't collide with each other
-// 2. ground collider matches the ground sprite
-// 3. gun collider
+// X. ground collider matches the ground sprite
+// X. gun collider
 // 4. intersection event paratrooper -> gun collider?
 // X. non-bouncing paratroopers (done mostly)
 
@@ -37,6 +40,8 @@ fn setup_ground(mut commands: Commands) {
         material: ColliderMaterial {
             restitution: 0.,
             restitution_combine_rule: CoefficientCombineRule::Min,
+            friction: 0.0,
+            friction_combine_rule: CoefficientCombineRule::Min,
             ..Default::default()
         }
         .into(),
@@ -52,7 +57,8 @@ fn setup_ground(mut commands: Commands) {
         .insert_bundle(body)
         .insert_bundle(collider)
         //.insert(ColliderDebugRender::with_id(0))
-        .insert(ColliderPositionSync::Discrete);
+        .insert(ColliderPositionSync::Discrete)
+        .insert(Ground);
 }
 
 fn setup_physics(mut configuration: ResMut<RapierConfiguration>) {

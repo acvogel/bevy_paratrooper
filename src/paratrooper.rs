@@ -1,6 +1,7 @@
 use crate::aircraft::Aircraft;
-use crate::consts;
 use crate::score::Score;
+use crate::terrain::Ground;
+use crate::{consts, LandingEvent};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
@@ -12,11 +13,11 @@ const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.003;
 
 #[derive(Component)]
 pub struct Paratrooper {
-    state: ParatrooperState,
-    display_size: Vec2,
+    pub state: ParatrooperState,
 }
 
-enum ParatrooperState {
+#[derive(PartialEq)]
+pub enum ParatrooperState {
     Falling,
     Walking,
 }
@@ -33,7 +34,9 @@ fn spawn_paratroopers(
     let mut rng = rand::thread_rng();
     for (_aircraft, transform) in query.iter_mut() {
         if rng.gen_range(0.0..1.0) < PARATROOPER_SPAWN_PROBABILITY {
-            let paratrooper_transform = transform.clone();
+            // XXX lazy copied scale from aircraft.rs
+            let paratrooper_transform =
+                Transform::from_translation(transform.translation).with_scale(Vec3::splat(0.3));
             let sprite_size = Vec2::new(89., 123.);
             let sprite_bundle = SpriteBundle {
                 texture: asset_server.load("gfx/paratroopers/paratrooperfly1.png"),
@@ -47,7 +50,6 @@ fn spawn_paratroopers(
 
             let paratrooper = Paratrooper {
                 state: ParatrooperState::Falling,
-                display_size: sprite_size,
             };
 
             let collider = ColliderBundle {
@@ -55,6 +57,8 @@ fn spawn_paratroopers(
                 flags: ColliderFlags {
                     // No collisions with other paratroopers (group 0)
                     collision_groups: InteractionGroups::new(0b0001, 0b1110),
+                    active_collision_types: ActiveCollisionTypes::all(),
+                    active_events: ActiveEvents::all(),
                     ..Default::default()
                 }
                 .into(),
@@ -87,20 +91,58 @@ fn spawn_paratroopers(
                 .insert_bundle(collider)
                 .insert(paratrooper)
                 //.insert(ColliderDebugRender::with_id(1))
-                .insert(ColliderPositionSync::Discrete)
-                .insert_bundle(sprite_bundle);
+                .insert_bundle(sprite_bundle)
+                .insert(ColliderPositionSync::Discrete);
         }
     }
 }
 
-// Detect landings
-// Either throw a paratrooper landing event, or just do it all in the handler here.
-// Impulse set velocity toward gun.
-// May want to turn on collisions, dunno about if too many land at once what we do.
-// then a gun collision check to form the bridge
-//fn detect_landings()
+// Detect paratrooper landings
+fn paratrooper_landing_system(
+    mut contact_events: EventReader<ContactEvent>,
+    mut paratrooper_query: Query<(
+        Entity,
+        &mut Paratrooper,
+        &Transform,
+        &mut RigidBodyVelocityComponent,
+        &RigidBodyMassPropsComponent,
+    )>,
+    ground_query: Query<(Entity, &Ground)>,
+    mut event_writer: EventWriter<LandingEvent>,
+) {
+    let ground_entity = ground_query
+        .iter()
+        .next()
+        .expect("No ground entity spawned!")
+        .0;
+    for contact_event in contact_events.iter() {
+        for (paratrooper_entity, mut paratrooper, transform, mut rb_vel, _rb_mprops) in
+            paratrooper_query.iter_mut()
+        {
+            if let ContactEvent::Started(handle1, handle2) = contact_event {
+                // Ground / Paratrooper contact
+                if (paratrooper_entity == handle1.entity() && ground_entity == handle2.entity())
+                    || (ground_entity == handle1.entity() && paratrooper_entity == handle2.entity())
+                {
+                    if paratrooper.state != ParatrooperState::Walking {
+                        info!("Landing event {:?}", contact_event);
+                        paratrooper.state = ParatrooperState::Walking;
+                        event_writer.send(LandingEvent);
 
-//fn paratrooper_physics(
+                        // Walk towards gun.
+                        let multiplier = if transform.translation.x > 0.0 {
+                            -1.
+                        } else {
+                            1.
+                        };
+                        rb_vel.linvel = Vec2::new(multiplier * PARATROOPER_WALK_SPEED, 0.0).into();
+                    }
+                }
+            }
+        }
+    }
+}
+
 //    time: Res<Time>,
 //    mut score: ResMut<Score>,
 //    mut query: Query<(&mut Paratrooper, &mut Transform)>,
@@ -135,7 +177,7 @@ pub struct ParatrooperPlugin;
 impl Plugin for ParatrooperPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_paratroopers)
+            .add_system(paratrooper_landing_system)
             .add_system(spawn_paratroopers);
-        //.add_system(paratrooper_physics);
     }
 }

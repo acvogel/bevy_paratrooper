@@ -34,6 +34,7 @@ fn main() {
         })
         .add_event::<BulletCollisionEvent>()
         .add_event::<GunshotEvent>()
+        .add_event::<LandingEvent>()
         .add_plugins(DefaultPlugins)
         .add_plugin(GunPlugin)
         .add_plugin(BulletPlugin)

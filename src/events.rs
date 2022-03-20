@@ -11,3 +11,5 @@ pub enum CollisionType {
 }
 
 pub struct GunshotEvent;
+
+pub struct LandingEvent;
