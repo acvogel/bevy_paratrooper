@@ -20,13 +20,19 @@ pub enum ParatrooperState {
     Walking,
 }
 
-fn setup_paratroopers(asset_server: Res<AssetServer>) {
-    let _handle: Handle<Image> = asset_server.load("gfx/paratroopers/paratrooperfly1.png");
+struct ParatrooperTextures {
+    pub image_handle: Handle<Image>,
+}
+
+fn setup_paratroopers(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.insert_resource(ParatrooperTextures {
+        image_handle: asset_server.load("gfx/paratroopers/paratrooperfly1.png"),
+    });
 }
 
 fn spawn_paratroopers(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    paratrooper_textures: Res<ParatrooperTextures>,
     mut query: Query<(&Aircraft, &Transform)>,
 ) {
     let mut rng = rand::thread_rng();
@@ -35,7 +41,7 @@ fn spawn_paratroopers(
             let paratrooper_transform = transform.clone();
             let sprite_size = Vec2::new(89., 123.);
             let sprite_bundle = SpriteBundle {
-                texture: asset_server.load("gfx/paratroopers/paratrooperfly1.png"),
+                texture: paratrooper_textures.image_handle.clone(),
                 sprite: Sprite {
                     custom_size: Some(sprite_size),
                     ..Default::default()

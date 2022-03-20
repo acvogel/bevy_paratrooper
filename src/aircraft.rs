@@ -15,18 +15,27 @@ const AIRCRAFT_SPAWN_PROBABILITY: f32 = 0.008;
 const SPAWN_LEFT_X: f32 = -600.;
 const SPAWN_RIGHT_X: f32 = 600.;
 
+struct AircraftTextures {
+    image_handle: Handle<Image>,
+}
+
 fn should_spawn_aircraft() -> bool {
     let mut rng = rand::thread_rng();
     rng.gen_range(0.0..1.0) < AIRCRAFT_SPAWN_PROBABILITY
 }
 
-fn spawn_aircraft_system(mut commands: Commands, _time: Res<Time>, asset_server: Res<AssetServer>) {
+fn spawn_aircraft_system(
+    mut commands: Commands,
+    _time: Res<Time>,
+    aircraft_textures: Res<AircraftTextures>,
+    _asset_server: Res<AssetServer>,
+) {
     if should_spawn_aircraft() {
         let aircraft = create_aircraft();
         commands
             .spawn_bundle(SpriteBundle {
                 // 412 x 114 pixels. 0.3 scale.
-                texture: asset_server.load("gfx/planes/paraplane1.png"), // XXX handle
+                texture: aircraft_textures.image_handle.clone(),
                 sprite: Sprite {
                     //custom_size: Some(Vec2::new(412., 114.)),
                     flip_x: aircraft.velocity_x < 0.,
@@ -82,8 +91,10 @@ fn despawn_aircraft(
     }
 }
 
-fn setup_aircraft_system(mut _commands: Commands, _asset_server: ResMut<AssetServer>) {
-    //commands.insert_resource(asset_server.load("gfx/planes/paraplane1.png") as Handle<Image>);
+fn setup_aircraft_system(mut commands: Commands, asset_server: ResMut<AssetServer>) {
+    commands.insert_resource(AircraftTextures {
+        image_handle: asset_server.load("gfx/planes/paraplane1.png"),
+    });
 }
 
 pub struct AircraftPlugin;
