@@ -51,7 +51,7 @@ fn spawn_paratroopers(
             };
 
             let collider = ColliderBundle {
-                shape: ColliderShape::cuboid(89. / 4., 123. / 4.).into(), // XXX bad shape?
+                shape: ColliderShape::cuboid(89. / 8., 123. / 8.).into(), // XXX bad shape?
                 flags: ColliderFlags {
                     // No collisions with other paratroopers (group 0)
                     collision_groups: InteractionGroups::new(0b0001, 0b1110),
@@ -66,7 +66,6 @@ fn spawn_paratroopers(
                 .into(),
                 ..Default::default()
             };
-
             let body = RigidBodyBundle {
                 body_type: RigidBodyTypeComponent(RigidBodyType::Dynamic),
                 position: [
@@ -93,6 +92,13 @@ fn spawn_paratroopers(
         }
     }
 }
+
+// Detect landings
+// Either throw a paratrooper landing event, or just do it all in the handler here.
+// Impulse set velocity toward gun.
+// May want to turn on collisions, dunno about if too many land at once what we do.
+// then a gun collision check to form the bridge
+//fn detect_landings()
 
 //fn paratrooper_physics(
 //    time: Res<Time>,

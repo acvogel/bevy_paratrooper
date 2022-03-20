@@ -32,7 +32,8 @@ fn setup_ground(mut commands: Commands) {
         ..Default::default()
     };
     let collider = ColliderBundle {
-        shape: ColliderShape::cuboid(consts::WINDOW_WIDTH, consts::GROUND_THICKNESS).into(),
+        shape: ColliderShape::cuboid(consts::WINDOW_WIDTH / 2.0, consts::GROUND_THICKNESS / 2.0)
+            .into(),
         material: ColliderMaterial {
             restitution: 0.,
             restitution_combine_rule: CoefficientCombineRule::Min,
