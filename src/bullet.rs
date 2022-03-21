@@ -1,8 +1,11 @@
 use bevy::prelude::*;
 use bevy::sprite::collide_aabb::collide;
+use bevy_rapier2d::na::Isometry2;
+use bevy_rapier2d::prelude::*;
 
 use crate::aircraft::Aircraft;
 use crate::consts;
+use crate::consts::BULLET_SPEED;
 use crate::events::*;
 use crate::gun::Gun;
 use crate::paratrooper::Paratrooper;
@@ -11,13 +14,16 @@ use crate::paratrooper::Paratrooper;
 pub struct Bullet {
     pub speed: f32,
 }
-//impl Default for Bullet {
-//    fn default() -> Self {
-//        Bullet {
-//            speed: consts::BULLET_SPEED,
-//        }
-//    }
-//}
+
+struct BulletTextures {
+    bullet_handle: Handle<Image>,
+}
+
+fn setup_bullets_rapier(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.insert_resource(BulletTextures {
+        bullet_handle: asset_server.load("bullet.png"),
+    });
+}
 
 /// Load bullet assets
 fn setup_bullets(
@@ -53,8 +59,76 @@ fn move_bullets(time: Res<Time>, mut query: Query<(&Bullet, &mut Transform)>) {
     }
 }
 
-/// Despawn bullets once off screen
-fn despawn_bullets() {}
+fn shoot_gun_rapier(
+    mut commands: Commands,
+    keyboard_input: Res<Input<KeyCode>>,
+    asset_server: Res<AssetServer>,
+    mut query: Query<(&mut Gun, &Transform)>,
+    time: Res<Time>,
+    mut event_writer: EventWriter<GunshotEvent>,
+    bullet_textures: Res<BulletTextures>,
+) {
+    if keyboard_input.pressed(KeyCode::Space) {
+        for (mut gun, transform) in query.iter_mut() {
+            if time.seconds_since_startup() - gun.last_fired > consts::GUN_COOLDOWN {
+                event_writer.send(GunshotEvent);
+                gun.last_fired = time.seconds_since_startup();
+                //let bullet_handle: Handle<Image> = asset_server.get_handle("bullet.png");
+
+                // Spawn bullet
+                let mut bullet_transform = transform.clone();
+                bullet_transform.translation =
+                    bullet_transform.translation + 30. * bullet_transform.local_y();
+
+                // velocity vector is local_y
+                let velocity_vector = consts::BULLET_SPEED * bullet_transform.local_y();
+                let rigid_body_bundle = RigidBodyBundle {
+                    //body_type: RigidBodyType::KinematicVelocityBased.into(),
+                    body_type: RigidBodyType::Dynamic.into(),
+                    position: bullet_transform.translation.into(),
+                    //position: Isometry2::new(Vec2::new(
+                    //    bullet_transform.translation.x,
+                    //    bullet_transform.translation.y,
+                    //))
+                    //.into(),
+                    velocity: RigidBodyVelocity {
+                        linvel: Vec2::new(velocity_vector.x, velocity_vector.y).into(),
+                        angvel: 0.0,
+                    }
+                    .into(),
+                    mass_properties: Default::default(),
+                    ..Default::default()
+                };
+
+                //custom_size: Some(Vec2::splat(24.)),
+                let collider_bundle = ColliderBundle {
+                    collider_type: ColliderType::Sensor.into(),
+                    shape: ColliderShape::cuboid(12.0, 12.0).into(),
+                    ..Default::default()
+                };
+
+                let sprite_bundle = SpriteBundle {
+                    texture: bullet_textures.bullet_handle.clone(),
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::splat(24.)),
+                        ..Default::default()
+                    },
+                    transform: bullet_transform,
+                    ..Default::default()
+                };
+
+                commands
+                    .spawn_bundle(rigid_body_bundle)
+                    .insert(RigidBodyPositionSync::Discrete)
+                    .insert_bundle(collider_bundle)
+                    .insert_bundle(sprite_bundle)
+                    .insert(Bullet {
+                        speed: BULLET_SPEED, // XXX get rid of this
+                    });
+            }
+        }
+    }
+}
 
 fn shoot_gun(
     mut commands: Commands,
@@ -174,10 +248,11 @@ pub struct BulletPlugin;
 
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_bullets)
-            .add_system(move_bullets)
-            .add_system(despawn_bullets)
-            .add_system(shoot_gun)
-            .add_system(collision_system);
+        //app.add_startup_system(setup_bullets)
+        //    .add_system(move_bullets)
+        //    .add_system(shoot_gun)
+        //    .add_system(collision_system);
+        app.add_startup_system(setup_bullets_rapier)
+            .add_system(shoot_gun_rapier);
     }
 }
