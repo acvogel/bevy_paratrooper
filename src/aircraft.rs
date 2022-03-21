@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 
 use rand::Rng;
 
@@ -6,9 +7,12 @@ use crate::score::Score;
 
 #[derive(Component, Default)]
 pub struct Aircraft {
-    velocity_x: f32,
+    pub velocity_x: f32,
     position: Transform,
 }
+
+#[derive(Component)]
+pub struct AircraftRapier;
 
 const AIRCRAFT_SPEED: f32 = 40.;
 const AIRCRAFT_SPAWN_PROBABILITY: f32 = 0.008;
@@ -24,14 +28,70 @@ fn should_spawn_aircraft() -> bool {
     rng.gen_range(0.0..1.0) < AIRCRAFT_SPAWN_PROBABILITY
 }
 
-fn spawn_aircraft_system(
-    mut commands: Commands,
-    _time: Res<Time>,
-    aircraft_textures: Res<AircraftTextures>,
-    _asset_server: Res<AssetServer>,
-) {
+fn spawn_aircraft_system_rapier(mut commands: Commands, aircraft_textures: Res<AircraftTextures>) {
+    let mut rng = rand::thread_rng();
+    if rng.gen_range(0.0..1.0) < AIRCRAFT_SPAWN_PROBABILITY {
+        let y = rng.gen_range(0.0..350.0);
+        let heading_right = rng.gen_bool(0.5);
+        let speed = rng.gen_range(0.8..1.3) * AIRCRAFT_SPEED;
+        let multiplier = if heading_right { 1.0 } else { -1.0 };
+        let velocity = multiplier * speed;
+        let transform = if heading_right {
+            Transform::from_translation(Vec3::new(SPAWN_LEFT_X, y, 5.))
+        } else {
+            Transform::from_translation(Vec3::new(SPAWN_RIGHT_X, y, 5.))
+        }
+        .with_scale(Vec3::splat(0.3));
+
+        let sprite_bundle = SpriteBundle {
+            // 412 x 114 pixels. 0.3 scale.
+            texture: aircraft_textures.image_handle.clone(),
+            sprite: Sprite {
+                flip_x: !heading_right,
+                ..Default::default()
+            },
+            transform: transform.with_scale(Vec3::splat(0.3)),
+
+            ..Default::default()
+        };
+
+        let rigid_body_bundle = RigidBodyBundle {
+            body_type: RigidBodyTypeComponent(RigidBodyType::Dynamic),
+            position: [transform.translation.x, transform.translation.y].into(),
+            velocity: RigidBodyVelocity {
+                linvel: Vec2::new(velocity, 0.0).into(),
+                angvel: 0.0,
+            }
+            .into(),
+            mass_properties: RigidBodyMassProps {
+                flags: RigidBodyMassPropsFlags::TRANSLATION_LOCKED_Y,
+                local_mprops: MassProperties::new(Vec2::ZERO.into(), 10.0, 1.0),
+                ..Default::default()
+            }
+            .into(),
+            ..Default::default()
+        };
+
+        // 412 x 114 asset. 0.3 scale yields (123.6, 34.2)
+        let collider_bundle = ColliderBundle {
+            collider_type: ColliderType::Sensor.into(),
+            shape: ColliderShape::cuboid(123.6 / 2.0, 34.2 / 2.0).into(),
+            ..Default::default()
+        };
+
+        commands
+            .spawn_bundle(rigid_body_bundle)
+            .insert(RigidBodyPositionSync::Discrete)
+            .insert_bundle(collider_bundle)
+            .insert_bundle(sprite_bundle)
+            .insert(AircraftRapier);
+    }
+}
+
+fn spawn_aircraft_system(mut commands: Commands, aircraft_textures: Res<AircraftTextures>) {
     if should_spawn_aircraft() {
         let aircraft = create_aircraft();
+
         commands
             .spawn_bundle(SpriteBundle {
                 // 412 x 114 pixels. 0.3 scale.
@@ -102,8 +162,9 @@ pub struct AircraftPlugin;
 impl Plugin for AircraftPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_aircraft_system)
-            .add_system(spawn_aircraft_system)
-            .add_system(despawn_aircraft)
-            .add_system(fly_aircraft);
+            .add_system(spawn_aircraft_system_rapier);
+        //.add_system(spawn_aircraft_system)
+        //.add_system(despawn_aircraft)
+        //.add_system(fly_aircraft);
     }
 }

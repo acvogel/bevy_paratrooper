@@ -36,9 +36,19 @@ fn spawn_paratroopers(
     mut query: Query<(&Aircraft, &Transform)>,
 ) {
     let mut rng = rand::thread_rng();
-    for (_aircraft, transform) in query.iter_mut() {
+    for (aircraft, transform) in query.iter_mut() {
         if rng.gen_range(0.0..1.0) < PARATROOPER_SPAWN_PROBABILITY {
-            let paratrooper_transform = transform.clone();
+            let mut paratrooper_transform = transform.clone();
+
+            // Depending on aircraft direction, drop out of the back of the aircraft
+            // TODO will replace with airplane rigid body instead of sprite transform
+            let mut multiplier = 1.0;
+            if aircraft.velocity_x < 0. {
+                multiplier = -1.0;
+            }
+            paratrooper_transform.translation.x -= multiplier * 35.0;
+            paratrooper_transform.translation.y -= 25.;
+
             let sprite_size = Vec2::new(89., 123.);
             let sprite_bundle = SpriteBundle {
                 texture: paratrooper_textures.image_handle.clone(),
