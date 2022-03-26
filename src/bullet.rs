@@ -1,14 +1,13 @@
-use bevy::prelude::*;
-use bevy::sprite::collide_aabb::collide;
-use bevy_rapier2d::na::Isometry2;
-use bevy_rapier2d::prelude::*;
-
 use crate::aircraft::Aircraft;
 use crate::consts;
 use crate::consts::BULLET_SPEED;
+use crate::convert::*;
 use crate::events::*;
 use crate::gun::Gun;
 use crate::paratrooper::Paratrooper;
+use bevy::prelude::*;
+use bevy::sprite::collide_aabb::collide;
+use bevy_rapier2d::prelude::*;
 
 #[derive(Component, Default)]
 pub struct Bullet {
@@ -85,12 +84,9 @@ fn shoot_gun_rapier(
                 let rigid_body_bundle = RigidBodyBundle {
                     //body_type: RigidBodyType::KinematicVelocityBased.into(),
                     body_type: RigidBodyType::Dynamic.into(),
-                    position: bullet_transform.translation.into(),
-                    //position: Isometry2::new(Vec2::new(
-                    //    bullet_transform.translation.x,
-                    //    bullet_transform.translation.y,
-                    //))
-                    //.into(),
+                    position: (bullet_transform.translation, bullet_transform.rotation)
+                        .into_rapier()
+                        .into(),
                     velocity: RigidBodyVelocity {
                         linvel: Vec2::new(velocity_vector.x, velocity_vector.y).into(),
                         angvel: 0.0,

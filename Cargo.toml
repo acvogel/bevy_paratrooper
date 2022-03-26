@@ -9,6 +9,7 @@ edition = "2021"
 bevy_rapier2d = "0.12.1"
 rand = "0.8.5"
 #bevy_kira_audio = "0.8.0"
+heron = "2.3.0"
 
 
 [dependencies.bevy]
