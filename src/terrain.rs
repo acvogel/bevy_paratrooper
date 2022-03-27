@@ -42,7 +42,7 @@ fn setup_ground(mut commands: Commands) {
         .insert_bundle(body)
         .insert_bundle(collider)
         //.insert(ColliderDebugRender::with_id(0))
-        .insert(ColliderPositionSync::Discrete)
+        //.insert(ColliderPositionSync::Discrete)
         .insert(Ground);
 }
 

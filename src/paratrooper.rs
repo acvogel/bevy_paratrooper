@@ -1,6 +1,6 @@
 use crate::aircraft::Aircraft;
 use crate::terrain::Ground;
-use crate::LandingEvent;
+use crate::{BulletCollisionEvent, CollisionType, LandingEvent};
 use bevy::prelude::*;
 use bevy_rapier2d::na::Isometry2;
 use bevy_rapier2d::prelude::*;
@@ -38,14 +38,16 @@ fn spawn_paratroopers(
     let mut rng = rand::thread_rng();
     for (aircraft, transform) in query.iter_mut() {
         if rng.gen_range(0.0..1.0) < PARATROOPER_SPAWN_PROBABILITY {
+            info!("spawning paratrooper");
             let mut paratrooper_transform = transform.clone();
 
             // Depending on aircraft direction, drop out of the back of the aircraft
             // TODO will replace with airplane rigid body instead of sprite transform
             let mut multiplier = 1.0;
-            if aircraft.velocity_x < 0. {
-                multiplier = -1.0;
-            }
+            // XXX replace with query to aircraft velocity
+            //if aircraft.velocity_x < 0. {
+            //    multiplier = -1.0;
+            //}
             paratrooper_transform.translation.x -= multiplier * 35.0;
             paratrooper_transform.translation.y -= 25.;
 
@@ -148,6 +150,18 @@ fn paratrooper_landing_system(
                     }
                 }
             }
+        }
+    }
+}
+
+/// Despawn paratroopers after bullet collisions
+fn paratrooper_shot_system(
+    mut commands: Commands,
+    mut event_reader: EventReader<BulletCollisionEvent>,
+) {
+    for event in event_reader.iter() {
+        if event.collision_type == CollisionType::Paratrooper {
+            let x = 5;
         }
     }
 }
