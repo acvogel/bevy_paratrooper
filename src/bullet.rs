@@ -37,6 +37,7 @@ fn shoot_gun(
 
                 // Spawn bullet
                 let mut bullet_transform = transform.clone();
+                bullet_transform.translation.z -= 0.1;
                 bullet_transform.translation =
                     bullet_transform.translation + 30. * bullet_transform.local_y();
 

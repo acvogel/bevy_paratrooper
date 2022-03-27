@@ -53,7 +53,7 @@ pub fn setup_gun_rapier(mut commands: Commands) {
             custom_size: Some(sprite_size),
             ..Default::default()
         },
-        transform: Transform::from_translation(Vec3::new(0., y, 2.)),
+        transform: Transform::from_translation(Vec3::new(0., y, 1.)),
         ..Default::default()
     };
     let body_bundle = RigidBodyBundle {
