@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 
 use crate::consts;
 
@@ -7,11 +8,14 @@ pub struct Gun {
     pub last_fired: f64,
 }
 
+#[derive(Component)]
+pub struct GunBase;
+
 pub fn setup_gun_base(mut commands: Commands) {
     let h = 64.;
     let w = 64.;
     let y = consts::GROUND_Y + 0.5 * h;
-    commands.spawn_bundle(SpriteBundle {
+    let sprite_bundle = SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(-0.1, 0.1, 0.1),
             custom_size: Some(Vec2::new(w, h)),
@@ -19,7 +23,21 @@ pub fn setup_gun_base(mut commands: Commands) {
         },
         transform: Transform::from_translation(Vec3::new(0., y, 2.)),
         ..Default::default()
-    });
+    };
+    let body = RigidBodyBundle {
+        body_type: RigidBodyTypeComponent(RigidBodyType::Static),
+        position: [0., y].into(),
+        ..Default::default()
+    };
+    let collider = ColliderBundle {
+        shape: ColliderShape::cuboid(0.5 * w, 0.5 * h).into(),
+        ..Default::default()
+    };
+    commands
+        .spawn_bundle(sprite_bundle)
+        .insert_bundle(body)
+        .insert_bundle(collider)
+        .insert(GunBase);
 }
 
 pub fn setup_gun(mut commands: Commands) {
@@ -31,7 +49,7 @@ pub fn setup_gun(mut commands: Commands) {
                 custom_size: Some(Vec2::new(20., 60.)),
                 ..Default::default()
             },
-            transform: Transform::from_translation(Vec3::new(0., y, 1.)),
+            transform: Transform::from_translation(Vec3::new(0., y, 2.)),
             ..Default::default()
         })
         .insert(Gun { last_fired: 0. });

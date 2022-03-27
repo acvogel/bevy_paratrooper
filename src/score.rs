@@ -29,6 +29,12 @@ fn gun_listener_system(mut events: EventReader<GunshotEvent>, mut score: ResMut<
     }
 }
 
+fn landing_listener_system(mut events: EventReader<LandingEvent>, mut score: ResMut<Score>) {
+    for _landing in events.iter() {
+        score.paratroopers_landed += 1;
+    }
+}
+
 fn update_clock(time: Res<Time>, mut query: Query<&mut Text, With<ClockText>>, score: Res<Score>) {
     for mut text in query.iter_mut() {
         text.sections[0].value = get_clock_string(time.seconds_since_startup(), *score);
@@ -86,6 +92,7 @@ impl Plugin for ScorePlugin {
             .add_startup_system(setup_score_ui)
             .add_system(kill_listener_system)
             .add_system(gun_listener_system)
+            .add_system(landing_listener_system)
             .add_system(update_clock);
     }
 }

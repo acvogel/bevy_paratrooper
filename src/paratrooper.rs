@@ -1,81 +1,152 @@
 use crate::aircraft::Aircraft;
-use crate::consts;
-use crate::score::Score;
+use crate::terrain::Ground;
+use crate::LandingEvent;
 use bevy::prelude::*;
+use bevy_rapier2d::na::Isometry2;
+use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
-const PARATROOPER_VELOCITY: f32 = 50.;
 const PARATROOPER_WALK_SPEED: f32 = 10.;
 const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.003;
-//const PARATROOPER_SIZE: Vec2 = Vec2::new(89., 123.);
 
 #[derive(Component)]
 pub struct Paratrooper {
-    state: ParatrooperState,
-    display_size: Vec2,
+    pub state: ParatrooperState,
 }
 
-enum ParatrooperState {
+#[derive(PartialEq)]
+pub enum ParatrooperState {
     Falling,
     Walking,
 }
 
-fn setup_paratroopers(asset_server: Res<AssetServer>) {
-    let _handle: Handle<Image> = asset_server.load("gfx/paratroopers/paratrooperfly1.png");
+struct ParatrooperTextures {
+    pub image_handle: Handle<Image>,
+}
+
+fn setup_paratroopers(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.insert_resource(ParatrooperTextures {
+        image_handle: asset_server.load("gfx/paratroopers/paratrooperfly1.png"),
+    });
 }
 
 fn spawn_paratroopers(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    paratrooper_textures: Res<ParatrooperTextures>,
     mut query: Query<(&Aircraft, &Transform)>,
 ) {
     let mut rng = rand::thread_rng();
     for (_aircraft, transform) in query.iter_mut() {
         if rng.gen_range(0.0..1.0) < PARATROOPER_SPAWN_PROBABILITY {
             let mut paratrooper_transform = transform.clone();
-            paratrooper_transform.scale = Vec3::splat(0.5);
+
+            // Depending on aircraft direction, drop out of the back of the aircraft
+            // TODO will replace with airplane rigid body instead of sprite transform
+            let multiplier = 1.0;
+            // XXX replace with query to aircraft velocity
+            //if aircraft.velocity_x < 0. {
+            //    multiplier = -1.0;
+            //}
+            paratrooper_transform.translation.x -= multiplier * 35.0;
+            paratrooper_transform.translation.y -= 25.;
+
             let sprite_size = Vec2::new(89., 123.);
-            commands
-                .spawn_bundle(SpriteBundle {
-                    texture: asset_server.load("gfx/paratroopers/paratrooperfly1.png"),
-                    sprite: Sprite {
-                        custom_size: Some(sprite_size),
-                        ..Default::default()
-                    },
-                    transform: paratrooper_transform,
+            let sprite_bundle = SpriteBundle {
+                texture: paratrooper_textures.image_handle.clone(),
+                sprite: Sprite {
+                    custom_size: Some(sprite_size),
                     ..Default::default()
-                })
-                .insert(Paratrooper {
-                    state: ParatrooperState::Falling,
-                    display_size: sprite_size,
-                });
+                },
+                transform: paratrooper_transform,
+                ..Default::default()
+            };
+
+            let collider = ColliderBundle {
+                shape: ColliderShape::cuboid(89. / 8., 123. / 8.).into(), // XXX bad shape?
+                flags: ColliderFlags {
+                    // No collisions with other paratroopers (group 0)
+                    collision_groups: InteractionGroups::new(0b0001, 0b1110),
+                    active_collision_types: ActiveCollisionTypes::all(),
+                    active_events: ActiveEvents::all(),
+                    ..Default::default()
+                }
+                .into(),
+                material: ColliderMaterial {
+                    restitution: 0.,
+                    restitution_combine_rule: CoefficientCombineRule::Min,
+                    ..Default::default()
+                }
+                .into(),
+                ..Default::default()
+            };
+            let rigid_body = RigidBodyBundle {
+                body_type: RigidBodyTypeComponent(RigidBodyType::Dynamic),
+                position: Isometry2::translation(
+                    paratrooper_transform.translation.x,
+                    paratrooper_transform.translation.y,
+                )
+                .into(),
+                mass_properties: RigidBodyMassProps {
+                    flags: RigidBodyMassPropsFlags::ROTATION_LOCKED,
+                    local_mprops: MassProperties::new(Vec2::ZERO.into(), 10.0, 0.5).into(),
+                    ..Default::default()
+                }
+                .into(),
+                ..Default::default()
+            };
+
+            let paratrooper = Paratrooper {
+                state: ParatrooperState::Falling,
+            };
+
+            commands
+                .spawn_bundle(rigid_body)
+                .insert(RigidBodyPositionSync::Discrete)
+                .insert_bundle(collider)
+                .insert_bundle(sprite_bundle)
+                .insert(paratrooper);
         }
     }
 }
 
-fn paratrooper_physics(
-    time: Res<Time>,
-    mut score: ResMut<Score>,
-    mut query: Query<(&mut Paratrooper, &mut Transform)>,
+// Detect paratrooper landings
+fn paratrooper_landing_system(
+    mut contact_events: EventReader<ContactEvent>,
+    mut paratrooper_query: Query<(
+        Entity,
+        &mut Paratrooper,
+        &Transform,
+        &mut RigidBodyVelocityComponent,
+        &RigidBodyMassPropsComponent,
+    )>,
+    ground_query: Query<Entity, With<Ground>>,
+    mut event_writer: EventWriter<LandingEvent>,
 ) {
-    for (mut paratrooper, mut transform) in query.iter_mut() {
-        match paratrooper.state {
-            ParatrooperState::Falling => {
-                let drop = PARATROOPER_VELOCITY * time.delta_seconds();
-                let min_y = consts::GROUND_Y + 0.25 * paratrooper.display_size.y;
-                transform.translation.y = min_y.max(transform.translation.y - drop);
-                // No longer falling on the ground
-                if (transform.translation.y - min_y).abs() < 0.0000001 {
-                    info!("paratrooper landed");
-                    paratrooper.state = ParatrooperState::Walking;
-                    score.paratroopers_landed += 1;
-                }
-            }
-            ParatrooperState::Walking => {
-                if transform.translation.x > 0. {
-                    transform.translation.x -= PARATROOPER_WALK_SPEED * time.delta_seconds();
-                } else {
-                    transform.translation.x += PARATROOPER_WALK_SPEED * time.delta_seconds();
+    for contact_event in contact_events.iter() {
+        for ground_entity in ground_query.iter() {
+            for (paratrooper_entity, mut paratrooper, transform, mut rb_vel, _rb_mprops) in
+                paratrooper_query.iter_mut()
+            {
+                if let ContactEvent::Started(handle1, handle2) = contact_event {
+                    // Ground / Paratrooper contact
+                    if (paratrooper_entity == handle1.entity() && ground_entity == handle2.entity())
+                        || (ground_entity == handle1.entity()
+                            && paratrooper_entity == handle2.entity())
+                    {
+                        if paratrooper.state != ParatrooperState::Walking {
+                            paratrooper.state = ParatrooperState::Walking;
+                            event_writer.send(LandingEvent);
+
+                            // Walk towards gun.
+                            let multiplier = if transform.translation.x > 0.0 {
+                                -1.
+                            } else {
+                                1.
+                            };
+                            rb_vel.linvel =
+                                Vec2::new(multiplier * PARATROOPER_WALK_SPEED, 0.0).into();
+                        }
+                    }
                 }
             }
         }
@@ -87,7 +158,7 @@ pub struct ParatrooperPlugin;
 impl Plugin for ParatrooperPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_paratroopers)
-            .add_system(spawn_paratroopers)
-            .add_system(paratrooper_physics);
+            .add_system(paratrooper_landing_system)
+            .add_system(spawn_paratroopers);
     }
 }
