@@ -48,7 +48,8 @@ fn setup_ground(mut commands: Commands) {
 
 fn setup_physics(mut configuration: ResMut<RapierConfiguration>) {
     configuration.scale = 1.;
-    configuration.gravity = Vector::y() * -9.81;
+    //configuration.gravity = Vector::y() * -9.81;
+    configuration.gravity = Vector::y() * -29.81;
 }
 
 fn setup_skyline(mut commands: Commands, asset_server: Res<AssetServer>) {

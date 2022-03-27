@@ -5,6 +5,10 @@ pub struct BulletCollisionEvent {
     pub collision_type: CollisionType,
 }
 
+pub struct GunExplosionEvent {
+    pub translation: Vec3,
+}
+
 #[derive(PartialEq)]
 pub enum CollisionType {
     Aircraft,
