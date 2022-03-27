@@ -5,7 +5,6 @@ use crate::events::*;
 use crate::gun::Gun;
 use crate::paratrooper::Paratrooper;
 use bevy::prelude::*;
-use bevy::sprite::collide_aabb::collide;
 use bevy_rapier2d::prelude::*;
 use std::collections::HashSet;
 

@@ -1,17 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::bullet::Bullet;
-use crate::{BulletCollisionEvent, CollisionType};
 use rand::Rng;
-
-use crate::score::Score;
-
-//#[derive(Component, Default)]
-//pub struct Aircraft {
-//    pub velocity_x: f32,
-//    position: Transform,
-//}
 
 #[derive(Component)]
 pub struct Aircraft;
@@ -23,11 +13,6 @@ const SPAWN_RIGHT_X: f32 = 600.;
 
 struct AircraftTextures {
     image_handle: Handle<Image>,
-}
-
-fn should_spawn_aircraft() -> bool {
-    let mut rng = rand::thread_rng();
-    rng.gen_range(0.0..1.0) < AIRCRAFT_SPAWN_PROBABILITY
 }
 
 fn spawn_aircraft_system_rapier(mut commands: Commands, aircraft_textures: Res<AircraftTextures>) {
