@@ -1,0 +1,79 @@
+use bevy::prelude::*;
+
+#[allow(unused)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum AppState {
+    MainMenu,
+    InGame,
+    GameOver,
+    Paused,
+}
+
+#[derive(Component)]
+pub struct TitleText;
+
+/// Draw a big text sprite in the top middle
+fn setup_title_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands
+        .spawn_bundle(TextBundle {
+            node: Default::default(),
+            style: Style {
+                align_self: AlignSelf::Auto,
+                position_type: PositionType::Absolute,
+                position: Rect {
+                    left: Val::Px(200.0),
+                    //right: (),
+                    top: Val::Px(15.0),
+                    //bottom: (),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            text: Text::with_section(
+                "PARATROOPER",
+                TextStyle {
+                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                    font_size: 125.0,
+                    color: Color::RED,
+                },
+                TextAlignment {
+                    horizontal: HorizontalAlign::Center,
+                    vertical: VerticalAlign::Center,
+                },
+            ),
+            calculated_size: Default::default(),
+            focus_policy: Default::default(),
+            transform: Default::default(),
+            global_transform: Default::default(),
+            visibility: Default::default(),
+        })
+        .insert(TitleText);
+}
+
+fn despawn_title_screen(mut commands: Commands, query: Query<Entity, With<TitleText>>) {
+    for title_text in query.iter() {
+        commands.entity(title_text).despawn();
+    }
+}
+
+fn any_key_listener(
+    mut _commands: Commands,
+    keyboard_input: Res<Input<KeyCode>>,
+    mut app_state: ResMut<State<AppState>>,
+) {
+    if keyboard_input.get_just_pressed().count() > 0 {
+        app_state.set(AppState::InGame).unwrap();
+    }
+}
+
+pub struct MenuPlugin;
+
+impl Plugin for MenuPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(setup_title_screen))
+            .add_system_set(SystemSet::on_update(AppState::MainMenu).with_system(any_key_listener))
+            .add_system_set(
+                SystemSet::on_exit(AppState::MainMenu).with_system(despawn_title_screen),
+            );
+    }
+}

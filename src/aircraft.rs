@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
+use crate::AppState;
 use rand::Rng;
 
 #[derive(Component)]
@@ -15,7 +16,7 @@ struct AircraftTextures {
     image_handle: Handle<Image>,
 }
 
-fn spawn_aircraft_system_rapier(mut commands: Commands, aircraft_textures: Res<AircraftTextures>) {
+fn spawn_aircraft_system(mut commands: Commands, aircraft_textures: Res<AircraftTextures>) {
     let mut rng = rand::thread_rng();
     if rng.gen_range(0.0..1.0) < AIRCRAFT_SPAWN_PROBABILITY {
         let y = rng.gen_range(0.0..350.0);
@@ -89,25 +90,13 @@ fn setup_aircraft_system(mut commands: Commands, asset_server: ResMut<AssetServe
     });
 }
 
-/// Listen for bullet collisions, despawn airplanes if hit.
-//fn aircraft_collision_system(
-//    mut commands: Commands,
-//    mut event_reader: EventReader<BulletCollisionEvent>,
-//    aircraft: Query<Aircraft>,
-//) {
-//    // filter to aircraft collisions, then get corresponding aircraft and despawn.
-//    for event in event_reader.iter() {
-//        if event.collision_type == CollisionType::Aircraft {
-//
-//        }
-//    }
-//}
-
 pub struct AircraftPlugin;
 
 impl Plugin for AircraftPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_aircraft_system)
-            .add_system(spawn_aircraft_system_rapier);
+        app.add_system_set(
+            SystemSet::on_enter(AppState::InGame).with_system(setup_aircraft_system),
+        )
+        .add_system_set(SystemSet::on_update(AppState::InGame).with_system(spawn_aircraft_system));
     }
 }

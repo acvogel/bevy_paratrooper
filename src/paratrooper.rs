@@ -1,6 +1,6 @@
 use crate::aircraft::Aircraft;
 use crate::terrain::Ground;
-use crate::LandingEvent;
+use crate::{AppState, LandingEvent};
 use bevy::prelude::*;
 use bevy_rapier2d::na::Isometry2;
 use bevy_rapier2d::prelude::*;
@@ -157,8 +157,11 @@ pub struct ParatrooperPlugin;
 
 impl Plugin for ParatrooperPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_paratroopers)
-            .add_system(paratrooper_landing_system)
-            .add_system(spawn_paratroopers);
+        app.add_system_set(SystemSet::on_enter(AppState::InGame).with_system(setup_paratroopers))
+            .add_system_set(
+                SystemSet::on_update(AppState::InGame)
+                    .with_system(paratrooper_landing_system)
+                    .with_system(spawn_paratroopers),
+            );
     }
 }

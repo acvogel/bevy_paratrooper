@@ -3,7 +3,7 @@ use bevy_rapier2d::prelude::*;
 use std::collections::HashSet;
 
 use crate::paratrooper::Paratrooper;
-use crate::{consts, GunExplosionEvent};
+use crate::{consts, AppState, GunExplosionEvent};
 
 const ANGULAR_VELOCITY: f32 = 3.0;
 
@@ -44,7 +44,7 @@ pub fn setup_gun_base(mut commands: Commands) {
         .insert(GunBase);
 }
 
-pub fn setup_gun_rapier(mut commands: Commands) {
+pub fn setup_gun(mut commands: Commands) {
     let y = consts::GROUND_Y + 64.;
     let sprite_size = Vec2::new(20., 60.);
     let sprite_bundle = SpriteBundle {
@@ -75,7 +75,7 @@ pub fn setup_gun_rapier(mut commands: Commands) {
         .insert(Gun { last_fired: 0. });
 }
 
-fn move_gun_rapier(
+fn move_gun(
     keyboard_input: Res<Input<KeyCode>>,
     mut query: Query<(&mut RigidBodyVelocityComponent, &RigidBodyPositionComponent), With<Gun>>,
 ) {
@@ -126,9 +126,15 @@ pub struct GunPlugin;
 
 impl Plugin for GunPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_gun_rapier)
-            .add_startup_system(setup_gun_base)
-            .add_system(move_gun_rapier)
-            .add_system(gun_collision_system);
+        app.add_system_set(
+            SystemSet::on_enter(AppState::MainMenu)
+                .with_system(setup_gun)
+                .with_system(setup_gun_base),
+        )
+        .add_system_set(
+            SystemSet::on_update(AppState::InGame)
+                .with_system(move_gun)
+                .with_system(gun_collision_system),
+        );
     }
 }

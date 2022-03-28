@@ -3,6 +3,7 @@ use bevy::prelude::*;
 
 //use crate::audio::AudioStatePlugin;
 use crate::explosion::ExplosionPlugin;
+use crate::menu::{AppState, MenuPlugin};
 use aircraft::AircraftPlugin;
 use bullet::BulletPlugin;
 use events::*;
@@ -19,6 +20,7 @@ mod convert;
 mod events;
 mod explosion;
 mod gun;
+mod menu;
 mod paratrooper;
 mod score;
 mod terrain;
@@ -33,10 +35,12 @@ fn main() {
             resizable: false,
             ..Default::default()
         })
+        .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .add_event::<BulletCollisionEvent>()
         .add_event::<GunshotEvent>()
         .add_event::<GunExplosionEvent>()
         .add_event::<LandingEvent>()
+        .add_state(AppState::MainMenu)
         .add_plugins(DefaultPlugins)
         .add_plugin(GunPlugin)
         .add_plugin(BulletPlugin)
@@ -47,6 +51,7 @@ fn main() {
         //.add_plugin(AudioStatePlugin)
         //.add_plugin(AudioPlugin)
         .add_plugin(ExplosionPlugin)
+        .add_plugin(MenuPlugin)
         .add_startup_system(setup_camera)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();

@@ -1,3 +1,4 @@
+use crate::AppState;
 use bevy::prelude::*;
 
 use crate::events::*;
@@ -89,10 +90,13 @@ pub struct ScorePlugin;
 impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Score>()
-            .add_startup_system(setup_score_ui)
-            .add_system(kill_listener_system)
-            .add_system(gun_listener_system)
-            .add_system(landing_listener_system)
-            .add_system(update_clock);
+            .add_system_set(SystemSet::on_enter(AppState::InGame).with_system(setup_score_ui))
+            .add_system_set(
+                SystemSet::on_update(AppState::InGame)
+                    .with_system(kill_listener_system)
+                    .with_system(gun_listener_system)
+                    .with_system(landing_listener_system)
+                    .with_system(update_clock),
+            );
     }
 }
