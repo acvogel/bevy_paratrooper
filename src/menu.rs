@@ -60,6 +60,45 @@ fn any_key_listener(keyboard_input: Res<Input<KeyCode>>, mut app_state: ResMut<S
     }
 }
 
+#[derive(Component)]
+pub struct ContinueText;
+
+fn spawn_game_over_text(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands
+        .spawn_bundle(TextBundle {
+            style: Style {
+                align_self: AlignSelf::FlexEnd,
+                position_type: PositionType::Absolute,
+                position: Rect {
+                    left: Val::Px(50.0),
+                    bottom: Val::Px(250.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            text: Text::with_section(
+                "Press the ANY key to continue.",
+                TextStyle {
+                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                    font_size: 75.0,
+                    color: Color::RED,
+                },
+                TextAlignment {
+                    horizontal: HorizontalAlign::Center,
+                    vertical: VerticalAlign::Center,
+                },
+            ),
+            ..Default::default()
+        })
+        .insert(ContinueText);
+}
+
+fn despawn_game_over_text(mut commands: Commands, query: Query<Entity, With<ContinueText>>) {
+    if let Some(handle) = query.iter().next() {
+        commands.entity(handle).despawn();
+    }
+}
+
 pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
@@ -69,6 +108,12 @@ impl Plugin for MenuPlugin {
             .add_system_set(
                 SystemSet::on_exit(AppState::MainMenu).with_system(despawn_title_screen),
             )
-            .add_system_set(SystemSet::on_update(AppState::GameOver).with_system(any_key_listener));
+            .add_system_set(
+                SystemSet::on_enter(AppState::GameOver).with_system(spawn_game_over_text),
+            )
+            .add_system_set(SystemSet::on_update(AppState::GameOver).with_system(any_key_listener))
+            .add_system_set(
+                SystemSet::on_exit(AppState::GameOver).with_system(despawn_game_over_text),
+            );
     }
 }
