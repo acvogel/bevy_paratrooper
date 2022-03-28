@@ -22,9 +22,7 @@ fn setup_title_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
                 position_type: PositionType::Absolute,
                 position: Rect {
                     left: Val::Px(200.0),
-                    //right: (),
                     top: Val::Px(15.0),
-                    //bottom: (),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -56,11 +54,7 @@ fn despawn_title_screen(mut commands: Commands, query: Query<Entity, With<TitleT
     }
 }
 
-fn any_key_listener(
-    mut _commands: Commands,
-    keyboard_input: Res<Input<KeyCode>>,
-    mut app_state: ResMut<State<AppState>>,
-) {
+fn any_key_listener(keyboard_input: Res<Input<KeyCode>>, mut app_state: ResMut<State<AppState>>) {
     if keyboard_input.get_just_pressed().count() > 0 {
         app_state.set(AppState::InGame).unwrap();
     }
@@ -74,6 +68,7 @@ impl Plugin for MenuPlugin {
             .add_system_set(SystemSet::on_update(AppState::MainMenu).with_system(any_key_listener))
             .add_system_set(
                 SystemSet::on_exit(AppState::MainMenu).with_system(despawn_title_screen),
-            );
+            )
+            .add_system_set(SystemSet::on_update(AppState::GameOver).with_system(any_key_listener));
     }
 }

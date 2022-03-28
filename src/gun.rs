@@ -113,7 +113,6 @@ fn gun_collision_system(
                     && paratrooper_entities.contains(&event.collider1.entity()))
             {
                 // Game over.
-                info!("gun explosion event!! {:?}", event);
                 event_writer.send(GunExplosionEvent {
                     translation: gun_transform.translation,
                 });
@@ -135,6 +134,7 @@ impl Plugin for GunPlugin {
             SystemSet::on_update(AppState::InGame)
                 .with_system(move_gun)
                 .with_system(gun_collision_system),
-        );
+        )
+        .add_event::<GunExplosionEvent>();
     }
 }

@@ -153,15 +153,25 @@ fn paratrooper_landing_system(
     }
 }
 
+fn despawn_paratrooper_system(mut commands: Commands, query: Query<Entity, With<Paratrooper>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
 pub struct ParatrooperPlugin;
 
 impl Plugin for ParatrooperPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_enter(AppState::InGame).with_system(setup_paratroopers))
+        app.add_startup_system(setup_paratroopers)
             .add_system_set(
                 SystemSet::on_update(AppState::InGame)
                     .with_system(paratrooper_landing_system)
                     .with_system(spawn_paratroopers),
-            );
+            )
+            .add_system_set(
+                SystemSet::on_exit(AppState::InGame).with_system(despawn_paratrooper_system),
+            )
+            .add_event::<LandingEvent>();
     }
 }

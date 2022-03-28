@@ -15,6 +15,10 @@ pub struct Score {
 #[derive(Component)]
 pub struct ClockText;
 
+/// AppState::InGame time
+#[derive(Component)]
+pub struct GameTime;
+
 fn kill_listener_system(mut events: EventReader<BulletCollisionEvent>, mut score: ResMut<Score>) {
     for bullet_collision_event in events.iter() {
         match bullet_collision_event.collision_type {
@@ -33,6 +37,15 @@ fn gun_listener_system(mut events: EventReader<GunshotEvent>, mut score: ResMut<
 fn landing_listener_system(mut events: EventReader<LandingEvent>, mut score: ResMut<Score>) {
     for _landing in events.iter() {
         score.paratroopers_landed += 1;
+    }
+}
+
+fn gun_explosion_listener_system(
+    mut events: EventReader<GunExplosionEvent>,
+    mut app_state: ResMut<State<AppState>>,
+) {
+    if events.iter().next().is_some() {
+        app_state.set(AppState::GameOver).unwrap();
     }
 }
 
@@ -85,6 +98,12 @@ fn setup_score_ui(mut commands: Commands, _time: Res<Time>, asset_server: Res<As
         .insert(ClockText);
 }
 
+fn despawn_score_ui(mut commands: Commands, query: Query<Entity, With<ClockText>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
 pub struct ScorePlugin;
 
 impl Plugin for ScorePlugin {
@@ -96,7 +115,9 @@ impl Plugin for ScorePlugin {
                     .with_system(kill_listener_system)
                     .with_system(gun_listener_system)
                     .with_system(landing_listener_system)
-                    .with_system(update_clock),
-            );
+                    .with_system(update_clock)
+                    .with_system(gun_explosion_listener_system),
+            )
+            .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_score_ui));
     }
 }

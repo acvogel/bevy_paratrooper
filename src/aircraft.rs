@@ -90,6 +90,12 @@ fn setup_aircraft_system(mut commands: Commands, asset_server: ResMut<AssetServe
     });
 }
 
+fn despawn_all_aircraft(mut commands: Commands, query: Query<Entity, With<Aircraft>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
 pub struct AircraftPlugin;
 
 impl Plugin for AircraftPlugin {
@@ -97,6 +103,7 @@ impl Plugin for AircraftPlugin {
         app.add_system_set(
             SystemSet::on_enter(AppState::InGame).with_system(setup_aircraft_system),
         )
-        .add_system_set(SystemSet::on_update(AppState::InGame).with_system(spawn_aircraft_system));
+        .add_system_set(SystemSet::on_update(AppState::InGame).with_system(spawn_aircraft_system))
+        .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_all_aircraft));
     }
 }

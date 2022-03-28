@@ -1,9 +1,9 @@
 use crate::aircraft::Aircraft;
-use crate::consts;
 use crate::convert::*;
 use crate::events::*;
 use crate::gun::Gun;
 use crate::paratrooper::Paratrooper;
+use crate::{consts, AppState};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use std::collections::HashSet;
@@ -150,12 +150,24 @@ fn bullet_collision_system(
     }
 }
 
+fn despawn_all_bullets(mut commands: Commands, query: Query<Entity, With<Bullet>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
 pub struct BulletPlugin;
 
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_bullets)
-            .add_system(shoot_gun)
-            .add_system(bullet_collision_system);
+            .add_system_set(
+                SystemSet::on_update(AppState::InGame)
+                    .with_system(shoot_gun)
+                    .with_system(bullet_collision_system),
+            )
+            .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_all_bullets))
+            .add_event::<BulletCollisionEvent>()
+            .add_event::<GunshotEvent>();
     }
 }
