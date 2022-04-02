@@ -134,7 +134,6 @@ impl Plugin for GunPlugin {
             SystemSet::on_update(AppState::InGame)
                 .with_system(move_gun)
                 .with_system(gun_collision_system),
-        )
-        .add_event::<GunExplosionEvent>();
+        );
     }
 }

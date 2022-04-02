@@ -2,7 +2,7 @@ use crate::aircraft::Aircraft;
 use crate::convert::*;
 use crate::events::*;
 use crate::gun::Gun;
-use crate::paratrooper::Paratrooper;
+use crate::paratrooper::{Parachute, Paratrooper};
 use crate::{consts, AppState};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
@@ -96,12 +96,12 @@ fn shoot_gun(
 
 /// Generates BulletCollisionEvents
 fn bullet_collision_system(
-    mut commands: Commands,
     mut intersection_events: EventReader<IntersectionEvent>,
     mut event_writer: EventWriter<BulletCollisionEvent>,
     bullet_query: Query<(Entity, &Transform), With<Bullet>>,
     paratrooper_query: Query<(Entity, &Transform), With<Paratrooper>>,
     aircraft_query: Query<(Entity, &Transform), With<Aircraft>>,
+    parachute_query: Query<(Entity, &Transform), With<Parachute>>,
 ) {
     let mut bullet_handles = HashSet::new();
     for (bullet, _transform) in bullet_query.iter() {
@@ -118,18 +118,27 @@ fn bullet_collision_system(
                 (handle2.entity(), handle1.entity())
             };
 
-            // Bullets only despawn when hitting aircraft, not paratroopers. Bullets can hit multiple targets
-            // in one tick.
-            let mut despawn_bullet = false;
             // Aircraft
             for (aircraft_entity, aircraft_transform) in aircraft_query.iter() {
                 if aircraft_entity == target_entity {
                     event_writer.send(BulletCollisionEvent {
                         collision_type: CollisionType::Aircraft,
                         translation: aircraft_transform.translation,
+                        bullet_entity: bullet_entity,
+                        target_entity: target_entity,
                     });
-                    commands.entity(aircraft_entity).despawn();
-                    despawn_bullet = true;
+                }
+            }
+
+            // Parachutes
+            for (parachute_entity, parachute_transform) in parachute_query.iter() {
+                if parachute_entity == target_entity {
+                    event_writer.send(BulletCollisionEvent {
+                        collision_type: CollisionType::Parachute,
+                        translation: parachute_transform.translation,
+                        bullet_entity: bullet_entity,
+                        target_entity: target_entity,
+                    });
                 }
             }
 
@@ -139,12 +148,28 @@ fn bullet_collision_system(
                     event_writer.send(BulletCollisionEvent {
                         collision_type: CollisionType::Paratrooper,
                         translation: paratrooper_transform.translation,
+                        bullet_entity: bullet_entity,
+                        target_entity: target_entity,
                     });
-                    commands.entity(paratrooper_entity).despawn_recursive();
                 }
             }
-            if despawn_bullet {
-                commands.entity(bullet_entity).despawn();
+        }
+    }
+}
+
+fn bullet_collision_listener(
+    mut commands: Commands,
+    query: Query<&Transform, With<Bullet>>,
+    mut event_reader: EventReader<BulletCollisionEvent>,
+    mut event_writer: EventWriter<ExplosionEvent>,
+) {
+    for event in event_reader.iter() {
+        if event.collision_type == CollisionType::Aircraft {
+            if let Ok(transform) = query.get(event.bullet_entity) {
+                event_writer.send(ExplosionEvent {
+                    transform: transform.clone(),
+                });
+                commands.entity(event.bullet_entity).despawn_recursive();
             }
         }
     }
@@ -164,10 +189,9 @@ impl Plugin for BulletPlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::InGame)
                     .with_system(shoot_gun)
-                    .with_system(bullet_collision_system),
+                    .with_system(bullet_collision_system)
+                    .with_system(bullet_collision_listener),
             )
-            .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_all_bullets))
-            .add_event::<BulletCollisionEvent>()
-            .add_event::<GunshotEvent>();
+            .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_all_bullets));
     }
 }

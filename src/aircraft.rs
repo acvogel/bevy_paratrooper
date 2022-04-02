@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::AppState;
+use crate::{AppState, BulletCollisionEvent, ExplosionEvent};
 use rand::Rng;
 
 #[derive(Component)]
@@ -96,6 +96,22 @@ fn despawn_all_aircraft(mut commands: Commands, query: Query<Entity, With<Aircra
     }
 }
 
+fn bullet_collision_system(
+    mut commands: Commands,
+    aircraft_query: Query<(Entity, &Transform), With<Aircraft>>,
+    mut event_reader: EventReader<BulletCollisionEvent>,
+    mut event_writer: EventWriter<ExplosionEvent>,
+) {
+    for event in event_reader.iter() {
+        if let Ok((aircraft_entity, aircraft_transform)) = aircraft_query.get(event.target_entity) {
+            event_writer.send(ExplosionEvent {
+                transform: aircraft_transform.clone(),
+            });
+            commands.entity(aircraft_entity).despawn_recursive();
+        }
+    }
+}
+
 pub struct AircraftPlugin;
 
 impl Plugin for AircraftPlugin {
@@ -103,7 +119,11 @@ impl Plugin for AircraftPlugin {
         app.add_system_set(
             SystemSet::on_enter(AppState::InGame).with_system(setup_aircraft_system),
         )
-        .add_system_set(SystemSet::on_update(AppState::InGame).with_system(spawn_aircraft_system))
+        .add_system_set(
+            SystemSet::on_update(AppState::InGame)
+                .with_system(spawn_aircraft_system)
+                .with_system(bullet_collision_system),
+        )
         .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_all_aircraft));
     }
 }

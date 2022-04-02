@@ -1,4 +1,4 @@
-use crate::{BulletCollisionEvent, GunExplosionEvent};
+use crate::{ExplosionEvent, GunExplosionEvent};
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -14,13 +14,14 @@ fn spawn_explosion_system(
     mut commands: Commands,
     explosion_textures: Res<ExplosionTextures>,
     time: Res<Time>,
-    mut event_reader: EventReader<BulletCollisionEvent>,
+    mut event_reader: EventReader<ExplosionEvent>,
 ) {
     for event in event_reader.iter() {
         commands
             .spawn_bundle(SpriteSheetBundle {
                 texture_atlas: explosion_textures.texture_atlas_handle.clone(),
-                transform: Transform::from_translation(event.translation),
+                //transform: Transform::from_translation(event.translation),
+                transform: event.transform,
                 ..Default::default()
             })
             .insert(Explosion(time.seconds_since_startup()))

@@ -1,6 +1,6 @@
 use crate::aircraft::Aircraft;
 use crate::terrain::Ground;
-use crate::{AppState, BulletCollisionEvent, CollisionType, LandingEvent};
+use crate::{AppState, BulletCollisionEvent, CollisionType, ExplosionEvent, LandingEvent};
 use bevy::prelude::*;
 use bevy_rapier2d::na::Isometry2;
 use bevy_rapier2d::prelude::*;
@@ -10,7 +10,8 @@ const PARATROOPER_WALK_SPEED: f32 = 10.;
 const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.003;
 const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.005;
 const PARACHUTE_DAMPING: f32 = 1.0; // 100% air resistance
-const MIN_PARACHUTE_VELOCITY: f32 = -10.; // meters / second
+const MIN_PARACHUTE_VELOCITY: f32 = -15.; // meters / second
+const PARACHUTE_GRAVITY_SCALE: f32 = 0.5;
 
 #[derive(Component)]
 pub struct Paratrooper {
@@ -32,6 +33,7 @@ pub struct Parachute;
 #[derive(PartialEq)]
 pub enum ParatrooperState {
     Falling,
+    Floating,
     Walking,
 }
 
@@ -123,6 +125,75 @@ fn spawn_paratroopers(
     }
 }
 
+/// Handle bullet <-> parachute/trooper collisions
+fn bullet_collision_system(
+    mut commands: Commands,
+    parachute_query: Query<(Entity, &Transform), With<Parachute>>,
+    mut paratrooper_query: Query<(
+        Entity,
+        &mut Paratrooper,
+        &Transform,
+        &mut RigidBodyDampingComponent,
+        &mut RigidBodyForcesComponent,
+        Option<&Children>,
+    )>,
+    mut event_reader: EventReader<BulletCollisionEvent>,
+    mut event_writer: EventWriter<ExplosionEvent>,
+) {
+    for event in event_reader.iter() {
+        match event.collision_type {
+            CollisionType::Paratrooper => {
+                if let Ok((
+                    paratrooper_entity,
+                    _paratrooper,
+                    transform,
+                    _rb_damp,
+                    _rb_force,
+                    _children,
+                )) = paratrooper_query.get(event.target_entity)
+                {
+                    event_writer.send(ExplosionEvent {
+                        transform: transform.clone(),
+                    });
+                    commands.entity(paratrooper_entity).despawn_recursive();
+                }
+            }
+            CollisionType::Parachute => {
+                if let Ok((parachute_entity, transform)) = parachute_query.get(event.target_entity)
+                {
+                    info!("Parachute hit");
+                    event_writer.send(ExplosionEvent {
+                        transform: transform.clone(),
+                    });
+                    // Reset falling physics
+                    for (
+                        _paratrooper_entity,
+                        mut paratrooper,
+                        _transform,
+                        mut rb_damping,
+                        mut rb_forces,
+                        children,
+                    ) in paratrooper_query.iter_mut()
+                    {
+                        if let Some(children) = children {
+                            for &child in children.iter() {
+                                if child == parachute_entity {
+                                    rb_damping.linear_damping = 0.0;
+                                    rb_forces.gravity_scale = 1.0;
+                                    paratrooper.state = ParatrooperState::Falling;
+                                }
+                            }
+                        }
+                    }
+
+                    commands.entity(parachute_entity).despawn_recursive();
+                }
+            }
+            _ => (),
+        }
+    }
+}
+
 // Detect paratrooper landings
 fn paratrooper_landing_system(
     mut commands: Commands,
@@ -137,7 +208,7 @@ fn paratrooper_landing_system(
     )>,
     ground_query: Query<Entity, With<Ground>>,
     mut event_writer: EventWriter<LandingEvent>,
-    mut bullet_event_writer: EventWriter<BulletCollisionEvent>,
+    mut explosion_event_writer: EventWriter<ExplosionEvent>,
 ) {
     for contact_event in contact_events.iter() {
         for ground_entity in ground_query.iter() {
@@ -156,9 +227,18 @@ fn paratrooper_landing_system(
                         || (ground_entity == handle1.entity()
                             && paratrooper_entity == handle2.entity())
                     {
+                        // Crash landing
+                        // TODO check for velocity?
+                        if paratrooper.state == ParatrooperState::Falling {
+                            explosion_event_writer.send(ExplosionEvent {
+                                transform: transform.clone(),
+                            });
+                            commands.entity(paratrooper_entity).despawn_recursive();
+                        }
+
                         if paratrooper.state != ParatrooperState::Walking {
                             paratrooper.state = ParatrooperState::Walking;
-                            event_writer.send(LandingEvent);
+                            event_writer.send(LandingEvent(paratrooper_entity));
 
                             // Walk towards gun.
                             let multiplier = if transform.translation.x > 0.0 {
@@ -176,10 +256,9 @@ fn paratrooper_landing_system(
                                 commands.entity(*child).despawn_recursive();
                             }
                         } else {
-                            // TODO new event type for falling Collision. Should gib rather than explode.
-                            bullet_event_writer.send(BulletCollisionEvent {
-                                collision_type: CollisionType::Paratrooper,
-                                translation: transform.translation,
+                            // TODO GibEvent
+                            explosion_event_writer.send(ExplosionEvent {
+                                transform: transform.clone(),
                             });
                             commands.entity(paratrooper_entity).despawn_recursive();
                         }
@@ -198,24 +277,32 @@ fn despawn_paratrooper_system(mut commands: Commands, query: Query<Entity, With<
 
 fn spawn_parachutes(
     mut commands: Commands,
+    textures: Res<ParatrooperTextures>,
     mut paratrooper_query: Query<(
         Entity,
         &mut Paratrooper,
         &mut RigidBodyVelocityComponent,
         &RigidBodyMassPropsComponent,
         &mut RigidBodyDampingComponent,
+        &mut RigidBodyForcesComponent,
     )>,
-    textures: Res<ParatrooperTextures>,
 ) {
     let mut rng = rand::thread_rng();
-    for (paratrooper_entity, mut paratrooper, mut rb_vel, _rb_mprops, mut rb_damping) in
-        paratrooper_query.iter_mut()
+    for (
+        paratrooper_entity,
+        mut paratrooper,
+        mut rb_vel,
+        _rb_mprops,
+        mut rb_damping,
+        mut rb_forces,
+    ) in paratrooper_query.iter_mut()
     {
         if !paratrooper.has_deployed_chute
             && paratrooper.state == ParatrooperState::Falling
             && rng.gen_range(0.0..1.0) < PARACHUTE_SPAWN_PROBABILITY
         {
             paratrooper.has_deployed_chute = true;
+            paratrooper.state = ParatrooperState::Floating;
 
             // Spawn parachute
             let parachute_entity = commands
@@ -225,7 +312,20 @@ fn spawn_parachutes(
                     transform: Transform::from_translation(Vec3::new(0., 49.0, 0.)),
                     ..Default::default()
                 })
-                // TODO collider
+                .insert_bundle(ColliderBundle {
+                    shape: ColliderShape::cuboid(31. / 2., 49. / 2.).into(), // XXX bad shape?
+                    collider_type: ColliderType::Sensor.into(),
+                    flags: ColliderFlags {
+                        // No collisions with other paratroopers (group 0)
+                        collision_groups: InteractionGroups::new(0b0001, 0b1110),
+                        active_collision_types: ActiveCollisionTypes::all(),
+                        active_events: ActiveEvents::all(),
+                        ..Default::default()
+                    }
+                    .into(),
+                    position: (Vec2::new(30., 0.), 0.).into(),
+                    ..Default::default()
+                })
                 .insert(Parachute)
                 .id();
 
@@ -239,6 +339,9 @@ fn spawn_parachutes(
 
             // Cap y velocity
             rb_vel.linvel.y = rb_vel.linvel.y.max(MIN_PARACHUTE_VELOCITY);
+
+            // Reduce gravity
+            rb_forces.gravity_scale = PARACHUTE_GRAVITY_SCALE;
         }
     }
 }
@@ -251,12 +354,12 @@ impl Plugin for ParatrooperPlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::InGame)
                     .with_system(paratrooper_landing_system)
+                    .with_system(bullet_collision_system)
                     .with_system(spawn_paratroopers)
                     .with_system(spawn_parachutes),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::InGame).with_system(despawn_paratrooper_system),
-            )
-            .add_event::<LandingEvent>();
+            );
     }
 }
