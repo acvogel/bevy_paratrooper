@@ -140,7 +140,7 @@ fn bullet_collision_system(
                         collision_type: CollisionType::Paratrooper,
                         translation: paratrooper_transform.translation,
                     });
-                    commands.entity(paratrooper_entity).despawn();
+                    commands.entity(paratrooper_entity).despawn_recursive();
                 }
             }
             if despawn_bullet {
