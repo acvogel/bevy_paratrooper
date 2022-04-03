@@ -48,6 +48,7 @@ fn main() {
         //.add_plugin(AudioPlugin)
         .add_plugin(ExplosionPlugin)
         .add_plugin(MenuPlugin)
+        .add_plugin(EventPlugin)
         .add_startup_system(setup_camera)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
