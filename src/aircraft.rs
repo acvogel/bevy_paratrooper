@@ -86,7 +86,7 @@ fn spawn_aircraft_system(mut commands: Commands, aircraft_textures: Res<Aircraft
 
 fn setup_aircraft_system(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     commands.insert_resource(AircraftTextures {
-        image_handle: asset_server.load("gfx/planes/paraplane1.png"),
+        image_handle: asset_server.load("paraplane1.png"),
     });
 }
 

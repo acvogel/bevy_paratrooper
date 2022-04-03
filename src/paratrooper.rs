@@ -38,14 +38,12 @@ pub enum ParatrooperState {
 }
 
 struct ParatrooperTextures {
-    //pub paratrooper_handle: Handle<Image>, // 89 x 123
     pub body_handle: Handle<Image>,      // 31 x 49
     pub parachute_handle: Handle<Image>, // 89 x 86
 }
 
 fn setup_paratroopers(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(ParatrooperTextures {
-        //paratrooper_handle: asset_server.load("gfx/paratroopers/paratrooperfly1.png"),
         body_handle: asset_server.load("paratrooperfly1_body.png"),
         parachute_handle: asset_server.load("paratrooperfly1_parachute.png"),
     });
@@ -333,7 +331,7 @@ fn spawn_parachutes(
                         ..Default::default()
                     }
                     .into(),
-                    position: (Vec2::new(30., 0.), 0.).into(),
+                    position: (Vec2::new(0., 30.), 0.).into(),
                     ..Default::default()
                 })
                 .insert(Parachute)

@@ -59,7 +59,7 @@ fn setup_skyline(mut commands: Commands, asset_server: Res<AssetServer>) {
     let scale = Vec3::splat(scale_multiplier);
     let y = consts::GROUND_Y + 0.5 * height * scale_multiplier;
     commands.spawn_bundle(SpriteBundle {
-        texture: asset_server.load("gfx/skylines/city4.png"),
+        texture: asset_server.load("city4.png"),
         transform: Transform {
             translation: Vec3::new(0., y, 0.),
             scale: scale,
