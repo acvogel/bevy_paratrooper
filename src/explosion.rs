@@ -20,8 +20,7 @@ fn spawn_explosion_system(
         commands
             .spawn_bundle(SpriteSheetBundle {
                 texture_atlas: explosion_textures.texture_atlas_handle.clone(),
-                //transform: Transform::from_translation(event.translation),
-                transform: event.transform,
+                transform: event.transform.clone(),
                 ..Default::default()
             })
             .insert(Explosion(time.seconds_since_startup()))

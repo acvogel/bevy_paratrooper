@@ -2,7 +2,6 @@ use crate::aircraft::Aircraft;
 use crate::terrain::Ground;
 use crate::{AppState, BulletCollisionEvent, CollisionType, ExplosionEvent, LandingEvent};
 use bevy::prelude::*;
-use bevy_rapier2d::na::Isometry2;
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
@@ -10,8 +9,9 @@ const PARATROOPER_WALK_SPEED: f32 = 10.;
 const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.003;
 const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.005;
 const PARACHUTE_DAMPING: f32 = 1.0; // 100% air resistance
-const MIN_PARACHUTE_VELOCITY: f32 = -15.; // meters / second
+const MIN_PARACHUTE_VELOCITY: f32 = -20.; // meters / second
 const PARACHUTE_GRAVITY_SCALE: f32 = 0.5;
+const PARATROOPER_SCALE: f32 = 0.4;
 
 #[derive(Component)]
 pub struct Paratrooper {
@@ -55,23 +55,33 @@ fn setup_paratroopers(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn spawn_paratroopers(
     mut commands: Commands,
     paratrooper_textures: Res<ParatrooperTextures>,
-    mut query: Query<(&Aircraft, &Transform)>,
+    mut query: Query<(
+        &Aircraft,
+        &Transform,
+        &RigidBodyPositionComponent,
+        &RigidBodyVelocityComponent,
+    )>,
 ) {
     let mut rng = rand::thread_rng();
-    for (_aircraft, transform) in query.iter_mut() {
+    for (_aircraft, transform, rb_pos, rb_vel) in query.iter_mut() {
         if rng.gen_range(0.0..1.0) < PARATROOPER_SPAWN_PROBABILITY {
-            let mut paratrooper_transform = transform.clone();
+            let mut paratrooper_transform =
+                transform.clone().with_scale(Vec3::splat(PARATROOPER_SCALE));
+
             // Offset to back of plane
-            // TODO depend on aircraft velocity
-            paratrooper_transform.translation.x -= 35.0;
+            let multiplier = if rb_vel.linvel.x > 0.0 { 1.0 } else { -1.0 };
+
+            paratrooper_transform.translation.x -= multiplier * 35.0;
             paratrooper_transform.translation.y -= 25.;
-            let sprite_size = Vec2::new(31., 49.);
+
+            let paratrooper_pos = [
+                rb_pos.position.translation.x - multiplier * 35.,
+                rb_pos.position.translation.y - 25.,
+            ];
+
+            //let sprite_size = Vec2::new(31., 49.);
             let sprite_bundle = SpriteBundle {
                 texture: paratrooper_textures.body_handle.clone(),
-                sprite: Sprite {
-                    custom_size: Some(sprite_size),
-                    ..Default::default()
-                },
                 transform: paratrooper_transform,
                 ..Default::default()
             };
@@ -96,12 +106,7 @@ fn spawn_paratroopers(
             };
             let rigid_body = RigidBodyBundle {
                 body_type: RigidBodyTypeComponent(RigidBodyType::Dynamic),
-                // TODO need world physics scale here? Transform is in pixel space.
-                position: Isometry2::translation(
-                    paratrooper_transform.translation.x,
-                    paratrooper_transform.translation.y,
-                )
-                .into(),
+                position: paratrooper_pos.into(),
                 mass_properties: RigidBodyMassProps {
                     flags: RigidBodyMassPropsFlags::ROTATION_LOCKED,
                     local_mprops: MassProperties::new(Vec2::ZERO.into(), 10.0, 0.5).into(),
@@ -135,6 +140,7 @@ fn bullet_collision_system(
         &Transform,
         &mut RigidBodyDampingComponent,
         &mut RigidBodyForcesComponent,
+        &mut RigidBodyVelocityComponent,
         Option<&Children>,
     )>,
     mut event_reader: EventReader<BulletCollisionEvent>,
@@ -149,6 +155,7 @@ fn bullet_collision_system(
                     transform,
                     _rb_damp,
                     _rb_force,
+                    _rb_vel,
                     _children,
                 )) = paratrooper_query.get(event.target_entity)
                 {
@@ -161,7 +168,6 @@ fn bullet_collision_system(
             CollisionType::Parachute => {
                 if let Ok((parachute_entity, transform)) = parachute_query.get(event.target_entity)
                 {
-                    info!("Parachute hit");
                     event_writer.send(ExplosionEvent {
                         transform: transform.clone(),
                     });
@@ -172,6 +178,7 @@ fn bullet_collision_system(
                         _transform,
                         mut rb_damping,
                         mut rb_forces,
+                        mut rb_vel,
                         children,
                     ) in paratrooper_query.iter_mut()
                     {
@@ -180,6 +187,9 @@ fn bullet_collision_system(
                                 if child == parachute_entity {
                                     rb_damping.linear_damping = 0.0;
                                     rb_forces.gravity_scale = 1.0;
+                                    // Give them a boost down
+                                    rb_vel.linvel.y =
+                                        (1.5 * MIN_PARACHUTE_VELOCITY).min(rb_vel.linvel.y);
                                     paratrooper.state = ParatrooperState::Falling;
                                 }
                             }
@@ -313,7 +323,7 @@ fn spawn_parachutes(
                     ..Default::default()
                 })
                 .insert_bundle(ColliderBundle {
-                    shape: ColliderShape::cuboid(31. / 2., 49. / 2.).into(), // XXX bad shape?
+                    shape: ColliderShape::cuboid(31. / 4., 49. / 4.).into(), // XXX bad shape?
                     collider_type: ColliderType::Sensor.into(),
                     flags: ColliderFlags {
                         // No collisions with other paratroopers (group 0)
