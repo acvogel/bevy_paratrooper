@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::RapierConfiguration;
 
 #[allow(unused)]
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -99,11 +100,37 @@ fn despawn_game_over_text(mut commands: Commands, query: Query<Entity, With<Cont
     }
 }
 
+/// Pause the game, only while in game
+fn pause_listener(
+    mut state: ResMut<State<AppState>>,
+    keyboard_input: Res<Input<KeyCode>>,
+    mut rapier_configuration: ResMut<RapierConfiguration>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Pause) {
+        match state.current() {
+            AppState::Paused => {
+                // Unpause
+                rapier_configuration.physics_pipeline_active = true;
+                rapier_configuration.query_pipeline_active = true;
+                state.pop().unwrap();
+            }
+            AppState::InGame => {
+                // Pause
+                rapier_configuration.physics_pipeline_active = false;
+                rapier_configuration.query_pipeline_active = false;
+                state.push(AppState::Paused).unwrap();
+            }
+            _ => (),
+        };
+    }
+}
+
 pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(setup_title_screen))
+        app.add_system(pause_listener)
+            .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(setup_title_screen))
             .add_system_set(SystemSet::on_update(AppState::MainMenu).with_system(any_key_listener))
             .add_system_set(
                 SystemSet::on_exit(AppState::MainMenu).with_system(despawn_title_screen),
