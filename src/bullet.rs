@@ -2,6 +2,7 @@ use crate::aircraft::Aircraft;
 use crate::convert::*;
 use crate::events::*;
 use crate::gun::Gun;
+use crate::menu::AttackState;
 use crate::paratrooper::{Parachute, Paratrooper};
 use crate::{consts, AppState};
 use bevy::prelude::*;
@@ -187,11 +188,20 @@ impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_bullets)
             .add_system_set(
-                SystemSet::on_update(AppState::InGame)
+                SystemSet::on_update(AppState::InGame(AttackState::Air))
                     .with_system(shoot_gun)
                     .with_system(bullet_collision_system)
                     .with_system(bullet_collision_listener),
             )
-            .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_all_bullets));
+            .add_system_set(
+                SystemSet::on_update(AppState::InGame(AttackState::Ground))
+                    .with_system(shoot_gun)
+                    .with_system(bullet_collision_system)
+                    .with_system(bullet_collision_listener),
+            )
+            .add_system_set(
+                SystemSet::on_exit(AppState::InGame(AttackState::Ground))
+                    .with_system(despawn_all_bullets),
+            );
     }
 }

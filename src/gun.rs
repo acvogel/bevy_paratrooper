@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use std::collections::HashSet;
 
+use crate::menu::AttackState;
 use crate::paratrooper::Paratrooper;
 use crate::{consts, AppState, GunExplosionEvent};
 
@@ -35,6 +36,14 @@ pub fn setup_gun_base(mut commands: Commands) {
     };
     let collider = ColliderBundle {
         shape: ColliderShape::cuboid(0.5 * w, 0.5 * h).into(),
+        material: ColliderMaterial {
+            restitution: 0.,
+            restitution_combine_rule: CoefficientCombineRule::Min,
+            friction: 0.0,
+            friction_combine_rule: CoefficientCombineRule::Min,
+            ..Default::default()
+        }
+        .into(),
         ..Default::default()
     };
     commands
@@ -131,7 +140,12 @@ impl Plugin for GunPlugin {
                 .with_system(setup_gun_base),
         )
         .add_system_set(
-            SystemSet::on_update(AppState::InGame)
+            SystemSet::on_update(AppState::InGame(AttackState::Air))
+                .with_system(move_gun)
+                .with_system(gun_collision_system),
+        )
+        .add_system_set(
+            SystemSet::on_update(AppState::InGame(AttackState::Ground))
                 .with_system(move_gun)
                 .with_system(gun_collision_system),
         );
