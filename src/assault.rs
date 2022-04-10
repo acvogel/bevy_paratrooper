@@ -126,8 +126,10 @@ fn sapper_assault(
         ),
         With<Sapper>,
     >,
+    sb_query: Query<&RigidBodyPositionComponent, With<SecondBase>>,
 ) {
     if *assault_state == AssaultState::Sapper {
+        let sb_rb_pos = sb_query.single();
         let (rb_pos, mut rb_vel, mut col_flags) = query.single_mut();
         if assault_state.is_changed() {
             info!("Starting sapper.");
@@ -135,9 +137,57 @@ fn sapper_assault(
                 PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP,
                 PARATROOPER_COLLISION_FILTER,
             );
+            let heading = -1.0 * rb_pos.position.translation.x.signum();
+            rb_vel.linvel = Vec2::new(heading * PARATROOPER_WALK_SPEED, 0.0).into();
+        } else {
+            if rb_pos.position.translation.y > sb_rb_pos.position.translation.y + 20.0 {
+                info!("Sapper air walking.");
+                let heading = -1.0 * rb_pos.position.translation.x.signum();
+                rb_vel.linvel = Vec2::new(0.1 * heading * PARATROOPER_WALK_SPEED, 0.0).into();
+            }
         }
-        let heading = -1.0 * rb_pos.position.translation.x.signum();
-        rb_vel.linvel = Vec2::new(heading * PARATROOPER_WALK_SPEED, 0.0).into();
+    }
+}
+
+/// Walk on ground initial velocity. when hit 2nd base from side, impulse jump up.
+/// when hit 2nd base from top, walk left
+/// then same on climber?
+fn sapper_collision(
+    mut contact_events: EventReader<ContactEvent>,
+    assault_state: Res<AssaultState>,
+    mut sapper_query: Query<
+        (
+            Entity,
+            &RigidBodyPositionComponent,
+            &mut RigidBodyVelocityComponent,
+        ),
+        With<Sapper>,
+    >,
+    sb_query: Query<(Entity, &RigidBodyPositionComponent), With<SecondBase>>,
+    climber_query: Query<(Entity, &RigidBodyPositionComponent), With<Climber>>,
+    gun_base_query: Query<Entity, With<GunBase>>,
+) {
+    if *assault_state == AssaultState::Sapper {
+        let (sapper_entity, rb_pos, mut rb_vel) = sapper_query.single_mut();
+        let (sb_entity, _sb_rb_pos) = sb_query.single();
+        let (climber_entity, _climber_rb_pos) = climber_query.single();
+        let gun_base_entity = gun_base_query.single();
+        for contact_event in contact_events.iter() {
+            if entities_collision_started(*contact_event, sb_entity, sapper_entity)
+                || entities_collision_started(*contact_event, climber_entity, sapper_entity)
+            {
+                // jump
+                info!("Sapper jumping.");
+                //let heading = rb_pos.position.translation.x.signum();
+                //rb_vel.linvel = Vec2::new(heading * 3., 80.).into();
+                rb_vel.linvel = Vec2::new(0., 100.).into();
+            }
+
+            if entities_collision_started(*contact_event, sapper_entity, gun_base_entity) {
+                info!("Sapper <-> GunBase");
+                rb_vel.linvel = Vec2::new(0., 100.).into();
+            }
+        }
     }
 }
 
@@ -155,8 +205,8 @@ fn base_gun_base_collision(
     >,
     gun_base_query: Query<Entity, With<GunBase>>,
 ) {
-    let gun_base_entity = gun_base_query.get_single().unwrap();
-    let (base_entity, mut rb_type, mut rb_vel) = base_query.get_single_mut().unwrap();
+    let gun_base_entity = gun_base_query.single();
+    let (base_entity, mut rb_type, mut rb_vel) = base_query.single_mut();
     for contact_event in contact_events.iter() {
         if entities_collision_started(*contact_event, base_entity, gun_base_entity) {
             info!("Base arrived at GunBase.");
@@ -174,8 +224,8 @@ fn climber_gun_base_collision(
     mut climber_query: Query<(Entity, &mut RigidBodyVelocityComponent), With<Climber>>,
     gun_base_query: Query<Entity, With<GunBase>>,
 ) {
-    let gun_base_entity = gun_base_query.get_single().unwrap();
-    let (climber_entity, mut rb_vel) = climber_query.get_single_mut().unwrap();
+    let gun_base_entity = gun_base_query.single();
+    let (climber_entity, mut rb_vel) = climber_query.single_mut();
     for contact_event in contact_events.iter() {
         if entities_collision_started(*contact_event, gun_base_entity, climber_entity) {
             info!("Climber arrived at GunBase.");
@@ -200,15 +250,17 @@ fn climber_base_collision(
     >,
     base_query: Query<Entity, With<Base>>,
 ) {
-    let (climber_entity, rb_pos, mut rb_vel, mut rb_type) = climber_query.get_single_mut().unwrap();
-    let base_entity = base_query.get_single().unwrap();
+    let (climber_entity, rb_pos, mut rb_vel, mut rb_type) = climber_query.single_mut();
+    let base_entity = base_query.single();
     for contact_event in contact_events.iter() {
         if entities_collision_started(*contact_event, base_entity, climber_entity) {
             if *assault_state == AssaultState::Climber {
                 info!("Climber jump over Base.");
                 let heading = rb_pos.position.translation.x.signum();
                 rb_vel.linvel = Vec2::new(heading * 3., 80.).into();
-            } else {
+            } else if *assault_state == AssaultState::SecondBase
+                || *assault_state == AssaultState::Sapper
+            {
                 info!("Climber locked in place.");
                 *rb_type = RigidBodyTypeComponent(RigidBodyType::Static);
             }
@@ -224,8 +276,8 @@ fn second_base_base_collision(
     base_query: Query<Entity, With<Base>>,
 ) {
     if *assault_state == AssaultState::SecondBase {
-        let (sb_entity, mut rb_type) = second_base_query.get_single_mut().unwrap();
-        let base_entity = base_query.get_single().unwrap();
+        let (sb_entity, mut rb_type) = second_base_query.single_mut();
+        let base_entity = base_query.single();
         for contact_event in contact_events.iter() {
             if entities_collision_started(*contact_event, base_entity, sb_entity) {
                 info!("SecondBase arrived at Base.");
@@ -248,34 +300,24 @@ fn assault_state_listener(assault_state: Res<AssaultState>) {
     }
 }
 
+/// Detect when there are 4 paratroopers landed and launch assault
 fn detect_assault_system(
     mut commands: Commands,
-    mut paratrooper_query: Query<(
-        Entity,
-        &mut Paratrooper,
-        &RigidBodyPositionComponent,
-        &mut ColliderFlagsComponent,
-    )>,
+    mut paratrooper_query: Query<(Entity, &mut Paratrooper, &RigidBodyPositionComponent)>,
     gun_base_query: Query<&RigidBodyPositionComponent, With<GunBase>>,
     mut app_state: ResMut<State<AppState>>,
 ) {
-    let gun_base_rb_pos = gun_base_query.get_single().unwrap();
-    let mut landed_paratroopers: Vec<(
-        Entity,
-        Mut<'_, Paratrooper>,
-        &RigidBodyPositionComponent,
-        Mut<'_, ColliderFlagsComponent>,
-    )> = paratrooper_query
-        .iter_mut()
-        .filter(|(_e, paratrooper, _rb_pos, _col_flags)| {
-            paratrooper.state == ParatrooperState::Landed
-        })
-        .collect();
+    let gun_base_rb_pos = gun_base_query.single();
+    let mut landed_paratroopers: Vec<(Entity, Mut<'_, Paratrooper>, &RigidBodyPositionComponent)> =
+        paratrooper_query
+            .iter_mut()
+            .filter(|(_e, paratrooper, _rb_pos)| paratrooper.state == ParatrooperState::Landed)
+            .collect();
 
     let (landed_left_paratroopers, landed_right_paratroopers): (Vec<_>, Vec<_>) =
         landed_paratroopers
             .iter_mut()
-            .partition(|(_e, _p, p_rb_pos, _col_flags)| {
+            .partition(|(_e, _p, p_rb_pos)| {
                 p_rb_pos.position.translation.x <= gun_base_rb_pos.position.translation.x
             });
 
@@ -293,42 +335,38 @@ fn detect_assault_system(
     if let Some(mut assault_troops) = assault_troops {
         info!("Assault!!!");
         // Set troopers to Assault mode
-        assault_troops.sort_by(
-            |(_e1, _p1, rb_pos1, _col_flags1), (_e2, _p2, rb_pos2, _col_flags2)| {
-                rb_pos1
-                    .position
-                    .translation
-                    .x
-                    .abs()
-                    .partial_cmp(&rb_pos2.position.translation.x.abs())
-                    .unwrap()
-            },
-        );
+        assault_troops.sort_by(|(_e1, _p1, rb_pos1), (_e2, _p2, rb_pos2)| {
+            rb_pos1
+                .position
+                .translation
+                .x
+                .abs()
+                .partial_cmp(&rb_pos2.position.translation.x.abs())
+                .unwrap()
+        });
 
         let active_assault_troops = assault_troops.iter_mut().take(4);
-        for ((entity, paratrooper, _rb_pos, col_flags), idx) in active_assault_troops.zip(0..4) {
+        for ((entity, paratrooper, _rb_pos), idx) in active_assault_troops.zip(0..4) {
             paratrooper.state = ParatrooperState::Assault;
             let mut e = commands.entity(*entity);
             match idx {
                 0 => {
                     e.insert(Base);
                 }
+
                 1 => {
                     e.insert(Climber);
                 }
+
                 2 => {
                     e.insert(SecondBase);
                 }
+
                 3 => {
                     e.insert(Sapper);
                 }
                 _ => (),
             }
-            // TODO should be in "start" of other assault phases?
-            col_flags.collision_groups = InteractionGroups::new(
-                PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP,
-                PARATROOPER_COLLISION_FILTER,
-            );
         }
 
         // Change game state
@@ -365,7 +403,8 @@ impl Plugin for AssaultPlugin {
                 .with_system(climber_base_collision)
                 .with_system(second_base_assault)
                 .with_system(second_base_base_collision)
-                .with_system(sapper_assault),
+                .with_system(sapper_assault)
+                .with_system(sapper_collision),
         );
     }
 }

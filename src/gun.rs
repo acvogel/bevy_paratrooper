@@ -16,9 +16,13 @@ pub struct Gun {
 #[derive(Component)]
 pub struct GunBase;
 
+const GUN_BASE_X: f32 = 64.;
+const GUN_BASE_Y: f32 = 25.;
+//const GUN_BASE_Y: f32 = 64.;
+
 pub fn setup_gun_base(mut commands: Commands) {
-    let h = 64.;
-    let w = 64.;
+    let h = GUN_BASE_Y;
+    let w = GUN_BASE_X;
     let y = consts::GROUND_Y + 0.5 * h;
     let sprite_bundle = SpriteBundle {
         sprite: Sprite {
@@ -54,7 +58,8 @@ pub fn setup_gun_base(mut commands: Commands) {
 }
 
 pub fn setup_gun(mut commands: Commands) {
-    let y = consts::GROUND_Y + 64.;
+    //let y = consts::GROUND_Y + 64.;
+    let y = consts::GROUND_Y + GUN_BASE_Y;
     let sprite_size = Vec2::new(20., 60.);
     let sprite_bundle = SpriteBundle {
         sprite: Sprite {

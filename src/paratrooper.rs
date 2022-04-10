@@ -20,7 +20,7 @@ const PARATROOPER_COLLISION_MEMBERSHIP: u32 = 0b0001;
 pub const PARATROOPER_COLLISION_FILTER: u32 = 0b1110;
 
 const PARATROOPER_SPAWN_X_MAX: f32 = 400.;
-const PARATROOPER_SPAWN_X_MIN: f32 = 20.;
+const PARATROOPER_SPAWN_X_MIN: f32 = 50.;
 
 #[derive(Component)]
 pub struct Paratrooper {

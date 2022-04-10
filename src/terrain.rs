@@ -16,7 +16,7 @@ fn setup_ground(mut commands: Commands) {
             custom_size: custom_size,
             ..Default::default()
         },
-        transform: Transform::from_translation(Vec3::new(0., y, 0.)),
+        transform: Transform::from_translation(Vec3::new(0., y, 1.5)),
         ..Default::default()
     };
     let collider = ColliderBundle {
