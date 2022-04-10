@@ -5,37 +5,9 @@ use crate::{entities_collision_started, AppState};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-// assault start makes a Base, kicks off. Set AssaultState base
-// collision gunbase <-> Base fires, set to static. assign a climber (next closest) and start them walking
-// collision gunbase <-> Climber sets AssaultPhase SecondBase. assign closest dude to SecondBase. start walking
-// base <-> climber system jumps climber, if assaultphase is climber. if climber "above" base, just left instead of jump. if assaultphase SecondBase, set climber to static.
-// SB <-> Base collision: SB static. AssaultPhase == Sapper. Tag and start sapper.
-// AssaultEvents makes sense. Should almost make a new assault.rs. ? holds structs etc.
-
 const PARATROOPER_WALK_SPEED: f32 = 50.;
 const PARATROOPER_ASSAULT_MIN: usize = 4;
 const PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP: u32 = 0b1001;
-
-//#[derive(Clone, PartialEq)]
-//enum AssaultRole {
-//    Base,
-//    Climber,
-//    SecondBase,
-//    Sapper,
-//}
-//
-//#[derive(PartialEq)]
-//enum JobStatus {
-//    Waiting,
-//    InProgress,
-//    Completed,
-//}
-
-//#[derive(Component)]
-//pub struct Assaulter {
-//    role: AssaultRole,
-//    status: JobStatus,
-//}
 
 /// Forms the base of the pyramid
 #[derive(Component)]
@@ -276,198 +248,7 @@ fn assault_state_listener(assault_state: Res<AssaultState>) {
     }
 }
 
-///// Paratrooper <-> Paratrooper collisions
-//fn assault_paratrooper_collision_system(
-//    mut contact_events: EventReader<ContactEvent>,
-//    mut query: Query<(
-//        Entity,
-//        &mut Assaulter,
-//        &RigidBodyPositionComponent,
-//        &mut RigidBodyVelocityComponent,
-//    )>,
-//) {
-//    let base = query
-//        .iter()
-//        .filter(|(_e, assaulter, _rb_pos, _rb_vel)| assaulter.role == AssaultRole::Base)
-//        .next()
-//        .unwrap();
-//    //let mut sapper = query
-//    //    .iter_mut()
-//    //    .filter(|(_e, assaulter, _rb_pos, _rb_vel)| assaulter.role == AssaultRole::Sapper)
-//    //    .next()
-//    //    .unwrap();
-//
-//    for contact_event in contact_events.iter() {
-//        if let Started(handle1, handle2) = contact_event {
-//            info!(
-//                "Paratrooper collision event started! {:?} {:?}",
-//                handle1, handle2
-//            );
-//            {
-//                let mut climber = query
-//                    .iter_mut()
-//                    .filter(|(_e, assaulter, _rb_pos, _rb_vel)| {
-//                        assaulter.role == AssaultRole::Climber
-//                    })
-//                    .next()
-//                    .unwrap();
-//                // Base <-> Climber contact
-//                if handle1.entity() == climber.0 && handle2.entity() == base.0
-//                    || handle2.entity() == climber.0 && handle1.entity() == base.0
-//                {
-//                    match climber.1.status {
-//                        JobStatus::InProgress => {
-//                            // Jump in direction of Base
-//                            let multiplier = (base.2.position.translation.x
-//                                - climber.2.position.translation.x)
-//                                .signum();
-//                            climber.3.linvel = Vec2::new(multiplier * 3., 80.).into();
-//                        }
-//                        JobStatus::Completed => (),
-//                        _ => (),
-//                    }
-//                }
-//            }
-//
-//            let mut second_base = query
-//                .iter_mut()
-//                .filter(|(_e, assaulter, _rb_pos, _rb_vel)| {
-//                    assaulter.role == AssaultRole::SecondBase
-//                })
-//                .next()
-//                .unwrap();
-//
-//            // Looking for "InProgress" paratrooper
-//            // If base, nothing
-//            // If Climber <-> Base then climb/jump
-//            // if SecondBase <-> Base, then done with that one.
-//            // if Sapper, <-> SecondBase/Climber
-//        }
-//    }
-//}
-
-///// Handles pyramid building progress
-//fn assault_collision_system(
-//    mut contact_events: EventReader<ContactEvent>,
-//    gun_base_query: Query<Entity, With<GunBase>>,
-//    mut paratrooper_query: Query<(
-//        Entity,
-//        &mut Assaulter,
-//        &mut RigidBodyTypeComponent,
-//        &mut RigidBodyVelocityComponent,
-//    )>,
-//) {
-//    let gun_base_entity = gun_base_query.get_single().unwrap();
-//    for contact_event in contact_events.iter() {
-//        if let Started(handle1, handle2) = contact_event {
-//            // Gun base collision
-//            if handle1.entity() == gun_base_entity || handle2.entity() == gun_base_entity {
-//                let other_entity = if handle1.entity() == gun_base_entity {
-//                    handle2.entity()
-//                } else {
-//                    handle1.entity()
-//                };
-//                for (paratrooper_entity, mut assaulter, mut rb_type, mut rb_vel) in
-//                    paratrooper_query.iter_mut()
-//                {
-//                    if other_entity == paratrooper_entity {
-//                        match *assaulter {
-//                            Assaulter {
-//                                role: AssaultRole::Base,
-//                                status: JobStatus::InProgress,
-//                            } => {
-//                                info!("Assaulter Base is in place.");
-//                                assaulter.status = JobStatus::Completed;
-//                                *rb_type = RigidBodyTypeComponent(RigidBodyType::Static);
-//                            }
-//                            Assaulter {
-//                                role: AssaultRole::Climber,
-//                                status: JobStatus::InProgress,
-//                            } => {
-//                                info!("Assaulter Climber is in place.");
-//                                assaulter.status = JobStatus::Completed;
-//                                // XXX gets stuck on the wall.
-//                                // here's what we want. if climber colliders with base, jump if near y
-//                                // if collision has climber > base, head left/right
-//                                // or: teleport lol.
-//                                //*rb_type = RigidBodyTypeComponent(RigidBodyType::Static);
-//                                rb_vel.linvel = Vec2::ZERO.into();
-//                            }
-//                            //,Assaulter {
-//                            //    role: AssaultRole::SecondBase,
-//                            //    status: JobStatus::InProgress,
-//                            //},
-//                            Assaulter {
-//                                role: AssaultRole::Sapper,
-//                                status: JobStatus::InProgress,
-//                            } => {
-//                                info!("Assaulter Sapper has touched the base");
-//                                // teleport to top of gun base, or jump
-//                            }
-//                            _ => (),
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
-//}
-
-/// Moves paratroopers in ground attack
-//fn paratrooper_assault_system(
-//    mut query: Query<(
-//        &Paratrooper,
-//        &mut Assaulter,
-//        &mut RigidBodyTypeComponent,
-//        &RigidBodyPositionComponent,
-//        &mut RigidBodyVelocityComponent,
-//    )>,
-//) {
-//    for (_paratrooper, mut assaulter, mut _rb_type, rb_pos, mut rb_vel) in query.iter_mut() {
-//        let heading = -1.0 * rb_pos.position.translation.x.signum();
-//        match *assaulter {
-//            Assaulter {
-//                role: AssaultRole::Base,
-//                status: JobStatus::Waiting,
-//            } => {
-//                info!("Starting Base assault");
-//                assaulter.status = JobStatus::InProgress;
-//                rb_vel.linvel = Vec2::new(heading * PARATROOPER_WALK_SPEED, 0.0).into();
-//                break;
-//            }
-//            Assaulter {
-//                role: AssaultRole::Base,
-//                status: JobStatus::InProgress,
-//            } => {
-//                break;
-//            }
-//            Assaulter {
-//                role: AssaultRole::Climber,
-//                status: JobStatus::Waiting,
-//            } => {
-//                info!("Starting Climber assault");
-//                assaulter.status = JobStatus::InProgress;
-//                rb_vel.linvel = Vec2::new(heading * PARATROOPER_WALK_SPEED, 0.0).into();
-//                break;
-//            }
-//            Assaulter {
-//                role: AssaultRole::Climber,
-//                status: JobStatus::InProgress,
-//            } => (),
-//            Assaulter {
-//                role: AssaultRole::SecondBase,
-//                status: JobStatus::Waiting,
-//            } => {
-//                // start walking
-//                assaulter.status = JobStatus::InProgress;
-//                rb_vel.linvel = Vec2::new(heading * PARATROOPER_WALK_SPEED, 0.0).into();
-//            }
-//            _ => (),
-//        }
-//    }
-//}
-
-fn detect_assault_system_new(
+fn detect_assault_system(
     mut commands: Commands,
     mut paratrooper_query: Query<(
         Entity,
@@ -661,7 +442,7 @@ impl Plugin for AssaultPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(
             SystemSet::on_update(AppState::InGame(AttackState::Air))
-                .with_system(detect_assault_system_new), //    .with_system(detect_assault_system),
+                .with_system(detect_assault_system), //    .with_system(detect_assault_system),
         )
         .add_system_set(
             SystemSet::on_enter(AppState::InGame(AttackState::Ground))
@@ -677,9 +458,7 @@ impl Plugin for AssaultPlugin {
                 .with_system(climber_base_collision)
                 .with_system(second_base_assault)
                 .with_system(second_base_base_collision)
-                .with_system(sapper_assault)
-                //.with_system(paratrooper_assault_system)
-                //.with_system(assault_collision_system), //.with_system(assault_paratrooper_collision_system),
+                .with_system(sapper_assault),
         );
     }
 }

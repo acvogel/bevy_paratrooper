@@ -221,29 +221,6 @@ fn bullet_collision_system(
     }
 }
 
-///// Listen for collisions with the gun base, then try to jump with impulse or velocity.
-//fn paratrooper_climbing_system(
-//    mut contact_events: EventReader<ContactEvent>,
-//    gun_base_query: Query<Entity, With<GunBase>>,
-//    mut paratrooper_query: Query<(Entity, &mut Paratrooper, &mut RigidBodyVelocityComponent)>,
-//) {
-//    let gun_base_entity = gun_base_query.get_single().unwrap();
-//    for contact_events in contact_events.iter() {
-//        for (paratrooper_entity, mut paratrooper, mut rb_vel) in paratrooper_query.iter_mut() {
-//            if let Started(handle1, handle2) = contact_events {
-//                if (handle1.entity() == paratrooper_entity && handle2.entity() == gun_base_entity)
-//                    || (handle2.entity() == paratrooper_entity
-//                        && handle1.entity() == gun_base_entity)
-//                {
-//                    info!("Jumping!");
-//                    paratrooper.state = ParatrooperState::Climbing;
-//                    rb_vel.linvel = Vec2::new(0., 50.).into(); // boosts them up to the top.
-//                }
-//            }
-//        }
-//    }
-//}
-
 // Detect paratrooper landings
 fn paratrooper_landing_system(
     mut commands: Commands,
