@@ -2,6 +2,7 @@ use bevy::prelude::*;
 //use bevy_kira_audio::AudioPlugin;
 
 //use crate::audio::AudioStatePlugin;
+use crate::assault::AssaultPlugin;
 use crate::explosion::ExplosionPlugin;
 use crate::menu::{AppState, MenuPlugin};
 use aircraft::AircraftPlugin;
@@ -13,6 +14,7 @@ use score::ScorePlugin;
 use terrain::TerrainPlugin;
 
 mod aircraft;
+mod assault;
 mod audio;
 mod bullet;
 mod consts;
@@ -49,6 +51,7 @@ fn main() {
         .add_plugin(ExplosionPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(EventPlugin)
+        .add_plugin(AssaultPlugin)
         .add_startup_system(setup_camera)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
