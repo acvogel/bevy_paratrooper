@@ -8,13 +8,20 @@ use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
 const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.003;
-const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.005;
+//const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.005;
+const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.02; // XXX debug early drop for assault
 const PARACHUTE_DAMPING: f32 = 1.0; // 100% air resistance
                                     //const MIN_PARACHUTE_VELOCITY: f32 = -20.; // meters / second
 const MIN_PARACHUTE_VELOCITY: f32 = -60.; // meters / second
                                           //const PARACHUTE_GRAVITY_SCALE: f32 = 0.5; // XXX speed up falling for testing
 const PARACHUTE_GRAVITY_SCALE: f32 = 2.0;
 const PARATROOPER_SCALE: f32 = 0.4;
+
+// Messy, mixes physics space and graphics space...
+// should work from collider dimensions
+// 31 x 49 texture, scaled
+pub const PARATROOPER_X: f32 = PARATROOPER_SCALE * 31.;
+pub const PARATROOPER_Y: f32 = PARATROOPER_SCALE * 49.;
 
 const PARATROOPER_COLLISION_MEMBERSHIP: u32 = 0b0001;
 pub const PARATROOPER_COLLISION_FILTER: u32 = 0b1110;
@@ -58,91 +65,112 @@ fn setup_paratroopers(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
+/// Spawn several paratroopers
+fn spawn_paratroopers_debug(
+    mut commands: Commands,
+    paratrooper_textures: Res<ParatrooperTextures>,
+) {
+    let y = 100.;
+    let positions = [
+        Vec2::new(50., y),
+        Vec2::new(60., y),
+        Vec2::new(70., y),
+        Vec2::new(80., y),
+    ];
+
+    for position in positions {
+        commands
+            .spawn_bundle(paratrooper_rigid_body_bundle(position))
+            .insert(RigidBodyPositionSync::Discrete)
+            .insert_bundle(paratrooper_collider_bundle())
+            .insert_bundle(paratrooper_sprite_bundle(&paratrooper_textures))
+            .insert(Paratrooper::default());
+    }
+}
+
+fn paratrooper_sprite_bundle(paratrooper_textures: &Res<ParatrooperTextures>) -> SpriteBundle {
+    SpriteBundle {
+        texture: paratrooper_textures.body_handle.clone(),
+        transform: Transform {
+            scale: Vec3::new(PARATROOPER_SCALE, PARATROOPER_SCALE, 0.),
+            ..Default::default()
+        },
+        ..Default::default()
+    }
+}
+
+fn paratrooper_rigid_body_bundle(position: Vec2) -> RigidBodyBundle {
+    RigidBodyBundle {
+        body_type: RigidBodyTypeComponent(RigidBodyType::Dynamic),
+        position: position.into(),
+        mass_properties: RigidBodyMassProps {
+            flags: RigidBodyMassPropsFlags::ROTATION_LOCKED,
+            local_mprops: MassProperties::new(Vec2::ZERO.into(), 10.0, 0.5).into(),
+            ..Default::default()
+        }
+        .into(),
+        ..Default::default()
+    }
+}
+
+fn paratrooper_collider_bundle() -> ColliderBundle {
+    ColliderBundle {
+        shape: ColliderShape::cuboid(PARATROOPER_X / 2., PARATROOPER_Y / 2.).into(), // XXX bad shape?
+        flags: ColliderFlags {
+            // No collisions with other paratroopers (group 0)
+            collision_groups: InteractionGroups::new(
+                PARATROOPER_COLLISION_MEMBERSHIP,
+                PARATROOPER_COLLISION_FILTER,
+            ),
+            active_collision_types: ActiveCollisionTypes::all(),
+            active_events: ActiveEvents::all(),
+            ..Default::default()
+        }
+        .into(),
+        material: ColliderMaterial {
+            restitution: 0.,
+            restitution_combine_rule: CoefficientCombineRule::Min,
+            friction: 0.0,
+            friction_combine_rule: CoefficientCombineRule::Min,
+            ..Default::default()
+        }
+        .into(),
+        ..Default::default()
+    }
+}
+
 // Dynamic parachutes version
 fn spawn_paratroopers(
     mut commands: Commands,
     paratrooper_textures: Res<ParatrooperTextures>,
     mut query: Query<(
         &Aircraft,
-        &Transform,
         &RigidBodyPositionComponent,
         &RigidBodyVelocityComponent,
     )>,
 ) {
     let mut rng = rand::thread_rng();
     // XXX maybe slow to roll rng for each aircraft for each frame?
-    for (_aircraft, transform, rb_pos, rb_vel) in query.iter_mut() {
+    for (_aircraft, rb_pos, rb_vel) in query.iter_mut() {
         let pos_x = rb_pos.position.translation.x.abs();
         if pos_x < PARATROOPER_SPAWN_X_MAX
             && pos_x > PARATROOPER_SPAWN_X_MIN
             && rng.gen_range(0.0..1.0) < PARATROOPER_SPAWN_PROBABILITY
         {
-            let mut paratrooper_transform =
-                transform.clone().with_scale(Vec3::splat(PARATROOPER_SCALE));
-
             // Offset to back of plane
-            let multiplier = if rb_vel.linvel.x > 0.0 { 1.0 } else { -1.0 };
+            let heading = rb_vel.linvel.x.signum();
 
-            paratrooper_transform.translation.x -= multiplier * 35.0;
-            paratrooper_transform.translation.y -= 25.;
-
-            let paratrooper_pos = [
-                rb_pos.position.translation.x - multiplier * 35.,
+            let paratrooper_pos = Vec2::new(
+                rb_pos.position.translation.x - heading * 35.,
                 rb_pos.position.translation.y - 25.,
-            ];
+            );
 
-            //let sprite_size = Vec2::new(31., 49.);
-            let sprite_bundle = SpriteBundle {
-                texture: paratrooper_textures.body_handle.clone(),
-                transform: paratrooper_transform,
-                ..Default::default()
-            };
-
-            let collider = ColliderBundle {
-                shape: ColliderShape::cuboid(31. / 8., 49. / 8.).into(), // XXX bad shape?
-                flags: ColliderFlags {
-                    // No collisions with other paratroopers (group 0)
-                    collision_groups: InteractionGroups::new(
-                        PARATROOPER_COLLISION_MEMBERSHIP,
-                        PARATROOPER_COLLISION_FILTER,
-                    ),
-                    active_collision_types: ActiveCollisionTypes::all(),
-                    active_events: ActiveEvents::all(),
-                    ..Default::default()
-                }
-                .into(),
-                material: ColliderMaterial {
-                    restitution: 0.,
-                    restitution_combine_rule: CoefficientCombineRule::Min,
-                    friction: 0.0,
-                    friction_combine_rule: CoefficientCombineRule::Min,
-                    ..Default::default()
-                }
-                .into(),
-                ..Default::default()
-            };
-            let rigid_body = RigidBodyBundle {
-                body_type: RigidBodyTypeComponent(RigidBodyType::Dynamic),
-                position: paratrooper_pos.into(),
-                mass_properties: RigidBodyMassProps {
-                    flags: RigidBodyMassPropsFlags::ROTATION_LOCKED,
-                    local_mprops: MassProperties::new(Vec2::ZERO.into(), 10.0, 0.5).into(),
-                    ..Default::default()
-                }
-                .into(),
-                ..Default::default()
-            };
-
-            let paratrooper = Paratrooper {
-                state: ParatrooperState::Falling,
-                has_deployed_chute: false,
-            };
             commands
-                .spawn_bundle(rigid_body)
+                .spawn_bundle(paratrooper_rigid_body_bundle(paratrooper_pos))
                 .insert(RigidBodyPositionSync::Discrete)
-                .insert_bundle(collider)
-                .insert_bundle(sprite_bundle)
-                .insert(paratrooper);
+                .insert_bundle(paratrooper_collider_bundle())
+                .insert_bundle(paratrooper_sprite_bundle(&paratrooper_textures))
+                .insert(Paratrooper::default());
         }
     }
 }
@@ -176,6 +204,7 @@ fn bullet_collision_system(
                     _children,
                 )) = paratrooper_query.get(event.target_entity)
                 {
+                    // TODO should be in physics space
                     event_writer.send(ExplosionEvent {
                         transform: transform.clone(),
                     });
@@ -274,7 +303,7 @@ fn paratrooper_landing_system(
                                 commands.entity(*child).despawn_recursive();
                             }
                         } else {
-                            // TODO GibEvent
+                            // TODO GibEvent and physics dimensions
                             explosion_event_writer.send(ExplosionEvent {
                                 transform: transform.clone(),
                             });
@@ -370,10 +399,13 @@ impl Plugin for ParatrooperPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_paratroopers)
             .add_system_set(
+                SystemSet::on_enter(AppState::InGame(AttackState::Air))
+                    .with_system(spawn_paratroopers_debug),
+            )
+            .add_system_set(
                 SystemSet::on_update(AppState::InGame(AttackState::Air))
                     .with_system(paratrooper_landing_system)
                     .with_system(bullet_collision_system)
-                    //.with_system(paratrooper_climbing_system)
                     .with_system(spawn_paratroopers)
                     .with_system(spawn_parachutes),
             )

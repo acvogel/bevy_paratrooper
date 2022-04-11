@@ -110,6 +110,7 @@ fn move_gun(
 }
 
 fn gun_collision_system(
+    mut commands: Commands,
     mut event_reader: EventReader<IntersectionEvent>,
     mut event_writer: EventWriter<GunExplosionEvent>,
     gun_query: Query<(Entity, &Transform), With<Gun>>,
@@ -130,6 +131,8 @@ fn gun_collision_system(
                 event_writer.send(GunExplosionEvent {
                     translation: gun_transform.translation,
                 });
+                // Despawn gun
+                //commands.entity(gun_entity).despawn_recursive();
             }
         }
     }
