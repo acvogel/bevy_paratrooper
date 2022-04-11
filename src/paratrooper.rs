@@ -8,8 +8,8 @@ use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
 const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.003;
-//const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.005;
-const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.02; // XXX debug early drop for assault
+const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.005;
+//const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.02; // XXX debug early drop for assault
 const PARACHUTE_DAMPING: f32 = 1.0; // 100% air resistance
                                     //const MIN_PARACHUTE_VELOCITY: f32 = -20.; // meters / second
 const MIN_PARACHUTE_VELOCITY: f32 = -60.; // meters / second
@@ -399,10 +399,10 @@ pub struct ParatrooperPlugin;
 impl Plugin for ParatrooperPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_paratroopers)
-            .add_system_set(
-                SystemSet::on_enter(AppState::InGame(AttackState::Air))
-                    .with_system(spawn_paratroopers_debug),
-            )
+            //.add_system_set(
+            //    SystemSet::on_enter(AppState::InGame(AttackState::Air))
+            //        .with_system(spawn_paratroopers_debug),
+            //)
             .add_system_set(
                 SystemSet::on_update(AppState::InGame(AttackState::Air))
                     .with_system(paratrooper_landing_system)
