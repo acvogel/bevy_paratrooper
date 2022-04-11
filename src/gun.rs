@@ -17,8 +17,7 @@ pub struct Gun {
 pub struct GunBase;
 
 const GUN_BASE_X: f32 = 64.;
-const GUN_BASE_Y: f32 = 25.;
-//const GUN_BASE_Y: f32 = 64.;
+const GUN_BASE_Y: f32 = 35.;
 
 pub fn setup_gun_base(mut commands: Commands) {
     let h = GUN_BASE_Y;
@@ -110,7 +109,6 @@ fn move_gun(
 }
 
 fn gun_collision_system(
-    mut commands: Commands,
     mut event_reader: EventReader<IntersectionEvent>,
     mut event_writer: EventWriter<GunExplosionEvent>,
     gun_query: Query<(Entity, &Transform), With<Gun>>,
@@ -131,8 +129,6 @@ fn gun_collision_system(
                 event_writer.send(GunExplosionEvent {
                     translation: gun_transform.translation,
                 });
-                // Despawn gun
-                //commands.entity(gun_entity).despawn_recursive();
             }
         }
     }

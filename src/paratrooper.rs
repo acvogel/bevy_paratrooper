@@ -58,6 +58,7 @@ struct ParatrooperTextures {
     pub parachute_handle: Handle<Image>, // 89 x 86
 }
 
+/// Load paratrooper textures
 fn setup_paratroopers(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(ParatrooperTextures {
         body_handle: asset_server.load("paratrooperfly1_body.png"),
@@ -65,19 +66,19 @@ fn setup_paratroopers(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-/// Spawn several paratroopers
+/// Spawn several paratroopers for debugging assaults
+#[allow(dead_code)]
 fn spawn_paratroopers_debug(
     mut commands: Commands,
     paratrooper_textures: Res<ParatrooperTextures>,
 ) {
     let y = 100.;
     let positions = [
-        Vec2::new(50., y),
         Vec2::new(60., y),
         Vec2::new(70., y),
         Vec2::new(80., y),
+        Vec2::new(90., y),
     ];
-
     for position in positions {
         commands
             .spawn_bundle(paratrooper_rigid_body_bundle(position))

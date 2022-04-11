@@ -1,8 +1,6 @@
 use crate::gun::GunBase;
 use crate::menu::AttackState;
-use crate::paratrooper::{
-    Paratrooper, ParatrooperState, PARATROOPER_COLLISION_FILTER, PARATROOPER_Y,
-};
+use crate::paratrooper::{Paratrooper, ParatrooperState, PARATROOPER_COLLISION_FILTER};
 use crate::{entities_collision_started, AppState};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
@@ -100,18 +98,17 @@ fn climber_assault(
 ) {
     let (rb_pos, mut rb_vel, mut col_flags) = query.single_mut();
     let base_rb_pos = base_query.single_mut();
+    let heading = -1.0 * rb_pos.position.translation.x.signum();
     if *assault_state == AssaultState::Climber {
         if assault_state.is_changed() {
             col_flags.collision_groups = InteractionGroups::new(
                 PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP,
                 PARATROOPER_COLLISION_FILTER,
             );
-            let heading = -1.0 * rb_pos.position.translation.x.signum();
             rb_vel.linvel = Vec2::new(heading * PARATROOPER_WALK_SPEED, 0.0).into();
         }
         // "walk" again if above Base
         if rb_pos.position.translation.y > base_rb_pos.position.translation.y + 20.0 {
-            let heading = -1.0 * rb_pos.position.translation.x.signum();
             rb_vel.linvel = Vec2::new(heading * PARATROOPER_WALK_SPEED, 0.0).into();
         }
     }
@@ -128,10 +125,8 @@ fn sapper_assault(
         ),
         With<Sapper>,
     >,
-    //sb_query: Query<&RigidBodyPositionComponent, With<SecondBase>>,
 ) {
     if *assault_state == AssaultState::Sapper {
-        //let sb_rb_pos = sb_query.single();
         let (rb_pos, mut rb_vel, mut col_flags) = query.single_mut();
         if assault_state.is_changed() {
             info!("Starting sapper.");
@@ -141,12 +136,6 @@ fn sapper_assault(
             );
             let heading = -1.0 * rb_pos.position.translation.x.signum();
             rb_vel.linvel = Vec2::new(heading * PARATROOPER_WALK_SPEED, 0.0).into();
-        } else {
-            //if rb_pos.position.translation.y > sb_rb_pos.position.translation.y + 20.0 {
-            //info!("Sapper air walking.");
-            //let heading = -1.0 * rb_pos.position.translation.x.signum();
-            //rb_vel.linvel = Vec2::new(0.1 * heading * PARATROOPER_WALK_SPEED, 0.0).into();
-            //}
         }
     }
 }
@@ -162,8 +151,6 @@ fn sapper_collision(
             Entity,
             &RigidBodyPositionComponent,
             &mut RigidBodyVelocityComponent,
-            &RigidBodyMassPropsComponent,
-            &ColliderShapeComponent,
         ),
         With<Sapper>,
     >,
@@ -172,8 +159,7 @@ fn sapper_collision(
     gun_base_query: Query<(Entity, &RigidBodyPositionComponent), With<GunBase>>,
 ) {
     if *assault_state == AssaultState::Sapper {
-        let (sapper_entity, sapper_rb_pos, mut sapper_rb_vel, sapper_rb_mprops, sapper_col_shape) =
-            sapper_query.single_mut();
+        let (sapper_entity, sapper_rb_pos, mut sapper_rb_vel) = sapper_query.single_mut();
         let (sb_entity, sb_rb_pos) = sb_query.single();
         let (climber_entity, climber_rb_pos) = climber_query.single();
         let (gun_base_entity, gun_base_rb_pos) = gun_base_query.single();
@@ -186,8 +172,8 @@ fn sapper_collision(
                     info!("Sapper walking on SecondBase. diff: {}", diff);
                     sapper_rb_vel.linvel = Vec2::new(heading * 8., 90.).into();
                 } else {
-                    info!("Sapper jumping impulse from SecondBase. diff: {}", diff);
-                    sapper_rb_vel.apply_impulse(sapper_rb_mprops, Vec2::new(0., 30000.).into());
+                    info!("Sapper jumping from SecondBase. diff: {}", diff);
+                    sapper_rb_vel.linvel = Vec2::new(heading * 6., 80.).into();
                 }
             }
 
@@ -287,8 +273,7 @@ fn climber_base_collision(
             if *assault_state == AssaultState::Climber {
                 info!("Climber jump over Base.");
                 let heading = rb_pos.position.translation.x.signum();
-                //rb_vel.linvel = Vec2::new(heading * 3., 80.).into();
-                rb_vel.linvel = Vec2::new(heading * 3., 150.).into();
+                rb_vel.linvel = Vec2::new(heading * 5., 500.).into();
             } else if *assault_state == AssaultState::SecondBase
                 || *assault_state == AssaultState::Sapper
             {
@@ -315,18 +300,6 @@ fn second_base_base_collision(
                 *rb_type = RigidBodyTypeComponent(RigidBodyType::Static);
                 *assault_state = AssaultState::Sapper;
             }
-        }
-    }
-}
-
-/// Listen to changes in AssaultState resource. Tag the closest next paratrooper.
-fn assault_state_listener(assault_state: Res<AssaultState>) {
-    if assault_state.is_changed() || assault_state.is_added() {
-        match *assault_state {
-            AssaultState::Base => (),
-            AssaultState::Climber => (),
-            AssaultState::SecondBase => (),
-            AssaultState::Sapper => (),
         }
     }
 }
@@ -365,7 +338,6 @@ fn detect_assault_system(
 
     if let Some(mut assault_troops) = assault_troops {
         info!("Assault!!!");
-        // Set troopers to Assault mode
         assault_troops.sort_by(|(_e1, _p1, rb_pos1), (_e2, _p2, rb_pos2)| {
             rb_pos1
                 .position
@@ -412,6 +384,10 @@ fn setup_ground_assault(mut commands: Commands) {
     commands.insert_resource(AssaultState::Base);
 }
 
+fn cleanup_assault_system(mut commands: Commands) {
+    commands.remove_resource::<AssaultState>();
+}
+
 pub struct AssaultPlugin;
 
 impl Plugin for AssaultPlugin {
@@ -426,7 +402,6 @@ impl Plugin for AssaultPlugin {
         )
         .add_system_set(
             SystemSet::on_update(AppState::InGame(AttackState::Ground))
-                .with_system(assault_state_listener)
                 .with_system(base_assault)
                 .with_system(base_gun_base_collision)
                 .with_system(climber_assault)
@@ -436,6 +411,10 @@ impl Plugin for AssaultPlugin {
                 .with_system(second_base_base_collision)
                 .with_system(sapper_assault)
                 .with_system(sapper_collision),
+        )
+        .add_system_set(
+            SystemSet::on_exit(AppState::InGame(AttackState::Ground))
+                .with_system(cleanup_assault_system),
         );
     }
 }
