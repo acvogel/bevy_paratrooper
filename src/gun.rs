@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use std::collections::HashSet;
 
+use crate::menu::AttackState;
 use crate::paratrooper::Paratrooper;
 use crate::{consts, AppState, GunExplosionEvent};
 
@@ -15,9 +16,12 @@ pub struct Gun {
 #[derive(Component)]
 pub struct GunBase;
 
+const GUN_BASE_X: f32 = 64.;
+const GUN_BASE_Y: f32 = 35.;
+
 pub fn setup_gun_base(mut commands: Commands) {
-    let h = 64.;
-    let w = 64.;
+    let h = GUN_BASE_Y;
+    let w = GUN_BASE_X;
     let y = consts::GROUND_Y + 0.5 * h;
     let sprite_bundle = SpriteBundle {
         sprite: Sprite {
@@ -35,6 +39,14 @@ pub fn setup_gun_base(mut commands: Commands) {
     };
     let collider = ColliderBundle {
         shape: ColliderShape::cuboid(0.5 * w, 0.5 * h).into(),
+        material: ColliderMaterial {
+            restitution: 0.,
+            restitution_combine_rule: CoefficientCombineRule::Min,
+            friction: 0.0,
+            friction_combine_rule: CoefficientCombineRule::Min,
+            ..Default::default()
+        }
+        .into(),
         ..Default::default()
     };
     commands
@@ -45,7 +57,8 @@ pub fn setup_gun_base(mut commands: Commands) {
 }
 
 pub fn setup_gun(mut commands: Commands) {
-    let y = consts::GROUND_Y + 64.;
+    //let y = consts::GROUND_Y + 64.;
+    let y = consts::GROUND_Y + GUN_BASE_Y;
     let sprite_size = Vec2::new(20., 60.);
     let sprite_bundle = SpriteBundle {
         sprite: Sprite {
@@ -131,7 +144,12 @@ impl Plugin for GunPlugin {
                 .with_system(setup_gun_base),
         )
         .add_system_set(
-            SystemSet::on_update(AppState::InGame)
+            SystemSet::on_update(AppState::InGame(AttackState::Air))
+                .with_system(move_gun)
+                .with_system(gun_collision_system),
+        )
+        .add_system_set(
+            SystemSet::on_update(AppState::InGame(AttackState::Ground))
                 .with_system(move_gun)
                 .with_system(gun_collision_system),
         );
