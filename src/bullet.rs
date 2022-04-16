@@ -1,4 +1,5 @@
 use crate::aircraft::Aircraft;
+use crate::consts::{OUT_OF_BOUNDS_X, OUT_OF_BOUNDS_Y};
 use crate::convert::*;
 use crate::events::*;
 use crate::gun::Gun;
@@ -176,6 +177,24 @@ fn bullet_collision_listener(
     }
 }
 
+/// Remove "out-of-bounds" bullets
+fn despawn_escaped_bullets(
+    mut commands: Commands,
+    query: Query<(Entity, &RigidBodyPositionComponent), With<Bullet>>,
+) {
+    for (entity, rb_pos) in query.iter() {
+        if rb_pos.position.translation.x.abs() > OUT_OF_BOUNDS_X
+            || rb_pos.position.translation.y.abs() > OUT_OF_BOUNDS_Y
+        {
+            info!(
+                "Bullet despawn {:?} {:?}",
+                entity, rb_pos.position.translation
+            );
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
 fn despawn_all_bullets(mut commands: Commands, query: Query<Entity, With<Bullet>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn();
@@ -191,13 +210,15 @@ impl Plugin for BulletPlugin {
                 SystemSet::on_update(AppState::InGame(AttackState::Air))
                     .with_system(shoot_gun)
                     .with_system(bullet_collision_system)
-                    .with_system(bullet_collision_listener),
+                    .with_system(bullet_collision_listener)
+                    .with_system(despawn_escaped_bullets),
             )
             .add_system_set(
                 SystemSet::on_update(AppState::InGame(AttackState::Ground))
                     .with_system(shoot_gun)
                     .with_system(bullet_collision_system)
-                    .with_system(bullet_collision_listener),
+                    .with_system(bullet_collision_listener)
+                    .with_system(despawn_escaped_bullets),
             )
             .add_system_set(
                 SystemSet::on_exit(AppState::InGame(AttackState::Ground))

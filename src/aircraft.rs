@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
+use crate::consts::{OUT_OF_BOUNDS_X, OUT_OF_BOUNDS_Y, WINDOW_WIDTH};
 use crate::menu::AttackState;
 use crate::{AppState, BulletCollisionEvent, ExplosionEvent};
 use rand::Rng;
@@ -10,8 +11,8 @@ pub struct Aircraft;
 
 const AIRCRAFT_SPEED: f32 = 40.;
 const AIRCRAFT_SPAWN_PROBABILITY: f32 = 0.008;
-const SPAWN_LEFT_X: f32 = -600.;
-const SPAWN_RIGHT_X: f32 = 600.;
+const SPAWN_LEFT_X: f32 = -WINDOW_WIDTH / 2.0 - 5.;
+const SPAWN_RIGHT_X: f32 = WINDOW_WIDTH / 2.0 + 5.;
 
 struct AircraftTextures {
     image_handle: Handle<Image>,
@@ -97,6 +98,23 @@ fn despawn_all_aircraft(mut commands: Commands, query: Query<Entity, With<Aircra
     }
 }
 
+fn despawn_escaped_aircraft(
+    mut commands: Commands,
+    query: Query<(Entity, &RigidBodyPositionComponent), With<Aircraft>>,
+) {
+    for (entity, rb_pos) in query.iter() {
+        if rb_pos.position.translation.x.abs() > OUT_OF_BOUNDS_X
+            || rb_pos.position.translation.y.abs() > OUT_OF_BOUNDS_Y
+        {
+            info!(
+                "Aircraft despawn {:?} {:?}",
+                entity, rb_pos.position.translation
+            );
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
 fn bullet_collision_system(
     mut commands: Commands,
     aircraft_query: Query<(Entity, &Transform), With<Aircraft>>,
@@ -124,11 +142,13 @@ impl Plugin for AircraftPlugin {
         .add_system_set(
             SystemSet::on_update(AppState::InGame(AttackState::Air))
                 .with_system(spawn_aircraft_system)
-                .with_system(bullet_collision_system),
+                .with_system(bullet_collision_system)
+                .with_system(despawn_escaped_aircraft),
         )
         .add_system_set(
             SystemSet::on_update(AppState::InGame(AttackState::Ground))
-                .with_system(bullet_collision_system),
+                .with_system(bullet_collision_system)
+                .with_system(despawn_escaped_aircraft),
         )
         .add_system_set(
             SystemSet::on_exit(AppState::InGame(AttackState::Ground))
