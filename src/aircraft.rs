@@ -127,7 +127,7 @@ impl Plugin for AircraftPlugin {
                 .with_system(bullet_collision_system),
         )
         .add_system_set(
-            SystemSet::on_update(AppState::InGame(AttackState::Air))
+            SystemSet::on_update(AppState::InGame(AttackState::Ground))
                 .with_system(bullet_collision_system),
         )
         .add_system_set(
