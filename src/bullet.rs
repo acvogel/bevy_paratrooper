@@ -19,7 +19,7 @@ struct BulletTextures {
 
 fn setup_bullets(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(BulletTextures {
-        bullet_handle: asset_server.load("bullet.png"),
+        bullet_handle: asset_server.load("images/bullet.png"),
     });
 }
 
@@ -186,10 +186,6 @@ fn despawn_escaped_bullets(
         if rb_pos.position.translation.x.abs() > OUT_OF_BOUNDS_X
             || rb_pos.position.translation.y.abs() > OUT_OF_BOUNDS_Y
         {
-            info!(
-                "Bullet despawn {:?} {:?}",
-                entity, rb_pos.position.translation
-            );
             commands.entity(entity).despawn_recursive();
         }
     }

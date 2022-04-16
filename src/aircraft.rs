@@ -88,7 +88,7 @@ fn spawn_aircraft_system(mut commands: Commands, aircraft_textures: Res<Aircraft
 
 fn setup_aircraft_system(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     commands.insert_resource(AircraftTextures {
-        image_handle: asset_server.load("paraplane1.png"),
+        image_handle: asset_server.load("images/paraplane1.png"),
     });
 }
 
@@ -106,10 +106,6 @@ fn despawn_escaped_aircraft(
         if rb_pos.position.translation.x.abs() > OUT_OF_BOUNDS_X
             || rb_pos.position.translation.y.abs() > OUT_OF_BOUNDS_Y
         {
-            info!(
-                "Aircraft despawn {:?} {:?}",
-                entity, rb_pos.position.translation
-            );
             commands.entity(entity).despawn_recursive();
         }
     }

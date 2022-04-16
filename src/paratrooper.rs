@@ -1,9 +1,8 @@
 use crate::aircraft::Aircraft;
 use crate::menu::AttackState;
 use crate::terrain::Ground;
-use crate::{AppState, BulletCollisionEvent, CollisionType, ExplosionEvent, LandingEvent};
+use crate::{AppState, BulletCollisionEvent, CollisionType, GibEvent, LandingEvent};
 use bevy::prelude::*;
-//use bevy_rapier2d::prelude::ContactEvent::Started;
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
@@ -28,6 +27,8 @@ pub const PARATROOPER_COLLISION_FILTER: u32 = 0b1110;
 
 const PARATROOPER_SPAWN_X_MAX: f32 = 400.;
 const PARATROOPER_SPAWN_X_MIN: f32 = 50.;
+
+const PARATROOPER_Z: f32 = 2.0;
 
 #[derive(Component)]
 pub struct Paratrooper {
@@ -61,8 +62,8 @@ struct ParatrooperTextures {
 /// Load paratrooper textures
 fn setup_paratroopers(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(ParatrooperTextures {
-        body_handle: asset_server.load("paratrooperfly1_body.png"),
-        parachute_handle: asset_server.load("paratrooperfly1_parachute.png"),
+        body_handle: asset_server.load("images/paratrooperfly1_body.png"),
+        parachute_handle: asset_server.load("images/paratrooperfly1_parachute.png"),
     });
 }
 
@@ -93,7 +94,8 @@ fn paratrooper_sprite_bundle(paratrooper_textures: &Res<ParatrooperTextures>) ->
     SpriteBundle {
         texture: paratrooper_textures.body_handle.clone(),
         transform: Transform {
-            scale: Vec3::new(PARATROOPER_SCALE, PARATROOPER_SCALE, 0.),
+            translation: PARATROOPER_Z * Vec3::Z, // XXX what if we only set Z
+            scale: Vec3::new(PARATROOPER_SCALE, PARATROOPER_SCALE, 1.),
             ..Default::default()
         },
         ..Default::default()
@@ -190,7 +192,7 @@ fn bullet_collision_system(
         Option<&Children>,
     )>,
     mut event_reader: EventReader<BulletCollisionEvent>,
-    mut event_writer: EventWriter<ExplosionEvent>,
+    mut event_writer: EventWriter<GibEvent>,
 ) {
     for event in event_reader.iter() {
         match event.collision_type {
@@ -205,19 +207,19 @@ fn bullet_collision_system(
                     _children,
                 )) = paratrooper_query.get(event.target_entity)
                 {
-                    // TODO should be in physics space
-                    event_writer.send(ExplosionEvent {
-                        transform: transform.clone(),
+                    event_writer.send(GibEvent {
+                        transform: transform.clone().with_scale(Vec3::new(
+                            PARATROOPER_SCALE,
+                            PARATROOPER_SCALE,
+                            1.,
+                        )),
                     });
                     commands.entity(paratrooper_entity).despawn_recursive();
                 }
             }
             CollisionType::Parachute => {
-                if let Ok((parachute_entity, transform)) = parachute_query.get(event.target_entity)
+                if let Ok((parachute_entity, _transform)) = parachute_query.get(event.target_entity)
                 {
-                    event_writer.send(ExplosionEvent {
-                        transform: transform.clone(),
-                    });
                     // Reset falling physics
                     for (
                         _paratrooper_entity,
@@ -265,7 +267,7 @@ fn paratrooper_landing_system(
     )>,
     ground_query: Query<Entity, With<Ground>>,
     mut event_writer: EventWriter<LandingEvent>,
-    mut explosion_event_writer: EventWriter<ExplosionEvent>,
+    mut gib_event_writer: EventWriter<GibEvent>,
 ) {
     for contact_event in contact_events.iter() {
         for ground_entity in ground_query.iter() {
@@ -287,8 +289,12 @@ fn paratrooper_landing_system(
                         // Crash landing
                         // TODO check for velocity?
                         if paratrooper.state == ParatrooperState::Falling {
-                            explosion_event_writer.send(ExplosionEvent {
-                                transform: transform.clone(),
+                            gib_event_writer.send(GibEvent {
+                                transform: transform.clone().with_scale(Vec3::new(
+                                    PARATROOPER_SCALE,
+                                    PARATROOPER_SCALE,
+                                    1.0,
+                                )),
                             });
                             commands.entity(paratrooper_entity).despawn_recursive();
                         }
@@ -304,9 +310,12 @@ fn paratrooper_landing_system(
                                 commands.entity(*child).despawn_recursive();
                             }
                         } else {
-                            // TODO GibEvent and physics dimensions
-                            explosion_event_writer.send(ExplosionEvent {
-                                transform: transform.clone(),
+                            gib_event_writer.send(GibEvent {
+                                transform: transform.clone().with_scale(Vec3::new(
+                                    PARATROOPER_SCALE,
+                                    PARATROOPER_SCALE,
+                                    1.0,
+                                )),
                             });
                             commands.entity(paratrooper_entity).despawn_recursive();
                         }
