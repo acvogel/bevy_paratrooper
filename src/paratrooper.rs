@@ -153,7 +153,6 @@ fn spawn_paratroopers(
     )>,
 ) {
     let mut rng = rand::thread_rng();
-    // XXX maybe slow to roll rng for each aircraft for each frame?
     for (_aircraft, rb_pos, rb_vel) in query.iter_mut() {
         let pos_x = rb_pos.position.translation.x.abs();
         if pos_x < PARATROOPER_SPAWN_X_MAX
