@@ -3,6 +3,7 @@ use bevy::prelude::*;
 
 use crate::assault::AssaultPlugin;
 //use crate::audio::AudioStatePlugin;
+use crate::cloud::CloudPlugin;
 use crate::explosion::ExplosionPlugin;
 use crate::menu::{AppState, MenuPlugin};
 use aircraft::AircraftPlugin;
@@ -17,6 +18,7 @@ mod aircraft;
 mod assault;
 mod audio;
 mod bullet;
+mod cloud;
 mod consts;
 mod convert;
 mod events;
@@ -50,6 +52,7 @@ fn main() {
         //.add_plugin(AudioPlugin)
         .add_plugin(ExplosionPlugin)
         .add_plugin(MenuPlugin)
+        .add_plugin(CloudPlugin)
         .add_plugin(EventPlugin)
         .add_plugin(AssaultPlugin)
         .add_startup_system(setup_camera)
