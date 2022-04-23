@@ -315,7 +315,9 @@ fn detect_assault_system(
     let mut landed_paratroopers: Vec<(Entity, Mut<'_, Paratrooper>, &RigidBodyPositionComponent)> =
         paratrooper_query
             .iter_mut()
-            .filter(|(_e, paratrooper, _rb_pos)| paratrooper.state == ParatrooperState::Landed)
+            .filter(|(_e, paratrooper, _rb_pos)| {
+                paratrooper.state == ParatrooperState::Landed && paratrooper.has_deployed_chute
+            })
             .collect();
 
     let (landed_left_paratroopers, landed_right_paratroopers): (Vec<_>, Vec<_>) =

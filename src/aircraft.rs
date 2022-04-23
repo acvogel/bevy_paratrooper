@@ -10,9 +10,12 @@ use rand::Rng;
 pub struct Aircraft;
 
 const AIRCRAFT_SPEED: f32 = 40.;
+const AIRCRAFT_SCALE: f32 = 0.2;
 const AIRCRAFT_SPAWN_PROBABILITY: f32 = 0.008;
-const SPAWN_LEFT_X: f32 = -WINDOW_WIDTH / 2.0 - 5.;
-const SPAWN_RIGHT_X: f32 = WINDOW_WIDTH / 2.0 + 5.;
+const SPAWN_LEFT_X: f32 = -WINDOW_WIDTH / 2.0 - 30.;
+const SPAWN_RIGHT_X: f32 = WINDOW_WIDTH / 2.0 + 30.;
+const SPAWN_Y_MIN: f32 = 100.;
+const SPAWN_Y_MAX: f32 = 350.;
 
 struct AircraftTextures {
     image_handle: Handle<Image>,
@@ -21,17 +24,17 @@ struct AircraftTextures {
 fn spawn_aircraft_system(mut commands: Commands, aircraft_textures: Res<AircraftTextures>) {
     let mut rng = rand::thread_rng();
     if rng.gen_range(0.0..1.0) < AIRCRAFT_SPAWN_PROBABILITY {
-        let y = rng.gen_range(0.0..350.0);
+        let y = rng.gen_range(SPAWN_Y_MIN..SPAWN_Y_MAX);
         let heading_right = rng.gen_bool(0.5);
         let speed = rng.gen_range(0.8..1.3) * AIRCRAFT_SPEED;
         let multiplier = if heading_right { 1.0 } else { -1.0 };
         let velocity = multiplier * speed;
         let transform = if heading_right {
-            Transform::from_translation(Vec3::new(SPAWN_LEFT_X, y, 5.))
+            Transform::from_translation(Vec3::new(SPAWN_LEFT_X, y, 3.))
         } else {
-            Transform::from_translation(Vec3::new(SPAWN_RIGHT_X, y, 5.))
+            Transform::from_translation(Vec3::new(SPAWN_RIGHT_X, y, 3.))
         }
-        .with_scale(Vec3::splat(0.3));
+        .with_scale(Vec3::new(AIRCRAFT_SCALE, AIRCRAFT_SCALE, 1.));
 
         let sprite_bundle = SpriteBundle {
             // 412 x 114 pixels. 0.3 scale.

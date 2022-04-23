@@ -6,7 +6,7 @@ use crate::menu::AttackState;
 use crate::paratrooper::Paratrooper;
 use crate::{consts, AppState, GunExplosionEvent};
 
-const ANGULAR_VELOCITY: f32 = 3.0;
+const ANGULAR_VELOCITY: f32 = 2.5;
 
 #[derive(Component)]
 pub struct Gun {
@@ -57,7 +57,6 @@ pub fn setup_gun_base(mut commands: Commands) {
 }
 
 pub fn setup_gun(mut commands: Commands) {
-    //let y = consts::GROUND_Y + 64.;
     let y = consts::GROUND_Y + GUN_BASE_Y;
     let sprite_size = Vec2::new(20., 60.);
     let sprite_bundle = SpriteBundle {
@@ -93,7 +92,7 @@ fn move_gun(
     mut query: Query<(&mut RigidBodyVelocityComponent, &RigidBodyPositionComponent), With<Gun>>,
 ) {
     let angular_velocity = ANGULAR_VELOCITY;
-    let boundary_angle = -std::f32::consts::PI / 2.5; // right boundary
+    let boundary_angle = -std::f32::consts::PI / 2.9; // right boundary
     for (mut rb_vel, rb_pos) in query.iter_mut() {
         let gun_angle = rb_pos.position.rotation.angle();
         if keyboard_input.pressed(KeyCode::A) || keyboard_input.pressed(KeyCode::Left) {
