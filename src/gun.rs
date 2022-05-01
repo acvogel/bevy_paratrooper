@@ -73,11 +73,10 @@ fn gun_mount_circle_shape() -> ShapeBundle {
         radius: GUN_MOUNT_X / 2.,
         center: Vec2::ZERO,
     };
-    let circle_y = consts::GROUND_Y + GUN_BASE_Y + GUN_MOUNT_Y;
     GeometryBuilder::build_as(
         &mount_circle_shape,
         DrawMode::Fill(FillMode::color(Color::PINK)),
-        Transform::from_xyz(0., circle_y, 2.0),
+        Transform::from_xyz(0., GUN_MOUNT_Y / 2.0, 2.0),
     )
 }
 
@@ -95,9 +94,12 @@ fn gun_mount_rectangle_shape() -> ShapeBundle {
 }
 
 pub fn setup_gun_mount(mut commands: Commands) {
-    commands.spawn_bundle(gun_mount_circle_shape());
     commands
-        .spawn_bundle(RigidBodyBundle {
+        .spawn_bundle(gun_mount_rectangle_shape())
+        .with_children(|parent| {
+            parent.spawn_bundle(gun_mount_circle_shape());
+        })
+        .insert_bundle(RigidBodyBundle {
             body_type: RigidBodyTypeComponent(RigidBodyType::Static),
             position: Vec2::new(0., consts::GROUND_Y + GUN_BASE_Y + 0.5 * GUN_MOUNT_Y).into(),
             ..Default::default()
@@ -107,7 +109,6 @@ pub fn setup_gun_mount(mut commands: Commands) {
             collider_type: ColliderType::Sensor.into(),
             ..Default::default()
         })
-        .insert_bundle(gun_mount_rectangle_shape())
         .insert(GunMount);
 }
 
