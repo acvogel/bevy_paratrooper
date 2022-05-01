@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 //use bevy_kira_audio::AudioPlugin;
+use bevy_prototype_lyon::prelude::*;
 
 use crate::assault::AssaultPlugin;
 //use crate::audio::AudioStatePlugin;
@@ -42,6 +43,7 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .add_state(AppState::MainMenu)
         .add_plugins(DefaultPlugins)
+        .add_plugin(ShapePlugin)
         .add_plugin(GunPlugin)
         .add_plugin(BulletPlugin)
         .add_plugin(AircraftPlugin)

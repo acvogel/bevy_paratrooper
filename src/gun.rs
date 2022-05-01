@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+use bevy_prototype_lyon::entity::ShapeBundle;
+use bevy_prototype_lyon::prelude::*;
 use bevy_rapier2d::prelude::*;
 use std::collections::HashSet;
 
@@ -16,13 +18,23 @@ pub struct Gun {
 #[derive(Component)]
 pub struct GunBase;
 
+#[derive(Component)]
+pub struct GunMount;
+
 const GUN_BASE_X: f32 = 64.;
-const GUN_BASE_Y: f32 = 35.;
+const GUN_BASE_Y: f32 = 38.;
+
+const GUN_MOUNT_X: f32 = 24.;
+const GUN_MOUNT_Y: f32 = 30.;
+
+const GUN_HEIGHT: f32 = 40.;
+const GUN_WIDTH: f32 = 10.;
 
 pub fn setup_gun_base(mut commands: Commands) {
     let h = GUN_BASE_Y;
     let w = GUN_BASE_X;
     let y = consts::GROUND_Y + 0.5 * h;
+    // todo replace with lyon shape?
     let sprite_bundle = SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(-0.1, 0.1, 0.1),
@@ -56,9 +68,52 @@ pub fn setup_gun_base(mut commands: Commands) {
         .insert(GunBase);
 }
 
-pub fn setup_gun(mut commands: Commands) {
-    let y = consts::GROUND_Y + GUN_BASE_Y;
-    let sprite_size = Vec2::new(20., 60.);
+fn gun_mount_circle_shape() -> ShapeBundle {
+    let mount_circle_shape = shapes::Circle {
+        radius: GUN_MOUNT_X / 2.,
+        center: Vec2::ZERO,
+    };
+    let circle_y = consts::GROUND_Y + GUN_BASE_Y + GUN_MOUNT_Y;
+    GeometryBuilder::build_as(
+        &mount_circle_shape,
+        DrawMode::Fill(FillMode::color(Color::PINK)),
+        Transform::from_xyz(0., circle_y, 2.0),
+    )
+}
+
+fn gun_mount_rectangle_shape() -> ShapeBundle {
+    let mount_rectangle_shape = shapes::Rectangle {
+        extents: Vec2::new(GUN_MOUNT_X, GUN_MOUNT_Y),
+        origin: RectangleOrigin::Center,
+    };
+    let rectangle_y = consts::GROUND_Y + GUN_BASE_Y + 0.5 * GUN_MOUNT_Y;
+    GeometryBuilder::build_as(
+        &mount_rectangle_shape,
+        DrawMode::Fill(FillMode::color(Color::PINK)),
+        Transform::from_xyz(0., rectangle_y, 2.0),
+    )
+}
+
+pub fn setup_gun_mount(mut commands: Commands) {
+    commands.spawn_bundle(gun_mount_circle_shape());
+    commands
+        .spawn_bundle(RigidBodyBundle {
+            body_type: RigidBodyTypeComponent(RigidBodyType::Static),
+            position: Vec2::new(0., consts::GROUND_Y + GUN_BASE_Y + 0.5 * GUN_MOUNT_Y).into(),
+            ..Default::default()
+        })
+        .insert_bundle(ColliderBundle {
+            shape: ColliderShape::cuboid(0.5 * GUN_MOUNT_X, 0.5 * GUN_MOUNT_Y).into(),
+            collider_type: ColliderType::Sensor.into(),
+            ..Default::default()
+        })
+        .insert_bundle(gun_mount_rectangle_shape())
+        .insert(GunMount);
+}
+
+pub fn setup_gun_barrel(mut commands: Commands) {
+    let y = consts::GROUND_Y + GUN_BASE_Y + GUN_MOUNT_Y + 0.5 * GUN_HEIGHT;
+    let sprite_size = Vec2::new(GUN_WIDTH, GUN_HEIGHT);
     let sprite_bundle = SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(0.32, 0.36, 0.41),
@@ -68,6 +123,7 @@ pub fn setup_gun(mut commands: Commands) {
         transform: Transform::from_translation(Vec3::new(0., y, 1.)),
         ..Default::default()
     };
+    // center of mass calculation.
     let body_bundle = RigidBodyBundle {
         body_type: RigidBodyTypeComponent(RigidBodyType::KinematicVelocityBased),
         position: [0., y].into(),
@@ -77,6 +133,12 @@ pub fn setup_gun(mut commands: Commands) {
     let collider_bundle = ColliderBundle {
         shape: ColliderShape::cuboid(0.5 * sprite_size.x, 0.5 * sprite_size.y).into(),
         collider_type: ColliderType::Sensor.into(),
+        mass_properties: MassProperties {
+            local_com: Vec2::new(0., -GUN_HEIGHT / 2.0).into(),
+            inv_mass: 0.1,
+            inv_principal_inertia_sqrt: 0.1,
+        }
+        .into(),
         ..Default::default()
     };
     commands
@@ -111,22 +173,29 @@ fn gun_collision_system(
     mut event_reader: EventReader<IntersectionEvent>,
     mut event_writer: EventWriter<GunExplosionEvent>,
     gun_query: Query<(Entity, &Transform), With<Gun>>,
+    gun_mount_query: Query<(Entity, &Transform), With<GunMount>>,
     paratrooper_query: Query<Entity, With<Paratrooper>>,
 ) {
     let mut paratrooper_entities = HashSet::new();
     for paratrooper_entity in paratrooper_query.iter() {
         paratrooper_entities.insert(paratrooper_entity);
     }
+    let (gun_mount_entity, gun_mount_transform) = gun_mount_query.get_single().unwrap();
     for (gun_entity, gun_transform) in gun_query.iter() {
         for event in event_reader.iter() {
-            if (event.collider1.entity() == gun_entity
+            if ((event.collider1.entity() == gun_entity
+                || event.collider1.entity() == gun_mount_entity)
                 && paratrooper_entities.contains(&event.collider2.entity()))
-                || (event.collider2.entity() == gun_entity
+                || ((event.collider2.entity() == gun_entity
+                    || event.collider2.entity() == gun_mount_entity)
                     && paratrooper_entities.contains(&event.collider1.entity()))
             {
                 // Game over.
                 event_writer.send(GunExplosionEvent {
-                    translation: gun_transform.translation,
+                    translation: gun_transform.translation.clone(),
+                });
+                event_writer.send(GunExplosionEvent {
+                    translation: gun_mount_transform.translation.clone(),
                 });
             }
         }
@@ -139,8 +208,9 @@ impl Plugin for GunPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(
             SystemSet::on_enter(AppState::MainMenu)
-                .with_system(setup_gun)
-                .with_system(setup_gun_base),
+                .with_system(setup_gun_base)
+                .with_system(setup_gun_mount)
+                .with_system(setup_gun_barrel),
         )
         .add_system_set(
             SystemSet::on_update(AppState::InGame(AttackState::Air))
