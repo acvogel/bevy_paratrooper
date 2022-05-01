@@ -6,18 +6,13 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
-const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.003;
-const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.005;
-//const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.02; // XXX debug early drop for assault
+const PARATROOPER_SPAWN_PROBABILITY: f32 = 0.007;
+const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.01;
 const PARACHUTE_DAMPING: f32 = 1.0; // 100% air resistance
-                                    //const MIN_PARACHUTE_VELOCITY: f32 = -20.; // meters / second
-const MIN_PARACHUTE_VELOCITY: f32 = -60.; // meters / second
-                                          //const PARACHUTE_GRAVITY_SCALE: f32 = 0.5; // XXX speed up falling for testing
+const MIN_PARACHUTE_VELOCITY: f32 = -70.; // meters / second
 const PARACHUTE_GRAVITY_SCALE: f32 = 2.0;
-const PARATROOPER_SCALE: f32 = 0.4;
+const PARATROOPER_SCALE: f32 = 0.5;
 
-// Messy, mixes physics space and graphics space...
-// should work from collider dimensions
 // 31 x 49 texture, scaled
 pub const PARATROOPER_X: f32 = PARATROOPER_SCALE * 31.;
 pub const PARATROOPER_Y: f32 = PARATROOPER_SCALE * 49.;
@@ -27,6 +22,7 @@ pub const PARATROOPER_COLLISION_FILTER: u32 = 0b1110;
 
 const PARATROOPER_SPAWN_X_MAX: f32 = 400.;
 const PARATROOPER_SPAWN_X_MIN: f32 = 50.;
+const PARATROOPER_SPAWN_VELOCITY: f32 = -100.;
 
 const PARATROOPER_Z: f32 = 2.0;
 
@@ -94,7 +90,7 @@ fn paratrooper_sprite_bundle(paratrooper_textures: &Res<ParatrooperTextures>) ->
     SpriteBundle {
         texture: paratrooper_textures.body_handle.clone(),
         transform: Transform {
-            translation: PARATROOPER_Z * Vec3::Z, // XXX what if we only set Z
+            translation: PARATROOPER_Z * Vec3::Z,
             scale: Vec3::new(PARATROOPER_SCALE, PARATROOPER_SCALE, 1.),
             ..Default::default()
         },
@@ -106,6 +102,11 @@ fn paratrooper_rigid_body_bundle(position: Vec2) -> RigidBodyBundle {
     RigidBodyBundle {
         body_type: RigidBodyTypeComponent(RigidBodyType::Dynamic),
         position: position.into(),
+        velocity: RigidBodyVelocity {
+            linvel: Vec2::new(0., PARATROOPER_SPAWN_VELOCITY).into(),
+            angvel: 0.,
+        }
+        .into(),
         mass_properties: RigidBodyMassProps {
             flags: RigidBodyMassPropsFlags::ROTATION_LOCKED,
             local_mprops: MassProperties::new(Vec2::ZERO.into(), 10.0, 0.5).into(),
@@ -147,18 +148,20 @@ fn spawn_paratroopers(
     mut commands: Commands,
     paratrooper_textures: Res<ParatrooperTextures>,
     mut query: Query<(
-        &Aircraft,
+        &mut Aircraft,
         &RigidBodyPositionComponent,
         &RigidBodyVelocityComponent,
     )>,
 ) {
     let mut rng = rand::thread_rng();
-    for (_aircraft, rb_pos, rb_vel) in query.iter_mut() {
+    for (mut aircraft, rb_pos, rb_vel) in query.iter_mut() {
         let pos_x = rb_pos.position.translation.x.abs();
-        if pos_x < PARATROOPER_SPAWN_X_MAX
+        if aircraft.paratroopers > 0
+            && pos_x < PARATROOPER_SPAWN_X_MAX
             && pos_x > PARATROOPER_SPAWN_X_MIN
             && rng.gen_range(0.0..1.0) < PARATROOPER_SPAWN_PROBABILITY
         {
+            aircraft.paratroopers -= 1;
             // Offset to back of plane
             let heading = rb_vel.linvel.x.signum();
 

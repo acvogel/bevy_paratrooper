@@ -9,8 +9,8 @@ const CLOUD_SPAWN_PROBABILITY: f32 = 0.01;
 const CLOUD_MIN_Y: f32 = -100.0;
 const CLOUD_MAX_Y: f32 = 400.0;
 const CLOUD_SCALE: f32 = 0.4;
-const SPAWN_LEFT_X: f32 = -WINDOW_WIDTH / 2.0 - 30.;
-const SPAWN_RIGHT_X: f32 = WINDOW_WIDTH / 2.0 + 30.;
+const SPAWN_LEFT_X: f32 = -WINDOW_WIDTH / 2.0 - 50.;
+const SPAWN_RIGHT_X: f32 = WINDOW_WIDTH / 2.0 + 50.;
 
 #[derive(Component)]
 pub struct Cloud;

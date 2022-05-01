@@ -1,0 +1,22 @@
+# TODO
+
+- [ ] Intro screen
+  - [ ] PARATROOPER text animation
+  - [ ] intro song
+  - [ ] instructions? left/right/space. scoring.
+  - [ ] advanced: difficulty to tune # of everything and speeds
+- [ ] physics constants
+  - [ ] sprite sizes
+  - [ ] gravity/drag of paratroopers
+  - [ ] base size
+- [ ] dynamic assault system
+  - [ ] move assault troops immediately upon landing
+  - [ ] fix jump - a paratrooper sensor collider for jumping?
+  - [ ] refactor to remove 
+- [ ] endgame score UI. ideally with sprites of targets
+- [ ] bombers
+- [ ] energy weapon instead of weird bullets?
+- [ ] levels
+  - [ ] fixed # of planes
+  - [ ] fixed # of paratroopers max from each plane
+  - [ ] winning screen

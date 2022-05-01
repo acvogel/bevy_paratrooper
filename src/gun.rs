@@ -22,12 +22,12 @@ pub struct GunBase;
 pub struct GunMount;
 
 const GUN_BASE_X: f32 = 64.;
-const GUN_BASE_Y: f32 = 38.;
+const GUN_BASE_Y: f32 = 50.;
 
 const GUN_MOUNT_X: f32 = 24.;
-const GUN_MOUNT_Y: f32 = 30.;
+const GUN_MOUNT_Y: f32 = 18.;
 
-const GUN_HEIGHT: f32 = 40.;
+const GUN_HEIGHT: f32 = 35.;
 const GUN_WIDTH: f32 = 10.;
 
 pub fn setup_gun_base(mut commands: Commands) {

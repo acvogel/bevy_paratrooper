@@ -6,16 +6,26 @@ use crate::menu::AttackState;
 use crate::{AppState, BulletCollisionEvent, ExplosionEvent};
 use rand::Rng;
 
-#[derive(Component)]
-pub struct Aircraft;
-
-const AIRCRAFT_SPEED: f32 = 40.;
+const AIRCRAFT_SPEED: f32 = 80.;
 const AIRCRAFT_SCALE: f32 = 0.2;
 const AIRCRAFT_SPAWN_PROBABILITY: f32 = 0.008;
-const SPAWN_LEFT_X: f32 = -WINDOW_WIDTH / 2.0 - 30.;
-const SPAWN_RIGHT_X: f32 = WINDOW_WIDTH / 2.0 + 30.;
+const SPAWN_LEFT_X: f32 = -WINDOW_WIDTH / 2.0 - 40.;
+const SPAWN_RIGHT_X: f32 = WINDOW_WIDTH / 2.0 + 40.;
 const SPAWN_Y_MIN: f32 = 100.;
 const SPAWN_Y_MAX: f32 = 350.;
+const PARATROOPER_STICK_SIZE: usize = 5; // Max number of paratroopers dropped per aircraft
+
+#[derive(Component)]
+pub struct Aircraft {
+    pub paratroopers: usize,
+}
+impl Default for Aircraft {
+    fn default() -> Aircraft {
+        Aircraft {
+            paratroopers: PARATROOPER_STICK_SIZE,
+        }
+    }
+}
 
 struct AircraftTextures {
     image_handle: Handle<Image>,
@@ -85,7 +95,7 @@ fn spawn_aircraft_system(mut commands: Commands, aircraft_textures: Res<Aircraft
             .insert(RigidBodyPositionSync::Discrete)
             .insert_bundle(collider_bundle)
             .insert_bundle(sprite_bundle)
-            .insert(Aircraft);
+            .insert(Aircraft::default());
     }
 }
 
@@ -123,7 +133,7 @@ fn bullet_collision_system(
     for event in event_reader.iter() {
         if let Ok((aircraft_entity, aircraft_transform)) = aircraft_query.get(event.target_entity) {
             event_writer.send(ExplosionEvent {
-                transform: aircraft_transform.clone(),
+                transform: aircraft_transform.clone().with_scale(Vec3::ONE),
             });
             commands.entity(aircraft_entity).despawn_recursive();
         }
