@@ -13,7 +13,7 @@ fn setup_ground(mut commands: Commands) {
     let sprite_bundle = SpriteBundle {
         sprite: Sprite {
             color: GROUND_COLOR,
-            custom_size: custom_size,
+            custom_size,
             ..Default::default()
         },
         transform: Transform::from_translation(Vec3::new(0., y, 1.5)),
@@ -27,7 +27,6 @@ fn setup_ground(mut commands: Commands) {
             restitution_combine_rule: CoefficientCombineRule::Min,
             friction: 0.0,
             friction_combine_rule: CoefficientCombineRule::Min,
-            ..Default::default()
         }
         .into(),
         ..Default::default()
@@ -41,14 +40,11 @@ fn setup_ground(mut commands: Commands) {
         .spawn_bundle(sprite_bundle)
         .insert_bundle(body)
         .insert_bundle(collider)
-        //.insert(ColliderDebugRender::with_id(0))
-        //.insert(ColliderPositionSync::Discrete)
         .insert(Ground);
 }
 
 fn setup_physics(mut configuration: ResMut<RapierConfiguration>) {
     configuration.scale = 1.;
-    //configuration.gravity = Vector::y() * -9.81;
     configuration.gravity = Vector::y() * consts::GRAVITY;
 }
 
@@ -62,7 +58,7 @@ fn setup_skyline(mut commands: Commands, asset_server: Res<AssetServer>) {
         texture: asset_server.load("images/city4.png"),
         transform: Transform {
             translation: Vec3::new(0., y, 0.),
-            scale: scale,
+            scale,
             ..Default::default()
         },
         ..Default::default()

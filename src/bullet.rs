@@ -38,10 +38,9 @@ fn shoot_gun(
                 gun.last_fired = time.seconds_since_startup();
 
                 // Spawn bullet
-                let mut bullet_transform = transform.clone();
+                let mut bullet_transform = *transform;
                 bullet_transform.translation.z -= 0.1;
-                bullet_transform.translation =
-                    bullet_transform.translation + 30. * bullet_transform.local_y();
+                bullet_transform.translation += 30. * bullet_transform.local_y();
 
                 // velocity vector is local_y
                 let velocity_vector = consts::BULLET_SPEED * bullet_transform.local_y();
@@ -126,8 +125,8 @@ fn bullet_collision_system(
                     event_writer.send(BulletCollisionEvent {
                         collision_type: CollisionType::Aircraft,
                         translation: aircraft_transform.translation,
-                        bullet_entity: bullet_entity,
-                        target_entity: target_entity,
+                        bullet_entity,
+                        target_entity,
                     });
                 }
             }
@@ -138,8 +137,8 @@ fn bullet_collision_system(
                     event_writer.send(BulletCollisionEvent {
                         collision_type: CollisionType::Parachute,
                         translation: parachute_transform.translation,
-                        bullet_entity: bullet_entity,
-                        target_entity: target_entity,
+                        bullet_entity,
+                        target_entity,
                     });
                 }
             }
@@ -150,8 +149,8 @@ fn bullet_collision_system(
                     event_writer.send(BulletCollisionEvent {
                         collision_type: CollisionType::Paratrooper,
                         translation: paratrooper_transform.translation,
-                        bullet_entity: bullet_entity,
-                        target_entity: target_entity,
+                        bullet_entity,
+                        target_entity,
                     });
                 }
             }
@@ -169,7 +168,7 @@ fn bullet_collision_listener(
         if event.collision_type == CollisionType::Aircraft {
             if let Ok(transform) = query.get(event.bullet_entity) {
                 event_writer.send(ExplosionEvent {
-                    transform: transform.clone(),
+                    transform: *transform,
                 });
                 commands.entity(event.bullet_entity).despawn_recursive();
             }

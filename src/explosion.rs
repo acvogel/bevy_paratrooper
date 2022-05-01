@@ -25,7 +25,7 @@ fn spawn_explosion_system(
         commands
             .spawn_bundle(SpriteSheetBundle {
                 texture_atlas: explosion_textures.explosion_texture_atlas_handle.clone(),
-                transform: event.transform.clone(),
+                transform: event.transform,
                 ..Default::default()
             })
             .insert(Explosion(time.seconds_since_startup()))
@@ -123,8 +123,8 @@ fn setup_explosion_system(
     let gib_texture_atlas_handle = texture_atlases.add(gib_texture_atlas);
 
     commands.insert_resource(ExplosionTextures {
-        explosion_texture_atlas_handle: explosion_texture_atlas_handle,
-        gib_texture_atlas_handle: gib_texture_atlas_handle,
+        explosion_texture_atlas_handle,
+        gib_texture_atlas_handle,
     });
 }
 
@@ -138,7 +138,7 @@ fn spawn_gib_system(
         commands
             .spawn_bundle(SpriteSheetBundle {
                 texture_atlas: explosion_textures.gib_texture_atlas_handle.clone(),
-                transform: event.transform.clone(),
+                transform: event.transform,
                 ..Default::default()
             })
             .insert(Gib(time.seconds_since_startup()))

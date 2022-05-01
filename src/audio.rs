@@ -8,9 +8,7 @@ struct AudioState {
 
 fn setup_audio_system(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     let gunshot_handle = asset_server.load("audio/gunshotjbudden_P9IlJlC.mp3");
-    let audio_state = AudioState {
-        gunshot_handle: gunshot_handle,
-    };
+    let audio_state = AudioState { gunshot_handle };
     commands.insert_resource(audio_state);
 }
 

@@ -109,7 +109,7 @@ fn paratrooper_rigid_body_bundle(position: Vec2) -> RigidBodyBundle {
         .into(),
         mass_properties: RigidBodyMassProps {
             flags: RigidBodyMassPropsFlags::ROTATION_LOCKED,
-            local_mprops: MassProperties::new(Vec2::ZERO.into(), 10.0, 0.5).into(),
+            local_mprops: MassProperties::new(Vec2::ZERO.into(), 10.0, 0.5),
             ..Default::default()
         }
         .into(),
@@ -136,7 +136,6 @@ fn paratrooper_collider_bundle() -> ColliderBundle {
             restitution_combine_rule: CoefficientCombineRule::Min,
             friction: 0.0,
             friction_combine_rule: CoefficientCombineRule::Min,
-            ..Default::default()
         }
         .into(),
         ..Default::default()
@@ -210,7 +209,7 @@ fn bullet_collision_system(
                 )) = paratrooper_query.get(event.target_entity)
                 {
                     event_writer.send(GibEvent {
-                        transform: transform.clone().with_scale(Vec3::new(
+                        transform: (*transform).with_scale(Vec3::new(
                             PARATROOPER_SCALE,
                             PARATROOPER_SCALE,
                             1.,
@@ -292,7 +291,7 @@ fn paratrooper_landing_system(
                         // TODO check for velocity?
                         if paratrooper.state == ParatrooperState::Falling {
                             gib_event_writer.send(GibEvent {
-                                transform: transform.clone().with_scale(Vec3::new(
+                                transform: (*transform).with_scale(Vec3::new(
                                     PARATROOPER_SCALE,
                                     PARATROOPER_SCALE,
                                     1.0,
@@ -313,7 +312,7 @@ fn paratrooper_landing_system(
                             }
                         } else {
                             gib_event_writer.send(GibEvent {
-                                transform: transform.clone().with_scale(Vec3::new(
+                                transform: (*transform).with_scale(Vec3::new(
                                     PARATROOPER_SCALE,
                                     PARATROOPER_SCALE,
                                     1.0,

@@ -56,7 +56,6 @@ pub fn setup_gun_base(mut commands: Commands) {
             restitution_combine_rule: CoefficientCombineRule::Min,
             friction: 0.0,
             friction_combine_rule: CoefficientCombineRule::Min,
-            ..Default::default()
         }
         .into(),
         ..Default::default()
@@ -193,10 +192,10 @@ fn gun_collision_system(
             {
                 // Game over.
                 event_writer.send(GunExplosionEvent {
-                    translation: gun_transform.translation.clone(),
+                    translation: gun_transform.translation,
                 });
                 event_writer.send(GunExplosionEvent {
-                    translation: gun_mount_transform.translation.clone(),
+                    translation: gun_mount_transform.translation,
                 });
             }
         }
