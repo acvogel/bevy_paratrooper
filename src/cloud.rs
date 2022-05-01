@@ -1,4 +1,4 @@
-use crate::consts::WINDOW_WIDTH;
+use crate::consts::{OUT_OF_BOUNDS_X, OUT_OF_BOUNDS_Y, WINDOW_WIDTH};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
@@ -79,11 +79,25 @@ fn spawn_cloud_system(mut commands: Commands, textures: Res<CloudTextures>) {
     }
 }
 
+fn despawn_escaped_clouds(
+    mut commands: Commands,
+    query: Query<(Entity, &RigidBodyPositionComponent), With<Cloud>>,
+) {
+    for (entity, rb_pos) in query.iter() {
+        if rb_pos.position.translation.x.abs() > OUT_OF_BOUNDS_X
+            || rb_pos.position.translation.y.abs() > OUT_OF_BOUNDS_Y
+        {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
 pub struct CloudPlugin;
 
 impl Plugin for CloudPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_cloud_system)
-            .add_system(spawn_cloud_system);
+            .add_system(spawn_cloud_system)
+            .add_system(despawn_escaped_clouds);
     }
 }
