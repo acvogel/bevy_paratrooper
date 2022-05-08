@@ -409,10 +409,10 @@ pub struct ParatrooperPlugin;
 impl Plugin for ParatrooperPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_paratroopers)
-            //.add_system_set(
-            //    SystemSet::on_enter(AppState::InGame(AttackState::Air))
-            //        .with_system(spawn_paratroopers_debug),
-            //)
+            .add_system_set(
+                SystemSet::on_enter(AppState::InGame(AttackState::Air))
+                    .with_system(spawn_paratroopers_debug),
+            )
             .add_system_set(
                 SystemSet::on_update(AppState::InGame(AttackState::Air))
                     .with_system(paratrooper_landing_system)

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::ContactEvent;
+//use bevy_rapier2d::prelude::ContactEvent;
 use bevy_rapier2d::prelude::*;
 
 pub struct BulletCollisionEvent {

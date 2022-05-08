@@ -20,3 +20,26 @@
   - [ ] fixed # of planes
   - [ ] fixed # of paratroopers max from each plane
   - [ ] winning screen
+
+# Notes
+## Assault System
+
+1. Re-simplify the states, don't use ground/air
+2. make like AssaultState ? or just have the whole thing continuous.
+3. "Ideal" design:
+
+As paratroopers land, assign next available role.
+Troopers begin acting roles immediately. 
+Left/Right distinction? hrm. 
+AssaultDirection component? or member vars like Base.
+only need "side" for determining next available dude.
+
+Behavior module: on_updates for each type, and then collisions.
+
+Base: walk
+Climber: walk, collision teleport? or jump, then "left" force above a given delta.
+collide with wall: become static
+
+Second Base: walk to climber, stop on collision
+
+Sapper: Jump at Second Base, Jump a little at gun base.
