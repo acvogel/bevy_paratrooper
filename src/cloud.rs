@@ -52,40 +52,30 @@ fn spawn_cloud_system(mut commands: Commands, textures: Res<CloudTextures>) {
 
         let sprite_bundle = SpriteBundle {
             texture: cloud_handle.clone(),
-            transform: Transform {
-                scale: Vec3::new(CLOUD_SCALE, CLOUD_SCALE, 1.0),
-                translation: Vec3::new(0., 0., 8.),
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-
-        let rigid_body_bundle = RigidBodyBundle {
-            body_type: RigidBodyTypeComponent(RigidBodyType::Dynamic),
-            position: [x, y].into(),
-            velocity: RigidBodyVelocity {
-                linvel: Vec2::new(velocity, 0.0).into(),
-                angvel: 0.0,
-            }
-            .into(),
             ..Default::default()
         };
 
         commands
-            .spawn_bundle(sprite_bundle)
-            .insert_bundle(rigid_body_bundle)
-            .insert(RigidBodyPositionSync::Discrete)
+            .spawn()
+            .insert_bundle(sprite_bundle)
+            .insert(RigidBody::Dynamic)
+            .insert(Transform {
+                scale: Vec3::new(CLOUD_SCALE, CLOUD_SCALE, 1.0),
+                translation: Vec3::new(x, y, 8.),
+                ..Default::default()
+            })
+            .insert(Velocity {
+                linvel: Vec2::new(velocity, 0.0).into(),
+                angvel: 0.0,
+            })
             .insert(Cloud);
     }
 }
 
-fn despawn_escaped_clouds(
-    mut commands: Commands,
-    query: Query<(Entity, &RigidBodyPositionComponent), With<Cloud>>,
-) {
-    for (entity, rb_pos) in query.iter() {
-        if rb_pos.position.translation.x.abs() > OUT_OF_BOUNDS_X
-            || rb_pos.position.translation.y.abs() > OUT_OF_BOUNDS_Y
+fn despawn_escaped_clouds(mut commands: Commands, query: Query<(Entity, &Transform), With<Cloud>>) {
+    for (entity, transform) in query.iter() {
+        if transform.translation.x.abs() > OUT_OF_BOUNDS_X
+            || transform.translation.y.abs() > OUT_OF_BOUNDS_Y
         {
             commands.entity(entity).despawn_recursive();
         }

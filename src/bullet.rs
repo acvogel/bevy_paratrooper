@@ -1,6 +1,5 @@
 use crate::aircraft::Aircraft;
 use crate::consts::{OUT_OF_BOUNDS_X, OUT_OF_BOUNDS_Y};
-use crate::convert::*;
 use crate::events::*;
 use crate::gun::Gun;
 use crate::menu::AttackState;
@@ -42,38 +41,6 @@ fn shoot_gun(
                 bullet_transform.translation.z -= 0.1;
                 bullet_transform.translation += 30. * bullet_transform.local_y();
 
-                // velocity vector is local_y
-                let velocity_vector = consts::BULLET_SPEED * bullet_transform.local_y();
-                let rigid_body_bundle = RigidBodyBundle {
-                    body_type: RigidBodyType::Dynamic.into(),
-                    position: (bullet_transform.translation, bullet_transform.rotation)
-                        .into_rapier()
-                        .into(),
-                    velocity: RigidBodyVelocity {
-                        linvel: Vec2::new(velocity_vector.x, velocity_vector.y).into(),
-                        angvel: 0.0,
-                    }
-                    .into(),
-                    mass_properties: Default::default(),
-                    ..Default::default()
-                };
-
-                //custom_size: Some(Vec2::splat(24.)),
-                let collider_bundle = ColliderBundle {
-                    collider_type: ColliderType::Sensor.into(),
-                    //collider_type: ColliderType::Solid.into(),
-                    shape: ColliderShape::cuboid(12.0, 12.0).into(),
-                    flags: ColliderFlags {
-                        // Paratroopers group 0
-                        // Bullets are group 1
-                        // Aircraft group 2
-                        collision_groups: InteractionGroups::new(0b0010, 0b1101),
-                        ..Default::default()
-                    }
-                    .into(),
-                    ..Default::default()
-                };
-
                 let sprite_bundle = SpriteBundle {
                     texture: bullet_textures.bullet_handle.clone(),
                     sprite: Sprite {
@@ -84,11 +51,26 @@ fn shoot_gun(
                     ..Default::default()
                 };
 
+                // velocity vector is local_y
+                let local_y = bullet_transform.local_y();
+                let velocity_vector = consts::BULLET_SPEED * Vec2::new(local_y.x, local_y.y);
+
                 commands
-                    .spawn_bundle(rigid_body_bundle)
-                    .insert(RigidBodyPositionSync::Discrete)
-                    .insert_bundle(collider_bundle)
+                    .spawn()
                     .insert_bundle(sprite_bundle)
+                    .insert(RigidBody::Dynamic)
+                    .insert(bullet_transform)
+                    .insert(Velocity {
+                        linvel: velocity_vector, //[velocity_vector.x, velocity_vector.y],
+                        angvel: 0.0,
+                    })
+                    // XXX child?
+                    .insert(Collider::cuboid(12., 12.))
+                    .insert(
+                        ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC,
+                    )
+                    .insert(ActiveEvents::COLLISION_EVENTS)
+                    .insert(CollisionGroups::new(0b0010, 0b1101))
                     .insert(Bullet);
             }
         }
@@ -97,7 +79,7 @@ fn shoot_gun(
 
 /// Generates BulletCollisionEvents
 fn bullet_collision_system(
-    mut intersection_events: EventReader<IntersectionEvent>,
+    mut collision_events: EventReader<CollisionEvent>,
     mut event_writer: EventWriter<BulletCollisionEvent>,
     bullet_query: Query<(Entity, &Transform), With<Bullet>>,
     paratrooper_query: Query<(Entity, &Transform), With<Paratrooper>>,
@@ -108,50 +90,49 @@ fn bullet_collision_system(
     for (bullet, _transform) in bullet_query.iter() {
         bullet_handles.insert(bullet);
     }
-    for intersection_event in intersection_events.iter() {
-        let handle1 = intersection_event.collider1;
-        let handle2 = intersection_event.collider2;
-        if bullet_handles.contains(&handle1.entity()) || bullet_handles.contains(&handle2.entity())
-        {
-            let (bullet_entity, target_entity) = if bullet_handles.contains(&handle1.entity()) {
-                (handle1.entity(), handle2.entity())
-            } else {
-                (handle2.entity(), handle1.entity())
-            };
+    for collision_event in collision_events.iter() {
+        if let CollisionEvent::Started(entity1, entity2, _) = collision_event {
+            if bullet_handles.contains(entity1) || bullet_handles.contains(entity2) {
+                let (&bullet_entity, &target_entity) = if bullet_handles.contains(entity1) {
+                    (entity1, entity2)
+                } else {
+                    (entity2, entity1)
+                };
 
-            // Aircraft
-            for (aircraft_entity, aircraft_transform) in aircraft_query.iter() {
-                if aircraft_entity == target_entity {
-                    event_writer.send(BulletCollisionEvent {
-                        collision_type: CollisionType::Aircraft,
-                        translation: aircraft_transform.translation,
-                        bullet_entity,
-                        target_entity,
-                    });
+                // Aircraft
+                for (aircraft_entity, aircraft_transform) in aircraft_query.iter() {
+                    if aircraft_entity == target_entity {
+                        event_writer.send(BulletCollisionEvent {
+                            collision_type: CollisionType::Aircraft,
+                            translation: aircraft_transform.translation,
+                            bullet_entity,
+                            target_entity,
+                        });
+                    }
                 }
-            }
 
-            // Parachutes
-            for (parachute_entity, parachute_transform) in parachute_query.iter() {
-                if parachute_entity == target_entity {
-                    event_writer.send(BulletCollisionEvent {
-                        collision_type: CollisionType::Parachute,
-                        translation: parachute_transform.translation,
-                        bullet_entity,
-                        target_entity,
-                    });
+                // Parachutes
+                for (parachute_entity, parachute_transform) in parachute_query.iter() {
+                    if parachute_entity == target_entity {
+                        event_writer.send(BulletCollisionEvent {
+                            collision_type: CollisionType::Parachute,
+                            translation: parachute_transform.translation,
+                            bullet_entity,
+                            target_entity,
+                        });
+                    }
                 }
-            }
 
-            // Paratroopers
-            for (paratrooper_entity, paratrooper_transform) in paratrooper_query.iter() {
-                if paratrooper_entity == target_entity {
-                    event_writer.send(BulletCollisionEvent {
-                        collision_type: CollisionType::Paratrooper,
-                        translation: paratrooper_transform.translation,
-                        bullet_entity,
-                        target_entity,
-                    });
+                // Paratroopers
+                for (paratrooper_entity, paratrooper_transform) in paratrooper_query.iter() {
+                    if paratrooper_entity == target_entity {
+                        event_writer.send(BulletCollisionEvent {
+                            collision_type: CollisionType::Paratrooper,
+                            translation: paratrooper_transform.translation,
+                            bullet_entity,
+                            target_entity,
+                        });
+                    }
                 }
             }
         }
@@ -179,11 +160,11 @@ fn bullet_collision_listener(
 /// Remove "out-of-bounds" bullets
 fn despawn_escaped_bullets(
     mut commands: Commands,
-    query: Query<(Entity, &RigidBodyPositionComponent), With<Bullet>>,
+    query: Query<(Entity, &Transform), With<Bullet>>,
 ) {
-    for (entity, rb_pos) in query.iter() {
-        if rb_pos.position.translation.x.abs() > OUT_OF_BOUNDS_X
-            || rb_pos.position.translation.y.abs() > OUT_OF_BOUNDS_Y
+    for (entity, transform) in query.iter() {
+        if transform.translation.x.abs() > OUT_OF_BOUNDS_X
+            || transform.translation.y.abs() > OUT_OF_BOUNDS_Y
         {
             commands.entity(entity).despawn_recursive();
         }

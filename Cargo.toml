@@ -4,17 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-#bevy_rapier2d = "0.13.2"
-#bevy_rapier2d = "0.12.1"
-bevy_rapier2d = "0.12"
-bevy_prototype_lyon = "0.4.0"
+bevy_rapier2d = "0.13.2"
+bevy_prototype_lyon = "0.5.0"
 rand = "0.8.5"
 #heron = "2.3.0"
 
 [dependencies.bevy]
-#version = "0.7"
-version = "0.6"
-#version = "0.6.1"
+version = "0.7"
 default-features = false
 # These are the remaining default features other than `bevy_audio` and `mp3`
 features = [

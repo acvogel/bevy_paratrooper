@@ -10,6 +10,7 @@ pub struct Ground;
 fn setup_ground(mut commands: Commands) {
     let custom_size = Some(Vec2::new(consts::WINDOW_WIDTH, consts::GROUND_THICKNESS));
     let y = (-consts::WINDOW_HEIGHT + consts::GROUND_THICKNESS) / 2.;
+
     let sprite_bundle = SpriteBundle {
         sprite: Sprite {
             color: GROUND_COLOR,
@@ -19,33 +20,32 @@ fn setup_ground(mut commands: Commands) {
         transform: Transform::from_translation(Vec3::new(0., y, 1.5)),
         ..Default::default()
     };
-    let collider = ColliderBundle {
-        shape: ColliderShape::cuboid(consts::WINDOW_WIDTH / 2.0, consts::GROUND_THICKNESS / 2.0)
-            .into(),
-        material: ColliderMaterial {
-            restitution: 0.,
-            restitution_combine_rule: CoefficientCombineRule::Min,
-            friction: 0.0,
-            friction_combine_rule: CoefficientCombineRule::Min,
-        }
-        .into(),
-        ..Default::default()
-    };
-    let body = RigidBodyBundle {
-        body_type: RigidBodyTypeComponent(RigidBodyType::Static),
-        position: [0., y].into(),
-        ..Default::default()
-    };
     commands
-        .spawn_bundle(sprite_bundle)
-        .insert_bundle(body)
-        .insert_bundle(collider)
+        .spawn()
+        .insert_bundle(sprite_bundle)
+        .insert(RigidBody::Fixed)
+        .with_children(|children| {
+            children
+                .spawn()
+                .insert(Collider::cuboid(
+                    consts::WINDOW_WIDTH / 2.0,
+                    consts::GROUND_THICKNESS / 2.0,
+                ))
+                .insert(ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC)
+                .insert(Friction {
+                    coefficient: 0.0,
+                    combine_rule: CoefficientCombineRule::Min,
+                })
+                .insert(Restitution {
+                    coefficient: 0.0,
+                    combine_rule: CoefficientCombineRule::Min,
+                });
+        })
         .insert(Ground);
 }
 
 fn setup_physics(mut configuration: ResMut<RapierConfiguration>) {
-    configuration.scale = 1.;
-    configuration.gravity = Vector::y() * consts::GRAVITY;
+    configuration.gravity = Vec2::Y * consts::GRAVITY;
 }
 
 fn setup_skyline(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -72,7 +72,6 @@ impl Plugin for TerrainPlugin {
         app.add_startup_system(setup_ground)
             .add_startup_system(setup_skyline)
             .add_startup_system(setup_physics)
-            .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-            .add_plugin(RapierRenderPlugin);
+            .add_plugin(RapierPhysicsPlugin::<NoUserData>::with_physics_scale(1.0));
     }
 }

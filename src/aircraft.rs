@@ -7,7 +7,7 @@ use crate::{AppState, BulletCollisionEvent, ExplosionEvent};
 use rand::Rng;
 
 const AIRCRAFT_SPEED: f32 = 80.;
-const AIRCRAFT_SCALE: f32 = 0.2;
+const AIRCRAFT_SCALE: f32 = 0.3;
 const AIRCRAFT_SPAWN_PROBABILITY: f32 = 0.008;
 const SPAWN_LEFT_X: f32 = -WINDOW_WIDTH / 2.0 - 40.;
 const SPAWN_RIGHT_X: f32 = WINDOW_WIDTH / 2.0 + 40.;
@@ -53,48 +53,23 @@ fn spawn_aircraft_system(mut commands: Commands, aircraft_textures: Res<Aircraft
                 flip_x: !heading_right,
                 ..Default::default()
             },
-            transform: transform.with_scale(Vec3::splat(0.3)),
-
-            ..Default::default()
-        };
-
-        let rigid_body_bundle = RigidBodyBundle {
-            body_type: RigidBodyTypeComponent(RigidBodyType::Dynamic),
-            position: [transform.translation.x, transform.translation.y].into(),
-            velocity: RigidBodyVelocity {
-                linvel: Vec2::new(velocity, 0.0).into(),
-                angvel: 0.0,
-            }
-            .into(),
-            mass_properties: RigidBodyMassProps {
-                flags: RigidBodyMassPropsFlags::TRANSLATION_LOCKED_Y,
-                local_mprops: MassProperties::new(Vec2::ZERO.into(), 10.0, 1.0),
-                ..Default::default()
-            }
-            .into(),
-            ..Default::default()
-        };
-
-        // 412 x 114 asset. 0.3 scale yields (123.6, 34.2)
-        let collider_bundle = ColliderBundle {
-            collider_type: ColliderType::Sensor.into(),
-            shape: ColliderShape::cuboid(123.6 / 2.0, 34.2 / 2.0).into(),
-            flags: ColliderFlags {
-                collision_groups: InteractionGroups::new(0b0100, 0b1110),
-
-                active_collision_types: ActiveCollisionTypes::all(),
-                active_events: ActiveEvents::all(),
-                ..Default::default()
-            }
-            .into(),
             ..Default::default()
         };
 
         commands
-            .spawn_bundle(rigid_body_bundle)
-            .insert(RigidBodyPositionSync::Discrete)
-            .insert_bundle(collider_bundle)
+            .spawn()
             .insert_bundle(sprite_bundle)
+            .insert(transform)
+            .insert(RigidBody::Dynamic)
+            .insert(Collider::cuboid(123.6 / 2.0, 34.2 / 2.0))
+            .insert(Sensor(true))
+            .insert(ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC)
+            .insert(CollisionGroups::new(0b0100, 0b1110))
+            .insert(LockedAxes::TRANSLATION_LOCKED_Y)
+            .insert(Velocity {
+                linvel: Vec2::new(velocity, 0.),
+                angvel: 0.0,
+            })
             .insert(Aircraft::default());
     }
 }
@@ -113,11 +88,11 @@ fn despawn_all_aircraft(mut commands: Commands, query: Query<Entity, With<Aircra
 
 fn despawn_escaped_aircraft(
     mut commands: Commands,
-    query: Query<(Entity, &RigidBodyPositionComponent), With<Aircraft>>,
+    query: Query<(Entity, &Transform), With<Aircraft>>,
 ) {
-    for (entity, rb_pos) in query.iter() {
-        if rb_pos.position.translation.x.abs() > OUT_OF_BOUNDS_X
-            || rb_pos.position.translation.y.abs() > OUT_OF_BOUNDS_Y
+    for (entity, transform) in query.iter() {
+        if transform.translation.x.abs() > OUT_OF_BOUNDS_X
+            || transform.translation.y.abs() > OUT_OF_BOUNDS_Y
         {
             commands.entity(entity).despawn_recursive();
         }

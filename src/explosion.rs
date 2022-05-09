@@ -7,6 +7,9 @@ pub struct Explosion(f64);
 #[derive(Component)]
 pub struct Gib(f64);
 
+#[derive(Component, Deref, DerefMut)]
+struct AnimationTimer(Timer);
+
 const EXPLOSION_TICK: f32 = 0.1;
 const GIB_TICK: f32 = 0.1;
 
@@ -29,7 +32,7 @@ fn spawn_explosion_system(
                 ..Default::default()
             })
             .insert(Explosion(time.seconds_since_startup()))
-            .insert(Timer::from_seconds(EXPLOSION_TICK, true));
+            .insert(AnimationTimer(Timer::from_seconds(EXPLOSION_TICK, true)));
     }
 }
 
@@ -47,7 +50,7 @@ fn spawn_gun_explosion_system(
                 ..Default::default()
             })
             .insert(Explosion(time.seconds_since_startup()))
-            .insert(Timer::from_seconds(EXPLOSION_TICK, true));
+            .insert(AnimationTimer(Timer::from_seconds(EXPLOSION_TICK, true)));
     }
 }
 
@@ -58,7 +61,7 @@ fn animate_gib_system(
     mut query: Query<(
         Entity,
         &Gib,
-        &mut Timer,
+        &mut AnimationTimer,
         &mut TextureAtlasSprite,
         &Handle<TextureAtlas>,
     )>,
@@ -84,7 +87,7 @@ fn animate_explosion_system(
     mut query: Query<(
         Entity,
         &Explosion,
-        &mut Timer,
+        &mut AnimationTimer,
         &mut TextureAtlasSprite,
         &Handle<TextureAtlas>,
     )>,
@@ -142,7 +145,7 @@ fn spawn_gib_system(
                 ..Default::default()
             })
             .insert(Gib(time.seconds_since_startup()))
-            .insert(Timer::from_seconds(GIB_TICK, true));
+            .insert(AnimationTimer(Timer::from_seconds(GIB_TICK, true)));
     }
 }
 

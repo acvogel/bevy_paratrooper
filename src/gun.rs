@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_prototype_lyon::entity::ShapeBundle;
+use bevy_prototype_lyon::prelude::FillMode;
 use bevy_prototype_lyon::prelude::*;
 use bevy_rapier2d::prelude::*;
 use std::collections::HashSet;
@@ -44,26 +45,22 @@ pub fn setup_gun_base(mut commands: Commands) {
         transform: Transform::from_translation(Vec3::new(0., y, 2.)),
         ..Default::default()
     };
-    let body = RigidBodyBundle {
-        body_type: RigidBodyTypeComponent(RigidBodyType::Static),
-        position: [0., y].into(),
-        ..Default::default()
-    };
-    let collider = ColliderBundle {
-        shape: ColliderShape::cuboid(0.5 * w, 0.5 * h).into(),
-        material: ColliderMaterial {
-            restitution: 0.,
-            restitution_combine_rule: CoefficientCombineRule::Min,
-            friction: 0.0,
-            friction_combine_rule: CoefficientCombineRule::Min,
-        }
-        .into(),
-        ..Default::default()
-    };
     commands
         .spawn_bundle(sprite_bundle)
-        .insert_bundle(body)
-        .insert_bundle(collider)
+        .insert(RigidBody::Fixed)
+        .with_children(|children| {
+            children
+                .spawn()
+                .insert(Collider::cuboid(0.5 * w, 0.5 * h))
+                .insert(Friction {
+                    coefficient: 0.0,
+                    combine_rule: CoefficientCombineRule::Min,
+                })
+                .insert(Restitution {
+                    coefficient: 0.0,
+                    combine_rule: CoefficientCombineRule::Min,
+                });
+        })
         .insert(GunBase);
 }
 
@@ -95,18 +92,13 @@ fn gun_mount_rectangle_shape() -> ShapeBundle {
 pub fn setup_gun_mount(mut commands: Commands) {
     commands
         .spawn_bundle(gun_mount_rectangle_shape())
+        // todo Transform needed?
+        .insert(RigidBody::Fixed)
         .with_children(|parent| {
-            parent.spawn_bundle(gun_mount_circle_shape());
-        })
-        .insert_bundle(RigidBodyBundle {
-            body_type: RigidBodyTypeComponent(RigidBodyType::Static),
-            position: Vec2::new(0., consts::GROUND_Y + GUN_BASE_Y + 0.5 * GUN_MOUNT_Y).into(),
-            ..Default::default()
-        })
-        .insert_bundle(ColliderBundle {
-            shape: ColliderShape::cuboid(0.5 * GUN_MOUNT_X, 0.5 * GUN_MOUNT_Y).into(),
-            collider_type: ColliderType::Sensor.into(),
-            ..Default::default()
+            parent
+                .spawn()
+                .insert_bundle(gun_mount_circle_shape())
+                .insert(Collider::cuboid(0.5 * GUN_MOUNT_X, 0.5 * GUN_MOUNT_Y));
         })
         .insert(GunMount);
 }
@@ -123,54 +115,57 @@ pub fn setup_gun_barrel(mut commands: Commands) {
         transform: Transform::from_translation(Vec3::new(0., y, 1.)),
         ..Default::default()
     };
-    // center of mass calculation.
-    let body_bundle = RigidBodyBundle {
-        body_type: RigidBodyTypeComponent(RigidBodyType::KinematicVelocityBased),
-        position: [0., y].into(),
-        mass_properties: RigidBodyMassPropsFlags::TRANSLATION_LOCKED.into(),
-        ..Default::default()
-    };
-    let collider_bundle = ColliderBundle {
-        shape: ColliderShape::cuboid(0.5 * sprite_size.x, 0.5 * sprite_size.y).into(),
-        collider_type: ColliderType::Sensor.into(),
-        mass_properties: MassProperties {
-            local_com: Vec2::new(0., -GUN_HEIGHT / 2.0).into(),
-            inv_mass: 0.1,
-            inv_principal_inertia_sqrt: 0.1,
-        }
-        .into(),
-        ..Default::default()
-    };
     commands
-        .spawn_bundle(body_bundle)
-        .insert(RigidBodyPositionSync::Discrete)
+        .spawn()
         .insert_bundle(sprite_bundle)
-        .insert_bundle(collider_bundle)
+        .insert(RigidBody::KinematicVelocityBased)
+        .with_children(|children| {
+            children
+                .spawn()
+                .insert(Collider::cuboid(0.5 * sprite_size.x, 0.5 * sprite_size.y));
+        })
+        .insert(Velocity::default())
+        .insert(MassProperties {
+            local_center_of_mass: Vec2::new(0., -GUN_HEIGHT / 2.0),
+            mass: 1.0,
+            principal_inertia: 0.1,
+        })
         .insert(Gun { last_fired: 0. });
 }
 
 fn move_gun(
     keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<(&mut RigidBodyVelocityComponent, &RigidBodyPositionComponent), With<Gun>>,
+    mut query: Query<(&mut Velocity, &Transform), With<Gun>>,
 ) {
     let angular_velocity = ANGULAR_VELOCITY;
     let boundary_angle = -std::f32::consts::PI / 2.9; // right boundary
-    for (mut rb_vel, rb_pos) in query.iter_mut() {
-        let gun_angle = rb_pos.position.rotation.angle();
+    for (mut velocity, transform) in query.iter_mut() {
+        //let gun_angle = transform.rotation.angle();
+        let (_gun_axis, gun_angle) = transform.rotation.to_axis_angle();
         if keyboard_input.pressed(KeyCode::A) || keyboard_input.pressed(KeyCode::Left) {
-            if gun_angle < -1. * boundary_angle {
-                rb_vel.angvel = angular_velocity;
-            }
+            //if gun_angle < -1. * boundary_angle {
+            velocity.angvel = angular_velocity;
+            //}
         } else if keyboard_input.pressed(KeyCode::D) || keyboard_input.pressed(KeyCode::Right) {
-            if gun_angle > boundary_angle {
-                rb_vel.angvel = -angular_velocity;
-            }
+            // TODO turn on gun bounds
+            //if gun_angle > boundary_angle {
+            velocity.angvel = -angular_velocity;
+            //}
+        }
+
+        // Stop when key is released
+        if keyboard_input.just_released(KeyCode::A)
+            || keyboard_input.just_released(KeyCode::Left)
+            || keyboard_input.just_released(KeyCode::D)
+            || keyboard_input.just_released(KeyCode::Right)
+        {
+            velocity.angvel = 0.;
         }
     }
 }
 
 fn gun_collision_system(
-    mut event_reader: EventReader<IntersectionEvent>,
+    mut event_reader: EventReader<CollisionEvent>,
     mut event_writer: EventWriter<GunExplosionEvent>,
     gun_query: Query<(Entity, &Transform), With<Gun>>,
     gun_mount_query: Query<(Entity, &Transform), With<GunMount>>,
@@ -182,21 +177,21 @@ fn gun_collision_system(
     }
     let (gun_mount_entity, gun_mount_transform) = gun_mount_query.get_single().unwrap();
     for (gun_entity, gun_transform) in gun_query.iter() {
-        for event in event_reader.iter() {
-            if ((event.collider1.entity() == gun_entity
-                || event.collider1.entity() == gun_mount_entity)
-                && paratrooper_entities.contains(&event.collider2.entity()))
-                || ((event.collider2.entity() == gun_entity
-                    || event.collider2.entity() == gun_mount_entity)
-                    && paratrooper_entities.contains(&event.collider1.entity()))
-            {
-                // Game over.
-                event_writer.send(GunExplosionEvent {
-                    translation: gun_transform.translation,
-                });
-                event_writer.send(GunExplosionEvent {
-                    translation: gun_mount_transform.translation,
-                });
+        for collision_event in event_reader.iter() {
+            if let &CollisionEvent::Started(entity1, entity2, _) = collision_event {
+                if ((entity1 == gun_entity || entity1 == gun_mount_entity)
+                    && paratrooper_entities.contains(&entity2))
+                    || ((entity2 == gun_entity || entity2 == gun_mount_entity)
+                        && paratrooper_entities.contains(&entity1))
+                {
+                    // Game over.
+                    event_writer.send(GunExplosionEvent {
+                        translation: gun_transform.translation,
+                    });
+                    event_writer.send(GunExplosionEvent {
+                        translation: gun_mount_transform.translation,
+                    });
+                }
             }
         }
     }
