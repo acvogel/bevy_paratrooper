@@ -64,7 +64,6 @@ fn shoot_gun(
                         linvel: velocity_vector, //[velocity_vector.x, velocity_vector.y],
                         angvel: 0.0,
                     })
-                    // XXX child?
                     .insert(Collider::cuboid(12., 12.))
                     .insert(
                         ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC,

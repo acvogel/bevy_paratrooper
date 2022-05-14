@@ -24,22 +24,24 @@ fn setup_ground(mut commands: Commands) {
         .spawn()
         .insert_bundle(sprite_bundle)
         .insert(RigidBody::Fixed)
-        .with_children(|children| {
-            children
-                .spawn()
-                .insert(Collider::cuboid(
-                    consts::WINDOW_WIDTH / 2.0,
-                    consts::GROUND_THICKNESS / 2.0,
-                ))
-                .insert(ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC)
-                .insert(Friction {
-                    coefficient: 0.0,
-                    combine_rule: CoefficientCombineRule::Min,
-                })
-                .insert(Restitution {
-                    coefficient: 0.0,
-                    combine_rule: CoefficientCombineRule::Min,
-                });
+        .insert(Collider::cuboid(
+            consts::WINDOW_WIDTH / 2.0,
+            consts::GROUND_THICKNESS / 2.0,
+        ))
+        .insert(Sensor(false))
+        .insert(
+            ActiveCollisionTypes::default()
+                | ActiveCollisionTypes::KINEMATIC_STATIC
+                | ActiveCollisionTypes::DYNAMIC_STATIC,
+        )
+        .insert(ActiveEvents::COLLISION_EVENTS)
+        .insert(Friction {
+            coefficient: 0.0,
+            combine_rule: CoefficientCombineRule::Min,
+        })
+        .insert(Restitution {
+            coefficient: 0.0,
+            combine_rule: CoefficientCombineRule::Min,
         })
         .insert(Ground);
 }

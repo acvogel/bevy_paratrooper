@@ -47,7 +47,7 @@ Sapper: Jump at Second Base, Jump a little at gun base.
 ## Version upgrade
 
 * Collisions:
- - [ ] bullet <-> para
+ - [X] bullet <-> para
  - [ ] para <-> ground
 * Gun
  - [X] rotation point
