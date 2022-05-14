@@ -48,7 +48,9 @@ Sapper: Jump at Second Base, Jump a little at gun base.
 
 * Collisions:
  - [X] bullet <-> para
- - [ ] para <-> ground
+ - [X] para <-> ground
+ - [X] para <-> gun
+-  [X] para <-> gun mount
 * Gun
  - [X] rotation point
  - [X] angle boundary

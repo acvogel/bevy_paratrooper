@@ -49,19 +49,16 @@ pub fn setup_gun_base(mut commands: Commands) {
     commands
         .spawn_bundle(sprite_bundle)
         .insert(RigidBody::Fixed)
-        .with_children(|children| {
-            children
-                .spawn()
-                .insert(Collider::cuboid(0.5 * w, 0.5 * h))
-                .insert(Friction {
-                    coefficient: 0.0,
-                    combine_rule: CoefficientCombineRule::Min,
-                })
-                .insert(Restitution {
-                    coefficient: 0.0,
-                    combine_rule: CoefficientCombineRule::Min,
-                });
+        .insert(Collider::cuboid(0.5 * w, 0.5 * h))
+        .insert(Friction {
+            coefficient: 0.0,
+            combine_rule: CoefficientCombineRule::Min,
         })
+        .insert(Restitution {
+            coefficient: 0.0,
+            combine_rule: CoefficientCombineRule::Min,
+        })
+        .insert(ActiveEvents::COLLISION_EVENTS)
         .insert(GunBase);
 }
 
@@ -94,11 +91,10 @@ pub fn setup_gun_mount(mut commands: Commands) {
     commands
         .spawn_bundle(gun_mount_rectangle_shape())
         .insert(RigidBody::Fixed)
+        .insert(Collider::cuboid(0.5 * GUN_MOUNT_X, 0.5 * GUN_MOUNT_Y))
+        .insert(ActiveEvents::COLLISION_EVENTS)
         .with_children(|parent| {
-            parent
-                .spawn()
-                .insert_bundle(gun_mount_circle_shape())
-                .insert(Collider::cuboid(0.5 * GUN_MOUNT_X, 0.5 * GUN_MOUNT_Y));
+            parent.spawn().insert_bundle(gun_mount_circle_shape());
         })
         .insert(GunMount);
 }
@@ -120,11 +116,8 @@ pub fn setup_gun_barrel(mut commands: Commands) {
         .spawn()
         .insert_bundle(sprite_bundle)
         .insert(RigidBody::KinematicVelocityBased)
-        .with_children(|children| {
-            children
-                .spawn()
-                .insert(Collider::cuboid(0.5 * sprite_size.x, 0.5 * sprite_size.y));
-        })
+        .insert(Collider::cuboid(0.5 * sprite_size.x, 0.5 * sprite_size.y))
+        .insert(ActiveEvents::COLLISION_EVENTS)
         .insert(Velocity::default())
         .insert(MassProperties {
             mass: 1.0,
