@@ -43,3 +43,12 @@ collide with wall: become static
 Second Base: walk to climber, stop on collision
 
 Sapper: Jump at Second Base, Jump a little at gun base.
+
+## Version upgrade
+
+* Collisions:
+ - [ ] bullet <-> para
+ - [ ] para <-> ground
+* Gun
+ - [X] rotation point
+ - [X] angle boundary

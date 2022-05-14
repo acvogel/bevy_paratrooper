@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::sprite::Anchor::BottomCenter;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::FillMode;
 use bevy_prototype_lyon::prelude::*;
@@ -92,7 +93,6 @@ fn gun_mount_rectangle_shape() -> ShapeBundle {
 pub fn setup_gun_mount(mut commands: Commands) {
     commands
         .spawn_bundle(gun_mount_rectangle_shape())
-        // todo Transform needed?
         .insert(RigidBody::Fixed)
         .with_children(|parent| {
             parent
@@ -104,12 +104,13 @@ pub fn setup_gun_mount(mut commands: Commands) {
 }
 
 pub fn setup_gun_barrel(mut commands: Commands) {
-    let y = consts::GROUND_Y + GUN_BASE_Y + GUN_MOUNT_Y + 0.5 * GUN_HEIGHT;
+    let y = consts::GROUND_Y + GUN_BASE_Y + GUN_MOUNT_Y; //+ 0.5 * GUN_HEIGHT;
     let sprite_size = Vec2::new(GUN_WIDTH, GUN_HEIGHT);
     let sprite_bundle = SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(0.32, 0.36, 0.41),
             custom_size: Some(sprite_size),
+            anchor: BottomCenter,
             ..Default::default()
         },
         transform: Transform::from_translation(Vec3::new(0., y, 1.)),
@@ -126,40 +127,32 @@ pub fn setup_gun_barrel(mut commands: Commands) {
         })
         .insert(Velocity::default())
         .insert(MassProperties {
-            local_center_of_mass: Vec2::new(0., -GUN_HEIGHT / 2.0),
             mass: 1.0,
             principal_inertia: 0.1,
+            ..Default::default()
         })
         .insert(Gun { last_fired: 0. });
 }
 
+/// Move gun with keyboard, within bounds.
 fn move_gun(
     keyboard_input: Res<Input<KeyCode>>,
     mut query: Query<(&mut Velocity, &Transform), With<Gun>>,
 ) {
     let angular_velocity = ANGULAR_VELOCITY;
-    let boundary_angle = -std::f32::consts::PI / 2.9; // right boundary
+    let boundary_angle = std::f32::consts::PI / 2.9; // right boundary
     for (mut velocity, transform) in query.iter_mut() {
-        //let gun_angle = transform.rotation.angle();
-        let (_gun_axis, gun_angle) = transform.rotation.to_axis_angle();
-        if keyboard_input.pressed(KeyCode::A) || keyboard_input.pressed(KeyCode::Left) {
-            //if gun_angle < -1. * boundary_angle {
-            velocity.angvel = angular_velocity;
-            //}
-        } else if keyboard_input.pressed(KeyCode::D) || keyboard_input.pressed(KeyCode::Right) {
-            // TODO turn on gun bounds
-            //if gun_angle > boundary_angle {
-            velocity.angvel = -angular_velocity;
-            //}
-        }
-
-        // Stop when key is released
-        if keyboard_input.just_released(KeyCode::A)
-            || keyboard_input.just_released(KeyCode::Left)
-            || keyboard_input.just_released(KeyCode::D)
-            || keyboard_input.just_released(KeyCode::Right)
+        let (gun_axis, gun_angle) = transform.rotation.to_axis_angle();
+        if (keyboard_input.pressed(KeyCode::A) || keyboard_input.pressed(KeyCode::Left))
+            && (gun_axis.z <= 0. || gun_angle < boundary_angle)
         {
-            velocity.angvel = 0.;
+            velocity.angvel = angular_velocity;
+        } else if (keyboard_input.pressed(KeyCode::D) || keyboard_input.pressed(KeyCode::Right))
+            && (gun_axis.z >= 0. || gun_angle < boundary_angle)
+        {
+            velocity.angvel = -angular_velocity;
+        } else {
+            velocity.angvel = 0.
         }
     }
 }
