@@ -124,9 +124,10 @@ fn spawn_paratroopers(
                     scale: Vec3::new(PARATROOPER_SCALE, PARATROOPER_SCALE, 1.),
                 })
                 .insert(RigidBody::Dynamic)
+                .insert(Sensor(false))
                 .insert(Damping::default())
                 .insert(GravityScale(1.0))
-                .insert(LockedAxes::ROTATION_LOCKED_X)
+                .insert(LockedAxes::ROTATION_LOCKED)
                 .insert(MassProperties {
                     mass: 10.0,
                     principal_inertia: 0.5,
@@ -149,6 +150,7 @@ fn spawn_paratroopers(
                     PARATROOPER_COLLISION_MEMBERSHIP,
                     PARATROOPER_COLLISION_FILTER,
                 ))
+                .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Paratrooper::default());
         }
     }

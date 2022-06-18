@@ -2,7 +2,7 @@ use bevy::prelude::*;
 //use bevy_kira_audio::AudioPlugin;
 use bevy_prototype_lyon::prelude::*;
 
-//use crate::assault::AssaultPlugin;
+use crate::assault::AssaultPlugin;
 //use crate::audio::AudioStatePlugin;
 use crate::cloud::CloudPlugin;
 use crate::explosion::ExplosionPlugin;
@@ -54,7 +54,7 @@ fn main() {
         .add_plugin(MenuPlugin)
         .add_plugin(CloudPlugin)
         .add_plugin(EventPlugin)
-        //.add_plugin(AssaultPlugin)
+        .add_plugin(AssaultPlugin)
         .add_startup_system(setup_camera)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();

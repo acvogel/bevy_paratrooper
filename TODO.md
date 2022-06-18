@@ -44,6 +44,12 @@ Second Base: walk to climber, stop on collision
 
 Sapper: Jump at Second Base, Jump a little at gun base.
 
+new idea: track AssaultState left and right. all Landed dudes act as the assault stage (base etc.)
+when one gets in place, they stay.
+
+even simpler: every landed runs towards gun and jumps when he hits another dude in the way. mb add a jumper collider that's sensor and larger.
+
+
 ## Version upgrade
 
 * Collisions:

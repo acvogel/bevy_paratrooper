@@ -1,37 +1,38 @@
-//use crate::gun::GunBase;
-//use crate::menu::AttackState;
-//use crate::paratrooper::{Paratrooper, ParatrooperState, PARATROOPER_COLLISION_FILTER};
-//use crate::{entities_collision_started, AppState, LandingEvent};
-//use bevy::prelude::*;
-//use bevy_rapier2d::prelude::*;
-//
-//const PARATROOPER_WALK_SPEED: f32 = 50.;
-//const PARATROOPER_ASSAULT_MIN: usize = 4;
-//const PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP: u32 = 0b1001;
-//
-///// Forms the base of the pyramid
-//#[derive(Component)]
-//pub struct Base;
-//
-///// Climbs on top of the Base
-//#[derive(Component)]
-//pub struct Climber;
-//
-///// Moves next to Base
-//#[derive(Component)]
-//pub struct SecondBase;
-//
-///// Climbs SecondBase, Climber, and walks to Gun
-//#[derive(Component)]
-//pub struct Sapper;
-//
-//#[derive(Clone, PartialEq)]
-//enum AssaultState {
-//    Base,
-//    Climber,
-//    SecondBase,
-//    Sapper,
-//}
+use crate::gun::GunBase;
+use crate::menu::AttackState;
+use crate::paratrooper::{Paratrooper, ParatrooperState, PARATROOPER_COLLISION_FILTER};
+use crate::{/*entities_collision_started,*/ AppState, LandingEvent};
+use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
+
+const PARATROOPER_WALK_SPEED: f32 = 50.;
+const PARATROOPER_ASSAULT_MIN: usize = 4;
+const PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP: u32 = 0b1001;
+const PARATROOPER_ASSAULT_COLLISION_FILTER: u32 = 0b1001;
+
+/// Forms the base of the pyramid
+#[derive(Component)]
+pub struct Base;
+
+/// Climbs on top of the Base
+#[derive(Component)]
+pub struct Climber;
+
+/// Moves next to Base
+#[derive(Component)]
+pub struct SecondBase;
+
+/// Climbs SecondBase, Climber, and walks to Gun
+#[derive(Component)]
+pub struct Sapper;
+
+#[derive(Clone, PartialEq)]
+enum AssaultState {
+    Base,
+    Climber,
+    SecondBase,
+    Sapper,
+}
 //
 ///// Walk towards the gun
 //fn base_assault(
@@ -304,102 +305,67 @@
 //    }
 //}
 //
-//// XXX what about multiple landers hrm. could we just use the same "ai" for all of them.
-//// go towards gun. bump into guy towards gun, jump.
-//// simple_assault.rs or smthng? just write it in here. when landing event, turn on collider, set to Assault.
-//// then 2 collision systems: para/para: one farther from gun jumps, and only if within band of Y value. no "top" jumpers.
-//// "wind" blows towards gun, with possible like deadzone heights? hrm hrm.
-//// gun collision:
-//
-///// Turn a lander into an assaulter
-//fn enable_assault_system(
-//    //mut commands: Commands,
-//    mut query: Query<(Entity, &mut Paratrooper, &mut ColliderFlagsComponent)>,
-//    mut event_reader: EventReader<LandingEvent>,
-//) {
-//    for event in event_reader.iter() {
-//        if let Result::Ok((_entity, mut paratrooper, mut col_flags)) = query.get_mut(event.0) {
-//            info!("New assault trooper landed.");
-//            col_flags.collision_groups = InteractionGroups::new(
-//                PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP,
-//                PARATROOPER_COLLISION_FILTER,
-//            );
-//            paratrooper.state = ParatrooperState::Assault;
-//        }
-//    }
-//}
-//
-//fn assault_movement_system(
-//    mut query: Query<(
-//        &Paratrooper,
-//        &RigidBodyPositionComponent,
-//        &mut RigidBodyVelocityComponent,
-//    )>,
-//) {
-//    for (_paratrooper, rb_pos, mut rb_vel) in query
-//        .iter_mut()
-//        .filter(|(p, _, _)| p.state == ParatrooperState::Assault)
-//    {
-//        // Move towards gun.
-//        let heading = -1.0 * rb_pos.position.translation.x.signum();
-//        rb_vel.linvel = Vec2::new(heading * PARATROOPER_WALK_SPEED, 0.0).into();
-//    }
-//}
-//
-//// XXX WIP
-////fn assault_collision_system(
-////    //mut assault_state: ResMut<AssaultState>,
-////    mut contact_events: EventReader<ContactEvent>,
-////    mut paratroopers: Query<(
-////        Entity,
-////        &Paratrooper,
-////        &RigidBodyPositionComponent,
-////        &mut RigidBodyVelocityComponent,
-////    )>,
-////    gun_base_query: Query<Entity, With<GunBase>>,
-////) {
-////    let gun_base_entity = gun_base_query.single();
-////    for contact_event in contact_events.iter() {
-////        if let ContactEvent::Started(handle1, handle2) = contact_event {
-////            if gun_base_entity == handle1.entity() || gun_base_entity == handle2.entity() {
-////                // gun base <-> paratrooper. maybe lock in.
-////            } else {
-////                if let Result::Ok((e1, p1, rb_pos_1, mut rb_vel_1)) =
-////                    paratroopers.get_mut(handle1.entity())
-////                {
-////                    if let Result::Ok((e2, p2, rb_pos_2, mut rb_vel_2)) =
-////                        paratroopers.get_mut(handle2.entity())
-////                    {
-////                        // if they are around same x, get the one with higher abs rb_pos
-////                        let x1 = rb_pos_1.position.translation.x;
-////                        let x2 = rb_pos_2.position.translation.x;
-////                        if (x1 - x2).abs() < 10. {
-////                            let rb_vel = if x1.abs() > x2.abs() {
-////                                rb_vel_1
-////                            } else {
-////                                rb_vel_2
-////                            };
-////                            //let heading = x1.signum();
-////                            //rb_vel.linvel = Vec2::new(heading * 5., 500.).into();
-////                            rb_vel.linvel = Vec2::new(0., 500.).into();
-////                        }
-////                    }
-////                }
-////            }
-////
-////            // so can get query by entity.
-////            //if let (entity, paratrooper, mut rb_vel) = paratroopers.get(handle1.entity())
-////            let x = 5;
-////        }
-////    }
-////    //
-////    // no not quite right.
-////    // question is do we get just 1 contact event. probably.
-////    // if entities_collision_started(*contact_event, base_entity, climber_entity) {
-////
-////    //for (paratrooper)
-////    //let (climber_entity, mut rb_vel) = climber_query.single_mut();
-////}
+
+/// Turn a lander into an assaulter
+fn enable_assault_system(
+    mut query: Query<(Entity, &mut Paratrooper, &mut CollisionGroups, &mut Sensor)>,
+    mut event_reader: EventReader<LandingEvent>,
+) {
+    for event in event_reader.iter() {
+        if let Result::Ok((entity, mut paratrooper, mut col_groups, mut sensor)) =
+            query.get_mut(event.0)
+        {
+            info!("New assault trooper landed {:?}.", entity);
+            col_groups.memberships = PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP;
+            col_groups.filters = PARATROOPER_ASSAULT_COLLISION_FILTER;
+            paratrooper.state = ParatrooperState::Assault;
+            sensor.0 = false;
+        }
+    }
+}
+
+/// Walk towards the gun
+fn assault_movement_system(mut query: Query<(&Paratrooper, &Transform, &mut Velocity)>) {
+    for (_paratrooper, transform, mut velocity) in query
+        .iter_mut()
+        .filter(|(p, _, _)| p.state == ParatrooperState::Assault)
+    {
+        // Move towards gun.
+        let heading = -1.0 * transform.translation.x.signum();
+        //velocity.linvel = Vec2::new(heading * PARATROOPER_WALK_SPEED, 0.0).into();
+        velocity.linvel.x = heading * PARATROOPER_WALK_SPEED;
+    }
+}
+
+/// Jump paratrooper further from gun when colliding
+fn assault_collision_system(
+    mut collision_events: EventReader<CollisionEvent>,
+    mut paratroopers: Query<(Entity, &Paratrooper, &Transform, &mut Velocity)>,
+    gun_base_query: Query<Entity, With<GunBase>>,
+) {
+    let gun_base_entity = gun_base_query.single();
+    for collision_event in collision_events.iter() {
+        if let CollisionEvent::Started(entity1, entity2, _) = collision_event {
+            if gun_base_entity == *entity1 || gun_base_entity == *entity2 {
+                info!("Gun base collision.");
+            } else {
+                // Paratrooper <-> Paratrooper
+                if let Ok([(e1, p1, t1, mut v1), (e2, p2, t2, mut v2)]) =
+                    paratroopers.get_many_mut([*entity1, *entity2])
+                {
+                    info!("Paratrooper collision.");
+                    let x1 = t1.translation.x;
+                    let x2 = t2.translation.x;
+                    if (x1 - x2).abs() < 40. {
+                        info!("Jumping.");
+                        let mut velocity = if x1.abs() > x2.abs() { v1 } else { v2 };
+                        velocity.linvel.y = 75.;
+                    }
+                }
+            }
+        }
+    }
+}
 //
 ///// Attempt 2.
 ///// When landed we assign?
@@ -531,9 +497,25 @@
 //fn cleanup_assault_system(mut commands: Commands) {
 //    commands.remove_resource::<AssaultState>();
 //}
-//
-//pub struct AssaultPlugin;
-//
+
+pub struct AssaultPlugin;
+impl Plugin for AssaultPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_system_set(
+            SystemSet::on_update(AppState::InGame(AttackState::Ground))
+                .with_system(enable_assault_system)
+                .with_system(assault_collision_system)
+                .with_system(assault_movement_system),
+        );
+        app.add_system_set(
+            SystemSet::on_update(AppState::InGame(AttackState::Air))
+                .with_system(enable_assault_system)
+                .with_system(assault_collision_system)
+                .with_system(assault_movement_system),
+        );
+    }
+}
+
 //impl Plugin for AssaultPlugin {
 //    //fn build(&self, app: &mut App) {
 //    //    app.add_system_set(
