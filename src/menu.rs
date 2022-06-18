@@ -5,15 +5,9 @@ use bevy_rapier2d::prelude::RapierConfiguration;
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {
     MainMenu,
-    InGame(AttackState),
+    InGame,
     GameOver,
     Paused,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub enum AttackState {
-    Air,
-    Ground,
 }
 
 #[derive(Component)]
@@ -76,7 +70,7 @@ fn despawn_title_screen(mut commands: Commands, query: Query<Entity, With<TitleT
 
 fn any_key_listener(keyboard_input: Res<Input<KeyCode>>, mut app_state: ResMut<State<AppState>>) {
     if keyboard_input.get_just_pressed().count() > 0 {
-        app_state.set(AppState::InGame(AttackState::Air)).unwrap();
+        app_state.set(AppState::InGame).unwrap();
     }
 }
 
@@ -133,7 +127,7 @@ fn pause_listener(
                 rapier_configuration.query_pipeline_active = true;
                 state.pop().unwrap();
             }
-            AppState::InGame(_) => {
+            AppState::InGame => {
                 // Pause
                 rapier_configuration.physics_pipeline_active = false;
                 rapier_configuration.query_pipeline_active = false;

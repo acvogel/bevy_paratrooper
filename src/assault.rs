@@ -1,5 +1,4 @@
 use crate::gun::GunBase;
-use crate::menu::AttackState;
 use crate::paratrooper::{Paratrooper, ParatrooperState};
 use crate::{AppState, LandingEvent};
 use bevy::prelude::*;
@@ -11,14 +10,11 @@ const PARATROOPER_ASSAULT_COLLISION_FILTER: u32 = 0b1001;
 
 /// Turn a lander into an assaulter
 fn enable_assault_system(
-    mut query: Query<(Entity, &mut Paratrooper, &mut CollisionGroups, &mut Sensor)>,
+    mut query: Query<(&mut Paratrooper, &mut CollisionGroups, &mut Sensor)>,
     mut event_reader: EventReader<LandingEvent>,
 ) {
     for event in event_reader.iter() {
-        if let Result::Ok((entity, mut paratrooper, mut col_groups, mut sensor)) =
-            query.get_mut(event.0)
-        {
-            info!("New assault trooper landed {:?}.", entity);
+        if let Ok((mut paratrooper, mut col_groups, mut sensor)) = query.get_mut(event.0) {
             col_groups.memberships = PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP;
             col_groups.filters = PARATROOPER_ASSAULT_COLLISION_FILTER;
             paratrooper.state = ParatrooperState::Assault;
@@ -56,11 +52,9 @@ fn assault_collision_system(
                 if let Ok([(_p1, t1, v1), (_p2, t2, v2)]) =
                     paratroopers.get_many_mut([*entity1, *entity2])
                 {
-                    info!("Paratrooper collision.");
                     let x1 = t1.translation.x;
                     let x2 = t2.translation.x;
                     if (x1 - x2).abs() < 40. {
-                        info!("Jumping.");
                         let mut velocity = if x1.abs() > x2.abs() { v1 } else { v2 };
                         velocity.linvel.y = 75.;
                     }
@@ -74,13 +68,7 @@ pub struct AssaultPlugin;
 impl Plugin for AssaultPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(
-            SystemSet::on_update(AppState::InGame(AttackState::Ground))
-                .with_system(enable_assault_system)
-                .with_system(assault_collision_system)
-                .with_system(assault_movement_system),
-        );
-        app.add_system_set(
-            SystemSet::on_update(AppState::InGame(AttackState::Air))
+            SystemSet::on_update(AppState::InGame)
                 .with_system(enable_assault_system)
                 .with_system(assault_collision_system)
                 .with_system(assault_movement_system),

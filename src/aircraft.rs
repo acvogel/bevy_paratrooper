@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::consts::{OUT_OF_BOUNDS_X, OUT_OF_BOUNDS_Y, WINDOW_WIDTH};
-use crate::menu::AttackState;
 use crate::{AppState, BulletCollisionEvent, ExplosionEvent};
 use rand::Rng;
 
@@ -120,23 +119,14 @@ pub struct AircraftPlugin;
 impl Plugin for AircraftPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(
-            SystemSet::on_enter(AppState::InGame(AttackState::Air))
-                .with_system(setup_aircraft_system),
+            SystemSet::on_enter(AppState::InGame).with_system(setup_aircraft_system),
         )
         .add_system_set(
-            SystemSet::on_update(AppState::InGame(AttackState::Air))
+            SystemSet::on_update(AppState::InGame)
                 .with_system(spawn_aircraft_system)
                 .with_system(bullet_collision_system)
                 .with_system(despawn_escaped_aircraft),
         )
-        .add_system_set(
-            SystemSet::on_update(AppState::InGame(AttackState::Ground))
-                .with_system(bullet_collision_system)
-                .with_system(despawn_escaped_aircraft),
-        )
-        .add_system_set(
-            SystemSet::on_exit(AppState::InGame(AttackState::Ground))
-                .with_system(despawn_all_aircraft),
-        );
+        .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_all_aircraft));
     }
 }

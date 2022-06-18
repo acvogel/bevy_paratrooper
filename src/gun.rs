@@ -6,7 +6,6 @@ use bevy_prototype_lyon::prelude::*;
 use bevy_rapier2d::prelude::*;
 use std::collections::HashSet;
 
-use crate::menu::AttackState;
 use crate::paratrooper::Paratrooper;
 use crate::{consts, AppState, GunExplosionEvent};
 
@@ -194,12 +193,7 @@ impl Plugin for GunPlugin {
                 .with_system(setup_gun_barrel),
         )
         .add_system_set(
-            SystemSet::on_update(AppState::InGame(AttackState::Air))
-                .with_system(move_gun)
-                .with_system(gun_collision_system),
-        )
-        .add_system_set(
-            SystemSet::on_update(AppState::InGame(AttackState::Ground))
+            SystemSet::on_update(AppState::InGame)
                 .with_system(move_gun)
                 .with_system(gun_collision_system),
         );

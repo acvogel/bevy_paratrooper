@@ -3,7 +3,6 @@ use bevy::prelude::*;
 use std::time::Duration;
 
 use crate::events::*;
-use crate::menu::AttackState;
 
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct Score {
@@ -135,12 +134,12 @@ impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Score>()
             .add_system_set(
-                SystemSet::on_enter(AppState::InGame(AttackState::Air))
+                SystemSet::on_enter(AppState::InGame)
                     .with_system(setup_game_clock)
                     .with_system(setup_score_ui),
             )
             .add_system_set(
-                SystemSet::on_update(AppState::InGame(AttackState::Air))
+                SystemSet::on_update(AppState::InGame)
                     .with_system(kill_listener_system)
                     .with_system(gun_listener_system)
                     .with_system(landing_listener_system)
@@ -148,19 +147,7 @@ impl Plugin for ScorePlugin {
                     .with_system(update_game_clock)
                     .with_system(update_clock_ui),
             )
-            .add_system_set(
-                SystemSet::on_update(AppState::InGame(AttackState::Ground))
-                    .with_system(kill_listener_system)
-                    .with_system(gun_listener_system)
-                    .with_system(landing_listener_system)
-                    .with_system(gun_explosion_listener_system)
-                    .with_system(update_game_clock)
-                    .with_system(update_clock_ui),
-            )
-            .add_system_set(
-                SystemSet::on_exit(AppState::InGame(AttackState::Ground))
-                    .with_system(despawn_score_ui),
-            )
+            .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_score_ui))
             .add_system_set(SystemSet::on_enter(AppState::GameOver).with_system(game_over));
     }
 }

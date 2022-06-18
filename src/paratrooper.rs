@@ -1,5 +1,4 @@
 use crate::aircraft::Aircraft;
-use crate::menu::AttackState;
 use crate::terrain::Ground;
 use crate::{AppState, BulletCollisionEvent, CollisionType, GibEvent, LandingEvent};
 use bevy::prelude::*;
@@ -370,25 +369,15 @@ pub struct ParatrooperPlugin;
 impl Plugin for ParatrooperPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_paratroopers)
-            //.add_system_set(
-            //    SystemSet::on_enter(AppState::InGame(AttackState::Air))
-            //        .with_system(spawn_paratroopers_debug),
-            //)
             .add_system_set(
-                SystemSet::on_update(AppState::InGame(AttackState::Air))
+                SystemSet::on_update(AppState::InGame)
                     .with_system(paratrooper_landing_system)
                     .with_system(bullet_collision_system)
                     .with_system(spawn_paratroopers)
                     .with_system(spawn_parachutes),
             )
             .add_system_set(
-                SystemSet::on_update(AppState::InGame(AttackState::Ground))
-                    .with_system(paratrooper_landing_system)
-                    .with_system(bullet_collision_system),
-            )
-            .add_system_set(
-                SystemSet::on_exit(AppState::InGame(AttackState::Ground))
-                    .with_system(despawn_paratrooper_system),
+                SystemSet::on_exit(AppState::InGame).with_system(despawn_paratrooper_system),
             );
     }
 }
