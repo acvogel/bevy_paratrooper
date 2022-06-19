@@ -69,6 +69,7 @@ fn shoot_gun(
                     )
                     .insert(ActiveEvents::COLLISION_EVENTS)
                     .insert(CollisionGroups::new(0b0010, 0b1101))
+                    .insert(LockedAxes::ROTATION_LOCKED)
                     .insert(Bullet);
             }
         }

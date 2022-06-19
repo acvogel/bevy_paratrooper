@@ -1,9 +1,8 @@
 use bevy::prelude::*;
-//use bevy_kira_audio::AudioPlugin;
 use bevy_prototype_lyon::prelude::*;
 
 use crate::assault::AssaultPlugin;
-//use crate::audio::AudioStatePlugin;
+use crate::audio::AudioStatePlugin;
 use crate::cloud::CloudPlugin;
 use crate::explosion::ExplosionPlugin;
 use crate::menu::{AppState, MenuPlugin};
@@ -48,7 +47,7 @@ fn main() {
         .add_plugin(TerrainPlugin)
         .add_plugin(ParatrooperPlugin)
         .add_plugin(ScorePlugin)
-        //.add_plugin(AudioStatePlugin)
+        .add_plugin(AudioStatePlugin)
         //.add_plugin(AudioPlugin)
         .add_plugin(ExplosionPlugin)
         .add_plugin(MenuPlugin)
