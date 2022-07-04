@@ -23,6 +23,16 @@
 
 # Notes
 
+## Bombers
+
+Planes just like the others. drops bombs. bombs collide gun is gg. drop ballistic? if so, how
+do we decide the drop point. are all on point? what if they hit paratroopers?
+or bombers come in a 2nd wave.
+
+1. SURPRISE ATTACK
+2. BOMBERS
+3. COMBINED ARMS
+
 ## Version upgrade
 
 * Collisions:

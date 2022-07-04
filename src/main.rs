@@ -3,6 +3,7 @@ use bevy_prototype_lyon::prelude::*;
 
 use crate::assault::AssaultPlugin;
 use crate::audio::AudioStatePlugin;
+use crate::bomber::BomberPlugin;
 use crate::cloud::CloudPlugin;
 use crate::explosion::ExplosionPlugin;
 use crate::menu::{AppState, MenuPlugin};
@@ -17,6 +18,7 @@ use terrain::TerrainPlugin;
 mod aircraft;
 mod assault;
 mod audio;
+mod bomber;
 mod bullet;
 mod cloud;
 mod consts;
@@ -43,12 +45,12 @@ fn main() {
         .add_plugin(ShapePlugin)
         .add_plugin(GunPlugin)
         .add_plugin(BulletPlugin)
-        .add_plugin(AircraftPlugin)
+        //.add_plugin(AircraftPlugin)
+        .add_plugin(BomberPlugin)
         .add_plugin(TerrainPlugin)
-        .add_plugin(ParatrooperPlugin)
+        //.add_plugin(ParatrooperPlugin)
         .add_plugin(ScorePlugin)
-        .add_plugin(AudioStatePlugin)
-        //.add_plugin(AudioPlugin)
+        //.add_plugin(AudioStatePlugin)
         .add_plugin(ExplosionPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(CloudPlugin)
@@ -62,17 +64,4 @@ fn main() {
 fn setup_camera(mut commands: Commands) {
     commands.spawn_bundle(UiCameraBundle::default());
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
-
-    //let mut camera = OrthographicCameraBundle::new_2d();
-    //camera.transform = Transform::from_translation(Vec3::new(0.0, 0.0, 0.0));
-    //commands.spawn_bundle(PointLightBundle {
-    //    transform: Transform::from_translation(Vec3::new(1000.0, 10.0, 2000.0)),
-    //    point_light: PointLight {
-    //        intensity: 100_000_000_.0,
-    //        range: 6000.0,
-    //        ..Default::default()
-    //    },
-    //    ..Default::default()
-    //});
-    //commands.spawn_bundle(camera);
 }

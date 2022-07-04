@@ -5,13 +5,13 @@ use crate::consts::{OUT_OF_BOUNDS_X, OUT_OF_BOUNDS_Y, WINDOW_WIDTH};
 use crate::{AppState, BulletCollisionEvent, ExplosionEvent};
 use rand::Rng;
 
-const AIRCRAFT_SPEED: f32 = 80.;
-const AIRCRAFT_SCALE: f32 = 0.3;
-const AIRCRAFT_SPAWN_PROBABILITY: f32 = 0.008;
-const SPAWN_LEFT_X: f32 = -WINDOW_WIDTH / 2.0 - 40.;
-const SPAWN_RIGHT_X: f32 = WINDOW_WIDTH / 2.0 + 40.;
-const SPAWN_Y_MIN: f32 = 100.;
-const SPAWN_Y_MAX: f32 = 350.;
+pub const AIRCRAFT_SPEED: f32 = 80.;
+pub const AIRCRAFT_SCALE: f32 = 0.3;
+pub const AIRCRAFT_SPAWN_PROBABILITY: f32 = 0.008;
+pub const SPAWN_LEFT_X: f32 = -WINDOW_WIDTH / 2.0 - 40.;
+pub const SPAWN_RIGHT_X: f32 = WINDOW_WIDTH / 2.0 + 40.;
+pub const SPAWN_Y_MIN: f32 = 100.;
+pub const SPAWN_Y_MAX: f32 = 350.;
 const PARATROOPER_STICK_SIZE: usize = 5; // Max number of paratroopers dropped per aircraft
 
 #[derive(Component)]
