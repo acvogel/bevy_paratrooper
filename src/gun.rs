@@ -6,6 +6,7 @@ use bevy_prototype_lyon::prelude::*;
 use bevy_rapier2d::prelude::*;
 use std::collections::HashSet;
 
+use crate::bomber::Bomb;
 use crate::paratrooper::Paratrooper;
 use crate::{consts, AppState, GunExplosionEvent};
 
@@ -149,25 +150,29 @@ fn move_gun(
     }
 }
 
+/// Paratrooper or bombing collision explodes gun
 fn gun_collision_system(
     mut event_reader: EventReader<CollisionEvent>,
     mut event_writer: EventWriter<GunExplosionEvent>,
     gun_query: Query<(Entity, &Transform), With<Gun>>,
     gun_mount_query: Query<(Entity, &Transform), With<GunMount>>,
     paratrooper_query: Query<Entity, With<Paratrooper>>,
+    bomb_query: Query<Entity, With<Bomb>>,
 ) {
-    let mut paratrooper_entities = HashSet::new();
-    for paratrooper_entity in paratrooper_query.iter() {
-        paratrooper_entities.insert(paratrooper_entity);
-    }
-    let (gun_mount_entity, gun_mount_transform) = gun_mount_query.get_single().unwrap();
-    for (gun_entity, gun_transform) in gun_query.iter() {
-        for collision_event in event_reader.iter() {
-            if let &CollisionEvent::Started(entity1, entity2, _) = collision_event {
-                if ((entity1 == gun_entity || entity1 == gun_mount_entity)
-                    && paratrooper_entities.contains(&entity2))
-                    || ((entity2 == gun_entity || entity2 == gun_mount_entity)
-                        && paratrooper_entities.contains(&entity1))
+    let (gun_entity, gun_transform) = gun_query.get_single().expect("No gun entity.");
+    let (gun_mount_entity, gun_mount_transform) =
+        gun_mount_query.get_single().expect("No gun mount.");
+    for collision_event in event_reader.iter() {
+        if let &CollisionEvent::Started(entity1, entity2, _) = collision_event {
+            if entity1 == gun_entity || entity2 == gun_entity {
+                let other_entity = if entity1 == gun_entity {
+                    entity2
+                } else {
+                    entity1
+                };
+
+                if bomb_query.get(other_entity).is_ok()
+                    || paratrooper_query.get(other_entity).is_ok()
                 {
                     // Game over.
                     event_writer.send(GunExplosionEvent {

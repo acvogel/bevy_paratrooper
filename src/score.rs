@@ -12,6 +12,7 @@ pub struct Score {
     pub paratrooper_kills: u32,
     pub paratroopers_landed: u32,
     pub parachute_hits: u32,
+    pub bomb_kills: u32,
 }
 
 #[derive(Component)]
@@ -29,6 +30,7 @@ fn kill_listener_system(mut events: EventReader<BulletCollisionEvent>, mut score
             CollisionType::Paratrooper => score.paratrooper_kills += 1,
             CollisionType::Aircraft => score.aircraft_kills += 1,
             CollisionType::Parachute => score.parachute_hits += 1,
+            CollisionType::Bomb => score.bomb_kills += 1,
         }
     }
 }

@@ -93,7 +93,7 @@ fn explosion_listener(
 ) {
     for event in events.iter() {
         match event.collision_type {
-            CollisionType::Aircraft => {
+            CollisionType::Aircraft | CollisionType::Bomb => {
                 audio.play(aircraft_explosion_handle.0.clone());
             }
             _ => (),

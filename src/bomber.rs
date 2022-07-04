@@ -1,11 +1,12 @@
 use crate::aircraft::{
-    AIRCRAFT_SCALE, AIRCRAFT_SPAWN_PROBABILITY, AIRCRAFT_SPEED, SPAWN_LEFT_X, SPAWN_RIGHT_X,
-    SPAWN_Y_MAX, SPAWN_Y_MIN,
+    Aircraft, AIRCRAFT_SCALE, AIRCRAFT_SPAWN_PROBABILITY, AIRCRAFT_SPEED, SPAWN_LEFT_X,
+    SPAWN_RIGHT_X, SPAWN_Y_MAX, SPAWN_Y_MIN,
 };
-use crate::AppState;
+use crate::{AppState, BulletCollisionEvent, CollisionType, ExplosionEvent};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
+use crate::bullet::Bullet;
 use crate::gun::Gun;
 use rand::Rng;
 
@@ -21,7 +22,7 @@ struct Bomber {
 }
 
 #[derive(Component)]
-struct Bomb;
+pub struct Bomb;
 
 struct BomberTextures {
     bomber: Handle<Image>,
@@ -85,6 +86,7 @@ fn spawn_bomber_system(mut commands: Commands, textures: Res<BomberTextures>) {
                 linvel: Vec2::new(velocity, 0.),
                 angvel: 0.0,
             })
+            .insert(Aircraft { paratroopers: 0 })
             .insert(Bomber { num_dropped: 0 });
     }
 }
@@ -146,6 +148,25 @@ fn spawn_bombs(
     }
 }
 
+/// Bombs collisions. Gun: game over. Ground: bomb explode. Just use the same animations for now.
+fn bomb_collision_system(
+    mut commands: Commands,
+    mut events: EventReader<BulletCollisionEvent>,
+    mut event_writer: EventWriter<ExplosionEvent>,
+    bombs: Query<&Transform, With<Bomb>>,
+) {
+    for event in events.iter() {
+        if event.collision_type == CollisionType::Bomb {
+            if let Ok(transform) = bombs.get(event.target_entity) {
+                event_writer.send(ExplosionEvent {
+                    transform: transform.clone(),
+                });
+                commands.entity(event.target_entity).despawn_recursive();
+            }
+        }
+    }
+}
+
 pub struct BomberPlugin;
 
 impl Plugin for BomberPlugin {
@@ -153,6 +174,7 @@ impl Plugin for BomberPlugin {
         app.add_startup_system(setup_bomber_system).add_system_set(
             SystemSet::on_update(AppState::InGame)
                 .with_system(spawn_bomber_system)
+                .with_system(bomb_collision_system)
                 .with_system(spawn_bombs),
         );
     }

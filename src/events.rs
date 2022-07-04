@@ -16,6 +16,7 @@ pub enum CollisionType {
     Aircraft,
     Paratrooper,
     Parachute,
+    Bomb,
 }
 
 pub struct GunshotEvent;
