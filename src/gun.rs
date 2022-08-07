@@ -160,10 +160,10 @@ fn gun_collision_system(
     bomb_query: Query<Entity, With<Bomb>>,
 ) {
     let (gun_entity, gun_transform) = gun_query.get_single().expect("No gun entity.");
-    let (gun_mount_entity, gun_mount_transform) =
+    let (_gun_mount_entity, gun_mount_transform) =
         gun_mount_query.get_single().expect("No gun mount.");
-    for collision_event in event_reader.iter() {
-        if let &CollisionEvent::Started(entity1, entity2, _) = collision_event {
+    for &collision_event in event_reader.iter() {
+        if let CollisionEvent::Started(entity1, entity2, _) = collision_event {
             if entity1 == gun_entity || entity2 == gun_entity {
                 let other_entity = if entity1 == gun_entity {
                     entity2
@@ -171,9 +171,7 @@ fn gun_collision_system(
                     entity1
                 };
 
-                if bomb_query.get(other_entity).is_ok()
-                    || paratrooper_query.get(other_entity).is_ok()
-                {
+                if bomb_query.contains(other_entity) || paratrooper_query.contains(other_entity) {
                     // Game over.
                     event_writer.send(GunExplosionEvent {
                         translation: gun_transform.translation,

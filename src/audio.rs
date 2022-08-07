@@ -101,6 +101,9 @@ fn explosion_listener(
     }
 }
 
+// Bomb explosion event handling? explosion_listener is kinda wonky. What if we make a type of explosion
+// switch? CollisionType?
+
 /// Paratrooper death
 fn gib_listener(audio: Res<Audio>, mut events: EventReader<GibEvent>, screams: Res<ScreamHandles>) {
     for _event in events.iter() {

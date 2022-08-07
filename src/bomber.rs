@@ -7,7 +7,8 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::bullet::Bullet;
-use crate::gun::Gun;
+use crate::gun::{Gun, GunBase};
+use crate::terrain::Ground;
 use rand::Rng;
 
 const BOMBER_SPEED: f32 = 200.;
@@ -142,6 +143,7 @@ fn spawn_bombs(
                         BOMB_SCALE * 64.0 / 2.0,
                         BOMB_SCALE * 128. / 2.0,
                     ))
+                    .insert(ActiveEvents::COLLISION_EVENTS)
                     .insert(Bomb);
             }
         }
@@ -149,7 +151,7 @@ fn spawn_bombs(
 }
 
 /// Bombs collisions. Gun: game over. Ground: bomb explode. Just use the same animations for now.
-fn bomb_collision_system(
+fn bomb_bullet_collision_system(
     mut commands: Commands,
     mut events: EventReader<BulletCollisionEvent>,
     mut event_writer: EventWriter<ExplosionEvent>,
@@ -167,6 +169,35 @@ fn bomb_collision_system(
     }
 }
 
+/// Bombs explode when they hit the ground
+fn bomb_terrain_collision_system(
+    mut commands: Commands,
+    mut events: EventReader<CollisionEvent>,
+    mut event_writer: EventWriter<ExplosionEvent>,
+    bomb_query: Query<&Transform, With<Bomb>>,
+    ground_query: Query<Entity, With<Ground>>,
+    //gun_base_query: Query<Entity, With<GunBase>>,
+) {
+    //let ground = ground_query.single();
+    for &event in events.iter() {
+        if let CollisionEvent::Started(entity1, entity2, _) = event {
+            // can we replace this with a match
+            if let Some((bomb_entity, ground_entity)) = match (entity1, entity2) {
+                (e1, e2) if bomb_query.contains(e1) && ground_query.contains(e2) => Some((e1, e2)),
+                (e1, e2) if bomb_query.contains(e2) && ground_query.contains(e1) => Some((e2, e1)),
+                _ => None,
+            } {
+                info!("Bomb / ground collision.");
+                let bomb_transform = bomb_query.get(bomb_entity).unwrap();
+                event_writer.send(ExplosionEvent {
+                    transform: bomb_transform.clone(),
+                });
+                commands.entity(bomb_entity).despawn_recursive();
+            }
+        }
+    }
+}
+
 pub struct BomberPlugin;
 
 impl Plugin for BomberPlugin {
@@ -174,7 +205,8 @@ impl Plugin for BomberPlugin {
         app.add_startup_system(setup_bomber_system).add_system_set(
             SystemSet::on_update(AppState::InGame)
                 .with_system(spawn_bomber_system)
-                .with_system(bomb_collision_system)
+                .with_system(bomb_bullet_collision_system)
+                .with_system(bomb_terrain_collision_system)
                 .with_system(spawn_bombs),
         );
     }
