@@ -1,6 +1,9 @@
 use crate::aircraft::Aircraft;
 use crate::terrain::Ground;
-use crate::{AppState, BulletCollisionEvent, CollisionType, GibEvent, LandingEvent};
+use crate::{
+    AppState, BulletCollisionEvent, CollisionType, ExplosionEvent, ExplosionType, GibEvent,
+    LandingEvent,
+};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
@@ -169,7 +172,7 @@ fn bullet_collision_system(
         Option<&Children>,
     )>,
     mut event_reader: EventReader<BulletCollisionEvent>,
-    mut event_writer: EventWriter<GibEvent>,
+    mut event_writer: EventWriter<ExplosionEvent>,
 ) {
     for event in event_reader.iter() {
         match event.collision_type {
@@ -184,12 +187,13 @@ fn bullet_collision_system(
                     _children,
                 )) = paratrooper_query.get(event.target_entity)
                 {
-                    event_writer.send(GibEvent {
+                    event_writer.send(ExplosionEvent {
                         transform: (*transform).with_scale(Vec3::new(
                             PARATROOPER_SCALE,
                             PARATROOPER_SCALE,
                             1.,
                         )),
+                        explosion_type: ExplosionType::Gib,
                     });
                     commands.entity(paratrooper_entity).despawn_recursive();
                 }

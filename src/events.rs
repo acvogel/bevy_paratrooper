@@ -26,6 +26,15 @@ pub struct LandingEvent(pub Entity);
 /// Animation events.
 pub struct ExplosionEvent {
     pub transform: Transform,
+    pub explosion_type: ExplosionType,
+}
+
+#[derive(Component, Clone, Copy)]
+pub enum ExplosionType {
+    //Aircraft,
+    Bullet,
+    Bomb,
+    Gib,
 }
 
 pub struct GibEvent {

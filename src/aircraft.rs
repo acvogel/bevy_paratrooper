@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::consts::{OUT_OF_BOUNDS_X, OUT_OF_BOUNDS_Y, WINDOW_WIDTH};
-use crate::{AppState, BulletCollisionEvent, ExplosionEvent};
+use crate::{AppState, BulletCollisionEvent, ExplosionEvent, ExplosionType};
 use rand::Rng;
 
 pub const AIRCRAFT_SPEED: f32 = 80.;
@@ -108,6 +108,7 @@ fn bullet_collision_system(
         if let Ok((aircraft_entity, aircraft_transform)) = aircraft_query.get(event.target_entity) {
             event_writer.send(ExplosionEvent {
                 transform: (*aircraft_transform).with_scale(Vec3::ONE),
+                explosion_type: ExplosionType::Bullet,
             });
             commands.entity(aircraft_entity).despawn_recursive();
         }

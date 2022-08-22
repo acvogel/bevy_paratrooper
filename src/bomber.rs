@@ -1,20 +1,18 @@
 use crate::aircraft::{
-    Aircraft, AIRCRAFT_SCALE, AIRCRAFT_SPAWN_PROBABILITY, AIRCRAFT_SPEED, SPAWN_LEFT_X,
-    SPAWN_RIGHT_X, SPAWN_Y_MAX, SPAWN_Y_MIN,
+    Aircraft, AIRCRAFT_SPAWN_PROBABILITY, SPAWN_LEFT_X, SPAWN_RIGHT_X, SPAWN_Y_MAX, SPAWN_Y_MIN,
 };
-use crate::{AppState, BulletCollisionEvent, CollisionType, ExplosionEvent};
+use crate::{AppState, BulletCollisionEvent, CollisionType, ExplosionEvent, ExplosionType};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::bullet::Bullet;
-use crate::gun::{Gun, GunBase};
+use crate::gun::Gun;
 use crate::terrain::Ground;
 use rand::Rng;
 
 const BOMBER_SPEED: f32 = 200.;
 const BOMBER_SCALE: f32 = 0.3;
 const BOMB_Z: f32 = 1.9;
-const BOMB_SCALE: f32 = 0.5;
+const BOMB_SCALE: f32 = 0.4;
 const BOMB_DAMPING: f32 = 1.0;
 
 #[derive(Component)]
@@ -161,7 +159,8 @@ fn bomb_bullet_collision_system(
         if event.collision_type == CollisionType::Bomb {
             if let Ok(transform) = bombs.get(event.target_entity) {
                 event_writer.send(ExplosionEvent {
-                    transform: transform.clone(),
+                    transform: transform.with_rotation(Quat::IDENTITY),
+                    explosion_type: ExplosionType::Bomb, // TODO mid-air should be different animation
                 });
                 commands.entity(event.target_entity).despawn_recursive();
             }
@@ -176,21 +175,18 @@ fn bomb_terrain_collision_system(
     mut event_writer: EventWriter<ExplosionEvent>,
     bomb_query: Query<&Transform, With<Bomb>>,
     ground_query: Query<Entity, With<Ground>>,
-    //gun_base_query: Query<Entity, With<GunBase>>,
 ) {
-    //let ground = ground_query.single();
     for &event in events.iter() {
         if let CollisionEvent::Started(entity1, entity2, _) = event {
-            // can we replace this with a match
-            if let Some((bomb_entity, ground_entity)) = match (entity1, entity2) {
+            if let Some((bomb_entity, _ground_entity)) = match (entity1, entity2) {
                 (e1, e2) if bomb_query.contains(e1) && ground_query.contains(e2) => Some((e1, e2)),
                 (e1, e2) if bomb_query.contains(e2) && ground_query.contains(e1) => Some((e2, e1)),
                 _ => None,
             } {
-                info!("Bomb / ground collision.");
                 let bomb_transform = bomb_query.get(bomb_entity).unwrap();
                 event_writer.send(ExplosionEvent {
-                    transform: bomb_transform.clone(),
+                    transform: bomb_transform.with_rotation(Quat::IDENTITY),
+                    explosion_type: ExplosionType::Bomb,
                 });
                 commands.entity(bomb_entity).despawn_recursive();
             }

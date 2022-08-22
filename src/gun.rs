@@ -4,7 +4,6 @@ use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::FillMode;
 use bevy_prototype_lyon::prelude::*;
 use bevy_rapier2d::prelude::*;
-use std::collections::HashSet;
 
 use crate::bomber::Bomb;
 use crate::paratrooper::Paratrooper;

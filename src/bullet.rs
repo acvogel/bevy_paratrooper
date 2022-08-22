@@ -160,6 +160,7 @@ fn bullet_collision_listener(
             if let Ok(transform) = query.get(event.bullet_entity) {
                 event_writer.send(ExplosionEvent {
                     transform: *transform,
+                    explosion_type: ExplosionType::Bullet,
                 });
                 commands.entity(event.bullet_entity).despawn_recursive();
             }
