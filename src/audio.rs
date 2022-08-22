@@ -1,5 +1,7 @@
+use crate::bomber::Bomb;
 use crate::{
-    AppState, BulletCollisionEvent, CollisionType, GibEvent, GunExplosionEvent, GunshotEvent,
+    AppState, BulletCollisionEvent, CollisionType, ExplosionEvent, ExplosionType, GibEvent,
+    GunExplosionEvent, GunshotEvent,
 };
 use bevy::audio::AudioSink;
 use bevy::prelude::*;
@@ -12,6 +14,15 @@ struct BaseExplosionHandle(Handle<AudioSource>);
 struct IntroMusicHandle(Handle<AudioSource>);
 struct Level1MusicHandle(Handle<AudioSource>);
 struct CurrentMusic(Option<Handle<AudioSink>>);
+struct BombHandles {
+    falling_bomb: Handle<AudioSource>,
+    explosion: Handle<AudioSource>,
+}
+
+#[derive(Component)]
+struct Whistler {
+    audio: Handle<AudioSink>,
+}
 
 fn setup_audio_system(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     commands.insert_resource(GunshotHandle(
@@ -38,6 +49,11 @@ fn setup_audio_system(mut commands: Commands, asset_server: ResMut<AssetServer>)
         asset_server.load("audio/565_tocf_mono_level_1.ogg"),
     ));
 
+    commands.insert_resource(BombHandles {
+        falling_bomb: asset_server.load("audio/falling-bomb-41038.ogg"),
+        explosion: asset_server.load("audio/bomb_explosion.wav"),
+    });
+
     // No song playing at startup
     commands.insert_resource(CurrentMusic(None));
 }
@@ -57,6 +73,17 @@ fn play_menu_music(
         }
     }
     current_music.0 = Some(intro_handle);
+}
+
+fn stop_menu_music(
+    audio_sinks: ResMut<Assets<AudioSink>>,
+    mut current_music: ResMut<CurrentMusic>,
+) {
+    if let Some(current_music_sink) = &current_music.0 {
+        if let Some(old_sink) = audio_sinks.get(current_music_sink) {
+            old_sink.pause();
+        }
+    }
 }
 
 fn play_level_music(
@@ -85,6 +112,34 @@ fn gunshot_listener(
     }
 }
 
+/// Starts bomb whistling
+fn bomb_spawned_listener(
+    mut commands: Commands,
+    audio: Res<Audio>,
+    bomb_audio: Res<BombHandles>,
+    bomb_query: Query<Entity, Added<Bomb>>,
+) {
+    for entity in bomb_query.iter() {
+        let audio_sink = audio.play(bomb_audio.falling_bomb.clone());
+        commands
+            .entity(entity)
+            .insert(Whistler { audio: audio_sink });
+    }
+}
+
+fn bomb_explosion_listener(
+    mut events: EventReader<ExplosionEvent>,
+    audio: Res<Audio>,
+    bomb_audio: Res<BombHandles>,
+) {
+    for event in events
+        .iter()
+        .filter(|&e| e.explosion_type == ExplosionType::Bomb)
+    {
+        audio.play(bomb_audio.explosion.clone());
+    }
+}
+
 /// Aircraft explosion
 fn explosion_listener(
     audio: Res<Audio>,
@@ -100,9 +155,6 @@ fn explosion_listener(
         }
     }
 }
-
-// Bomb explosion event handling? explosion_listener is kinda wonky. What if we make a type of explosion
-// switch? CollisionType?
 
 /// Paratrooper death
 fn gib_listener(audio: Res<Audio>, mut events: EventReader<GibEvent>, screams: Res<ScreamHandles>) {
@@ -129,10 +181,14 @@ impl Plugin for AudioStatePlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_audio_system)
             .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(play_menu_music))
-            .add_system_set(SystemSet::on_enter(AppState::InGame).with_system(play_level_music))
+            .add_system_set(SystemSet::on_exit(AppState::MainMenu).with_system(stop_menu_music))
+            // XXX
+            //.add_system_set(SystemSet::on_enter(AppState::InGame).with_system(play_level_music))
             .add_system(gunshot_listener)
             .add_system(gib_listener)
             .add_system(base_explosion_listener)
+            .add_system(bomb_spawned_listener)
+            .add_system(bomb_explosion_listener)
             .add_system(explosion_listener);
     }
 }

@@ -1,7 +1,9 @@
 use crate::aircraft::{
     Aircraft, AIRCRAFT_SPAWN_PROBABILITY, SPAWN_LEFT_X, SPAWN_RIGHT_X, SPAWN_Y_MAX, SPAWN_Y_MIN,
 };
-use crate::{AppState, BulletCollisionEvent, CollisionType, ExplosionEvent, ExplosionType};
+use crate::{
+    AppState, BombDropEvent, BulletCollisionEvent, CollisionType, ExplosionEvent, ExplosionType,
+};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
@@ -14,6 +16,9 @@ const BOMBER_SCALE: f32 = 0.3;
 const BOMB_Z: f32 = 1.9;
 const BOMB_SCALE: f32 = 0.3;
 const BOMB_DAMPING: f32 = 1.0;
+
+const BOMB_SPAWN_X_MAX: f32 = 300.;
+const BOMB_SPAWN_X_MIN: f32 = -300.;
 
 #[derive(Component)]
 struct Bomber {
@@ -96,11 +101,19 @@ fn spawn_bombs(
     mut bomber_query: Query<(&mut Bomber, &Transform, &Velocity)>,
     bomber_textures: Res<BomberTextures>,
     gun_query: Query<(&Gun, &Transform)>,
+    mut event_writer: EventWriter<BombDropEvent>,
 ) {
     let mut rng = rand::thread_rng();
     for (_gun, _gun_transform) in gun_query.iter() {
         for (mut bomber, bomber_transform, velocity) in bomber_query.iter_mut() {
-            if bomber.num_dropped == 0 && rng.gen_range(0.0..1.0) < 0.02 {
+            // filter for spawn range based on transform. min/max X.
+            if bomber_transform.translation.x < BOMB_SPAWN_X_MAX
+                && bomber_transform.translation.x > BOMB_SPAWN_X_MIN
+                && bomber.num_dropped == 0
+                && rng.gen_range(0.0..1.0) < 0.02
+            {
+                event_writer.send(BombDropEvent);
+
                 bomber.num_dropped += 1;
                 let heading = velocity.linvel.x.signum();
                 let bomb_pos = Vec2::new(
@@ -160,7 +173,8 @@ fn bomb_bullet_collision_system(
             if let Ok(transform) = bombs.get(event.target_entity) {
                 event_writer.send(ExplosionEvent {
                     transform: transform.with_rotation(Quat::IDENTITY),
-                    explosion_type: ExplosionType::Bomb, // TODO mid-air should be different animation
+                    // TODO mid-air should be different animation
+                    explosion_type: ExplosionType::Bomb,
                 });
                 commands.entity(event.target_entity).despawn_recursive();
             }
@@ -216,7 +230,7 @@ impl Plugin for BomberPlugin {
                     .with_system(spawn_bombs),
             )
             .add_system_set(
-                SystemSet::on_enter(AppState::GameOver).with_system(despawn_bomber_system),
+                SystemSet::on_exit(AppState::InGame).with_system(despawn_bomber_system),
             );
     }
 }
