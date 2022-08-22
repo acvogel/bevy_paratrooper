@@ -12,7 +12,7 @@ use rand::Rng;
 const BOMBER_SPEED: f32 = 200.;
 const BOMBER_SCALE: f32 = 0.3;
 const BOMB_Z: f32 = 1.9;
-const BOMB_SCALE: f32 = 0.4;
+const BOMB_SCALE: f32 = 0.3;
 const BOMB_DAMPING: f32 = 1.0;
 
 #[derive(Component)]
@@ -194,16 +194,29 @@ fn bomb_terrain_collision_system(
     }
 }
 
+fn despawn_bomber_system(
+    mut commands: Commands,
+    mut bombers: Query<(Entity, Or<(With<Bomber>, With<Bomb>)>)>,
+) {
+    for (entity, _component) in bombers.iter_mut() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
 pub struct BomberPlugin;
 
 impl Plugin for BomberPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_bomber_system).add_system_set(
-            SystemSet::on_update(AppState::InGame)
-                .with_system(spawn_bomber_system)
-                .with_system(bomb_bullet_collision_system)
-                .with_system(bomb_terrain_collision_system)
-                .with_system(spawn_bombs),
-        );
+        app.add_startup_system(setup_bomber_system)
+            .add_system_set(
+                SystemSet::on_update(AppState::InGame)
+                    .with_system(spawn_bomber_system)
+                    .with_system(bomb_bullet_collision_system)
+                    .with_system(bomb_terrain_collision_system)
+                    .with_system(spawn_bombs),
+            )
+            .add_system_set(
+                SystemSet::on_enter(AppState::GameOver).with_system(despawn_bomber_system),
+            );
     }
 }

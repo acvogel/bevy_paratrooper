@@ -27,7 +27,6 @@ fn get_explosion_texture_atlas_handle(
     .clone()
 }
 
-// XXX now should handle all explosion types except GunExplosion (next refactor)
 fn spawn_explosion_system(
     mut commands: Commands,
     explosion_textures: Res<ExplosionTextures>,
