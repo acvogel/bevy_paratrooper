@@ -108,7 +108,7 @@ fn bullet_collision_system(
         if let Ok((aircraft_entity, aircraft_transform)) = aircraft_query.get(event.target_entity) {
             event_writer.send(ExplosionEvent {
                 transform: (*aircraft_transform).with_scale(Vec3::ONE),
-                explosion_type: ExplosionType::Bullet,
+                explosion_type: ExplosionType::Aircraft,
             });
             commands.entity(aircraft_entity).despawn_recursive();
         }

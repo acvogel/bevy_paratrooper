@@ -17,8 +17,10 @@ const BOMB_Z: f32 = 1.9;
 const BOMB_SCALE: f32 = 0.3;
 const BOMB_DAMPING: f32 = 1.0;
 
-const BOMB_SPAWN_X_MAX: f32 = 300.;
-const BOMB_SPAWN_X_MIN: f32 = -300.;
+const BOMB_SPAWN_X_MAX: f32 = 250.;
+const BOMB_SPAWN_X_MIN: f32 = -250.;
+const BOMB_SPAWN_RATE: f32 = 0.04;
+const BOMB_PAYLOAD: usize = 1;
 
 #[derive(Component)]
 struct Bomber {
@@ -106,11 +108,10 @@ fn spawn_bombs(
     let mut rng = rand::thread_rng();
     for (_gun, _gun_transform) in gun_query.iter() {
         for (mut bomber, bomber_transform, velocity) in bomber_query.iter_mut() {
-            // filter for spawn range based on transform. min/max X.
             if bomber_transform.translation.x < BOMB_SPAWN_X_MAX
                 && bomber_transform.translation.x > BOMB_SPAWN_X_MIN
-                && bomber.num_dropped == 0
-                && rng.gen_range(0.0..1.0) < 0.02
+                && bomber.num_dropped < BOMB_PAYLOAD
+                && rng.gen_range(0.0..1.0) < BOMB_SPAWN_RATE
             {
                 event_writer.send(BombDropEvent);
 

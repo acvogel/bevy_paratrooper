@@ -33,7 +33,7 @@ pub struct ExplosionEvent {
 
 #[derive(Component, Clone, Copy, PartialEq)]
 pub enum ExplosionType {
-    //Aircraft,
+    Aircraft,
     Bullet,
     Bomb,
     Gib,
