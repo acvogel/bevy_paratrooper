@@ -156,7 +156,9 @@ fn bullet_collision_listener(
     mut event_writer: EventWriter<ExplosionEvent>,
 ) {
     for event in event_reader.iter() {
-        if event.collision_type == CollisionType::Aircraft {
+        if event.collision_type == CollisionType::Aircraft
+            || event.collision_type == CollisionType::Bomb
+        {
             if let Ok(transform) = query.get(event.bullet_entity) {
                 event_writer.send(ExplosionEvent {
                     transform: *transform,
