@@ -164,11 +164,16 @@ fn explosion_listener(
     audio: Res<Audio>,
     mut events: EventReader<BulletCollisionEvent>,
     aircraft_explosion_handle: ResMut<AircraftExplosionHandle>,
+    screams: Res<ScreamHandles>,
 ) {
     for event in events.iter() {
         match event.collision_type {
             CollisionType::Aircraft /*| CollisionType::Bomb*/ => {
                 audio.play(aircraft_explosion_handle.0.clone());
+            }
+            CollisionType::Paratrooper => {
+                let handle = screams.0.choose(&mut rand::thread_rng()).unwrap();
+                audio.play(handle.clone());
             }
             _ => (),
         }
@@ -176,10 +181,15 @@ fn explosion_listener(
 }
 
 /// Paratrooper death
-fn gib_listener(audio: Res<Audio>, mut events: EventReader<GibEvent>, screams: Res<ScreamHandles>) {
+fn gib_listener(
+    audio: Res<Audio>,
+    mut events: EventReader<GibEvent>,
+    screams: Res<ScreamHandles>,
+    audio_sinks: Res<Assets<AudioSink>>,
+) {
     for _event in events.iter() {
         let handle = screams.0.choose(&mut rand::thread_rng()).unwrap();
-        audio.play(handle.clone());
+        audio_sinks.get_handle(audio.play(handle.clone()));
     }
 }
 

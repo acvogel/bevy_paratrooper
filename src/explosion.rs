@@ -1,8 +1,11 @@
-use crate::{ExplosionEvent, ExplosionType, GunExplosionEvent};
+use crate::{ExplosionEvent, ExplosionType, GibEvent, GunExplosionEvent};
 use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct Explosion(f64);
+
+#[derive(Component)]
+pub struct Gib(f64);
 
 #[derive(Component, Deref, DerefMut)]
 struct AnimationTimer(Timer);
@@ -14,6 +17,7 @@ struct ExplosionTextures {
 }
 
 const EXPLOSION_TICK: f32 = 0.1;
+const GIB_TICK: f32 = 0.1;
 
 fn get_explosion_texture_atlas_handle(
     textures: &ExplosionTextures,
@@ -69,47 +73,18 @@ fn spawn_gun_explosion_system(
     }
 }
 
-//fn animate_gib_system(
-//    mut commands: Commands,
-//    time: Res<Time>,
-//    texture_atlases: Res<Assets<TextureAtlas>>,
-//    mut query: Query<(
-//        Entity,
-//        &Gib,
-//        &mut AnimationTimer,
-//        &mut TextureAtlasSprite,
-//        &Handle<TextureAtlas>,
-//    )>,
-//) {
-//    for (entity, _explosion, mut timer, mut sprite, gib_texture_atlas_handle) in query.iter_mut() {
-//        timer.tick(time.delta());
-//        if timer.finished() {
-//            let texture_atlas = texture_atlases.get(gib_texture_atlas_handle).unwrap();
-//            let num_textures = texture_atlas.textures.len();
-//            if sprite.index + 1 < num_textures {
-//                sprite.index += 1;
-//            } else {
-//                commands.entity(entity).despawn();
-//            }
-//        }
-//    }
-//}
-
 fn animate_explosion_system(
     mut commands: Commands,
     time: Res<Time>,
     texture_atlases: Res<Assets<TextureAtlas>>,
     mut query: Query<(
         Entity,
-        &Explosion,
         &mut AnimationTimer,
         &mut TextureAtlasSprite,
         &Handle<TextureAtlas>,
     )>,
 ) {
-    for (entity, _explosion, mut timer, mut sprite, animation_texture_atlas_handle) in
-        query.iter_mut()
-    {
+    for (entity, mut timer, mut sprite, animation_texture_atlas_handle) in query.iter_mut() {
         timer.tick(time.delta());
         if timer.finished() {
             let texture_atlas = texture_atlases.get(animation_texture_atlas_handle).unwrap();
@@ -153,23 +128,23 @@ fn setup_explosion_system(
     });
 }
 
-//fn spawn_gib_system(
-//    mut commands: Commands,
-//    explosion_textures: Res<ExplosionTextures>,
-//    time: Res<Time>,
-//    mut event_reader: EventReader<GibEvent>,
-//) {
-//    for event in event_reader.iter() {
-//        commands
-//            .spawn_bundle(SpriteSheetBundle {
-//                texture_atlas: explosion_textures.gib_texture_atlas_handle.clone(),
-//                transform: event.transform,
-//                ..Default::default()
-//            })
-//            .insert(Gib(time.seconds_since_startup()))
-//            .insert(AnimationTimer(Timer::from_seconds(GIB_TICK, true)));
-//    }
-//}
+fn spawn_gib_system(
+    mut commands: Commands,
+    explosion_textures: Res<ExplosionTextures>,
+    time: Res<Time>,
+    mut event_reader: EventReader<GibEvent>,
+) {
+    for event in event_reader.iter() {
+        commands
+            .spawn_bundle(SpriteSheetBundle {
+                texture_atlas: explosion_textures.gib_texture_atlas_handle.clone(),
+                transform: event.transform,
+                ..Default::default()
+            })
+            .insert(Gib(time.seconds_since_startup()))
+            .insert(AnimationTimer(Timer::from_seconds(GIB_TICK, true)));
+    }
+}
 
 pub struct ExplosionPlugin;
 
@@ -178,8 +153,7 @@ impl Plugin for ExplosionPlugin {
         app.add_startup_system(setup_explosion_system)
             .add_system(spawn_explosion_system)
             .add_system(spawn_gun_explosion_system)
-            //.add_system(spawn_gib_system)
+            .add_system(spawn_gib_system)
             .add_system(animate_explosion_system);
-        //.add_system(animate_gib_system);
     }
 }

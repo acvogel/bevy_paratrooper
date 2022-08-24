@@ -172,7 +172,7 @@ fn bullet_collision_system(
         Option<&Children>,
     )>,
     mut event_reader: EventReader<BulletCollisionEvent>,
-    mut event_writer: EventWriter<ExplosionEvent>,
+    mut event_writer: EventWriter<GibEvent>,
 ) {
     for event in event_reader.iter() {
         match event.collision_type {
@@ -187,13 +187,12 @@ fn bullet_collision_system(
                     _children,
                 )) = paratrooper_query.get(event.target_entity)
                 {
-                    event_writer.send(ExplosionEvent {
+                    event_writer.send(GibEvent {
                         transform: (*transform).with_scale(Vec3::new(
                             PARATROOPER_SCALE,
                             PARATROOPER_SCALE,
                             1.,
                         )),
-                        explosion_type: ExplosionType::Gib,
                     });
                     commands.entity(paratrooper_entity).despawn_recursive();
                 }
@@ -234,7 +233,7 @@ fn bullet_collision_system(
     }
 }
 
-// Detect paratrooper landings
+/// Detect paratrooper landings
 fn paratrooper_landing_system(
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
@@ -255,7 +254,7 @@ fn paratrooper_landing_system(
             for (
                 paratrooper_entity,
                 mut paratrooper,
-                transform,
+                &transform,
                 mut _velocity,
                 _rb_mprops,
                 children_option,
@@ -267,10 +266,9 @@ fn paratrooper_landing_system(
                         || (ground_entity == entity1 && paratrooper_entity == entity2)
                     {
                         // Crash landing
-                        // TODO check for velocity?
                         if paratrooper.state == ParatrooperState::Falling {
                             gib_event_writer.send(GibEvent {
-                                transform: (*transform).with_scale(Vec3::new(
+                                transform: transform.with_scale(Vec3::new(
                                     PARATROOPER_SCALE,
                                     PARATROOPER_SCALE,
                                     1.0,
@@ -290,8 +288,9 @@ fn paratrooper_landing_system(
                                 commands.entity(*child).despawn_recursive();
                             }
                         } else {
+                            // Hit the ground with no Parachute
                             gib_event_writer.send(GibEvent {
-                                transform: (*transform).with_scale(Vec3::new(
+                                transform: transform.with_scale(Vec3::new(
                                     PARATROOPER_SCALE,
                                     PARATROOPER_SCALE,
                                     1.0,
