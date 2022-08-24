@@ -45,7 +45,7 @@ fn main() {
         .add_plugin(ShapePlugin)
         .add_plugin(GunPlugin)
         .add_plugin(BulletPlugin)
-        //.add_plugin(AircraftPlugin)
+        .add_plugin(AircraftPlugin)
         .add_plugin(BomberPlugin)
         .add_plugin(TerrainPlugin)
         .add_plugin(ParatrooperPlugin)
