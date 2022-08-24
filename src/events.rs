@@ -36,7 +36,6 @@ pub enum ExplosionType {
     Aircraft,
     Bullet,
     Bomb,
-    Gib,
 }
 
 pub struct GibEvent {

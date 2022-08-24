@@ -1,9 +1,6 @@
 use crate::aircraft::Aircraft;
 use crate::terrain::Ground;
-use crate::{
-    AppState, BulletCollisionEvent, CollisionType, ExplosionEvent, ExplosionType, GibEvent,
-    LandingEvent,
-};
+use crate::{AppState, BulletCollisionEvent, CollisionType, GibEvent, LandingEvent};
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use rand::Rng;

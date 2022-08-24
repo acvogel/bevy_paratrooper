@@ -19,18 +19,6 @@ struct ExplosionTextures {
 const EXPLOSION_TICK: f32 = 0.1;
 const GIB_TICK: f32 = 0.1;
 
-fn get_explosion_texture_atlas_handle(
-    textures: &ExplosionTextures,
-    explosion_type: &ExplosionType,
-) -> Handle<TextureAtlas> {
-    match explosion_type {
-        ExplosionType::Gib => &textures.gib_texture_atlas_handle,
-        ExplosionType::Bomb => &textures.ground_explosion_texture_atlas_handle,
-        _ => &textures.air_explosion_texture_atlas_handle,
-    }
-    .clone()
-}
-
 fn spawn_explosion_system(
     mut commands: Commands,
     explosion_textures: Res<ExplosionTextures>,
@@ -38,12 +26,15 @@ fn spawn_explosion_system(
     mut event_reader: EventReader<ExplosionEvent>,
 ) {
     for event in event_reader.iter() {
+        let explosion_texture_atlas = match event.explosion_type {
+            ExplosionType::Bomb => &explosion_textures.ground_explosion_texture_atlas_handle,
+            ExplosionType::Aircraft | ExplosionType::Bullet => {
+                &explosion_textures.air_explosion_texture_atlas_handle
+            }
+        };
         commands
             .spawn_bundle(SpriteSheetBundle {
-                texture_atlas: get_explosion_texture_atlas_handle(
-                    &*explosion_textures,
-                    &event.explosion_type,
-                ),
+                texture_atlas: explosion_texture_atlas.clone(),
                 transform: event.transform,
                 ..Default::default()
             })
@@ -143,6 +134,14 @@ fn spawn_gib_system(
             })
             .insert(Gib(time.seconds_since_startup()))
             .insert(AnimationTimer(Timer::from_seconds(GIB_TICK, true)));
+    }
+}
+
+#[allow(dead_code)]
+/// Gib, Explosion components
+fn despawn(mut commands: Commands, query: Query<Entity, Or<(With<Gib>, With<Explosion>)>>) {
+    for e in query.iter() {
+        commands.entity(e).despawn_recursive();
     }
 }
 
