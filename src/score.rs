@@ -12,6 +12,7 @@ pub struct Score {
     pub paratrooper_kills: u32,
     pub paratroopers_landed: u32,
     pub parachute_hits: u32,
+    pub bomb_kills: u32,
 }
 
 #[derive(Component)]
@@ -26,10 +27,17 @@ pub struct GameClock {
 fn kill_listener_system(mut events: EventReader<BulletCollisionEvent>, mut score: ResMut<Score>) {
     for bullet_collision_event in events.iter() {
         match bullet_collision_event.collision_type {
-            CollisionType::Paratrooper => score.paratrooper_kills += 1,
             CollisionType::Aircraft => score.aircraft_kills += 1,
             CollisionType::Parachute => score.parachute_hits += 1,
+            CollisionType::Bomb => score.bomb_kills += 1,
+            CollisionType::Paratrooper => (), // GibEvent covers
         }
+    }
+}
+
+fn gib_listener_system(mut events: EventReader<GibEvent>, mut score: ResMut<Score>) {
+    for _e in events.iter() {
+        score.paratrooper_kills += 1;
     }
 }
 
@@ -141,6 +149,7 @@ impl Plugin for ScorePlugin {
             .add_system_set(
                 SystemSet::on_update(AppState::InGame)
                     .with_system(kill_listener_system)
+                    .with_system(gib_listener_system)
                     .with_system(gun_listener_system)
                     .with_system(landing_listener_system)
                     .with_system(gun_explosion_listener_system)

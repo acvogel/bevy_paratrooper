@@ -16,15 +16,26 @@ pub enum CollisionType {
     Aircraft,
     Paratrooper,
     Parachute,
+    Bomb,
 }
 
 pub struct GunshotEvent;
 
 pub struct LandingEvent(pub Entity);
 
+pub struct BombDropEvent;
+
 /// Animation events.
 pub struct ExplosionEvent {
     pub transform: Transform,
+    pub explosion_type: ExplosionType,
+}
+
+#[derive(Component, Clone, Copy, PartialEq)]
+pub enum ExplosionType {
+    Aircraft,
+    Bullet,
+    Bomb,
 }
 
 pub struct GibEvent {
@@ -36,6 +47,7 @@ pub struct EventPlugin;
 impl Plugin for EventPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ExplosionEvent>()
+            .add_event::<BombDropEvent>()
             .add_event::<GibEvent>()
             .add_event::<GunExplosionEvent>()
             .add_event::<BulletCollisionEvent>()

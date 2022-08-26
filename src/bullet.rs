@@ -1,4 +1,5 @@
 use crate::aircraft::Aircraft;
+use crate::bomber::Bomb;
 use crate::consts::{OUT_OF_BOUNDS_X, OUT_OF_BOUNDS_Y};
 use crate::events::*;
 use crate::gun::Gun;
@@ -84,6 +85,7 @@ fn bullet_collision_system(
     paratrooper_query: Query<(Entity, &Transform), With<Paratrooper>>,
     aircraft_query: Query<(Entity, &Transform), With<Aircraft>>,
     parachute_query: Query<(Entity, &Transform), With<Parachute>>,
+    bomb_query: Query<&Transform, With<Bomb>>,
 ) {
     let mut bullet_handles = HashSet::new();
     for (bullet, _transform) in bullet_query.iter() {
@@ -97,6 +99,15 @@ fn bullet_collision_system(
                 } else {
                     (entity2, entity1)
                 };
+
+                if let Ok(bomb_transform) = bomb_query.get(target_entity) {
+                    event_writer.send(BulletCollisionEvent {
+                        collision_type: CollisionType::Bomb,
+                        translation: bomb_transform.translation,
+                        bullet_entity,
+                        target_entity,
+                    })
+                }
 
                 // Aircraft
                 for (aircraft_entity, aircraft_transform) in aircraft_query.iter() {
@@ -145,10 +156,13 @@ fn bullet_collision_listener(
     mut event_writer: EventWriter<ExplosionEvent>,
 ) {
     for event in event_reader.iter() {
-        if event.collision_type == CollisionType::Aircraft {
+        if event.collision_type == CollisionType::Aircraft
+            || event.collision_type == CollisionType::Bomb
+        {
             if let Ok(transform) = query.get(event.bullet_entity) {
                 event_writer.send(ExplosionEvent {
                     transform: *transform,
+                    explosion_type: ExplosionType::Bullet,
                 });
                 commands.entity(event.bullet_entity).despawn_recursive();
             }

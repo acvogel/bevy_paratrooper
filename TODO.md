@@ -23,8 +23,28 @@
 
 # Notes
 
+## Bombers
+
+Planes just like the others. drops bombs. bombs collide gun is gg. drop ballistic? if so, how
+do we decide the drop point. are all on point? what if they hit paratroopers?
+or bombers come in a 2nd wave.
+
+1. SURPRISE ATTACK
+2. BOMBERS
+3. COMBINED ARMS
+
+Remaining bomber todo:
+1. "aiming" - always hit? smaller drop box?
+2. scaling - slightly larger bombs?
+3. all bomb collisions?
+4. explosion sounds
+5. switch explosion sprite to the other one?
+6. say no friendly fire in initial bomber version
+7. bomb explode / despawn on gun explosion
+
 ## Version upgrade
 
+### 0.7 upgrade TODOs
 * Collisions:
  - [X] bullet <-> para
  - [X] para <-> ground
@@ -33,3 +53,5 @@
 * Gun
  - [X] rotation point
  - [X] angle boundary
+
+### 0.8 upgrade TODOs

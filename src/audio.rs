@@ -1,9 +1,12 @@
+use crate::bomber::Bomb;
 use crate::{
-    AppState, BulletCollisionEvent, CollisionType, GibEvent, GunExplosionEvent, GunshotEvent,
+    AppState, BulletCollisionEvent, CollisionType, ExplosionEvent, ExplosionType, GibEvent,
+    GunExplosionEvent, GunshotEvent,
 };
 use bevy::audio::AudioSink;
 use bevy::prelude::*;
 use rand::seq::SliceRandom;
+use std::collections::HashMap;
 
 struct GunshotHandle(Handle<AudioSource>);
 struct AircraftExplosionHandle(Handle<AudioSource>);
@@ -12,6 +15,16 @@ struct BaseExplosionHandle(Handle<AudioSource>);
 struct IntroMusicHandle(Handle<AudioSource>);
 struct Level1MusicHandle(Handle<AudioSource>);
 struct CurrentMusic(Option<Handle<AudioSink>>);
+struct BombHandles {
+    falling_bomb: Handle<AudioSource>,
+    explosion: Handle<AudioSource>,
+}
+
+#[derive(Component)]
+struct Whistler;
+
+/// Bomb entity -> whistling audio handle
+struct Whistles(HashMap<Entity, Handle<AudioSink>>);
 
 fn setup_audio_system(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     commands.insert_resource(GunshotHandle(
@@ -38,6 +51,13 @@ fn setup_audio_system(mut commands: Commands, asset_server: ResMut<AssetServer>)
         asset_server.load("audio/565_tocf_mono_level_1.ogg"),
     ));
 
+    commands.insert_resource(BombHandles {
+        falling_bomb: asset_server.load("audio/falling-bomb-41038.ogg"),
+        explosion: asset_server.load("audio/bomb_explosion.wav"),
+    });
+
+    commands.insert_resource(Whistles(HashMap::new()));
+
     // No song playing at startup
     commands.insert_resource(CurrentMusic(None));
 }
@@ -59,6 +79,15 @@ fn play_menu_music(
     current_music.0 = Some(intro_handle);
 }
 
+fn stop_menu_music(audio_sinks: ResMut<Assets<AudioSink>>, current_music: Res<CurrentMusic>) {
+    if let Some(current_music_sink) = &current_music.0 {
+        if let Some(old_sink) = audio_sinks.get(current_music_sink) {
+            old_sink.pause();
+        }
+    }
+}
+
+#[allow(dead_code)]
 fn play_level_music(
     audio: Res<Audio>,
     level_music: Res<Level1MusicHandle>,
@@ -85,16 +114,66 @@ fn gunshot_listener(
     }
 }
 
+/// Starts whistling on Bomb spawn
+fn bomb_spawned_listener(
+    mut commands: Commands,
+    audio: Res<Audio>,
+    bomb_audio: Res<BombHandles>,
+    bomb_query: Query<Entity, Added<Bomb>>,
+    mut whistles: ResMut<Whistles>,
+    audio_sinks: Res<Assets<AudioSink>>,
+) {
+    for entity in bomb_query.iter() {
+        let audio_sink = audio_sinks.get_handle(audio.play(bomb_audio.falling_bomb.clone()));
+        whistles.0.insert(entity, audio_sink);
+        commands.entity(entity).insert(Whistler);
+    }
+}
+
+/// Stop whistling when bombs despawn
+fn whistler_despawn_listener(
+    removed_whistlers: RemovedComponents<Whistler>,
+    whistles: Res<Whistles>,
+    audio_sinks: Res<Assets<AudioSink>>,
+) {
+    for entity in removed_whistlers.iter() {
+        if let Some(whistle_handle) = whistles.0.get(&entity) {
+            if let Some(sink) = audio_sinks.get(whistle_handle) {
+                sink.stop();
+            }
+        }
+    }
+}
+
+/// Spawn bomb explosion sound
+fn bomb_explosion_listener(
+    mut events: EventReader<ExplosionEvent>,
+    audio: Res<Audio>,
+    bomb_audio: Res<BombHandles>,
+) {
+    for _event in events
+        .iter()
+        .filter(|&e| e.explosion_type == ExplosionType::Bomb)
+    {
+        audio.play(bomb_audio.explosion.clone());
+    }
+}
+
 /// Aircraft explosion
 fn explosion_listener(
     audio: Res<Audio>,
     mut events: EventReader<BulletCollisionEvent>,
     aircraft_explosion_handle: ResMut<AircraftExplosionHandle>,
+    screams: Res<ScreamHandles>,
 ) {
     for event in events.iter() {
         match event.collision_type {
-            CollisionType::Aircraft => {
+            CollisionType::Aircraft /*| CollisionType::Bomb*/ => {
                 audio.play(aircraft_explosion_handle.0.clone());
+            }
+            CollisionType::Paratrooper => {
+                let handle = screams.0.choose(&mut rand::thread_rng()).unwrap();
+                audio.play(handle.clone());
             }
             _ => (),
         }
@@ -102,10 +181,15 @@ fn explosion_listener(
 }
 
 /// Paratrooper death
-fn gib_listener(audio: Res<Audio>, mut events: EventReader<GibEvent>, screams: Res<ScreamHandles>) {
+fn gib_listener(
+    audio: Res<Audio>,
+    mut events: EventReader<GibEvent>,
+    screams: Res<ScreamHandles>,
+    audio_sinks: Res<Assets<AudioSink>>,
+) {
     for _event in events.iter() {
         let handle = screams.0.choose(&mut rand::thread_rng()).unwrap();
-        audio.play(handle.clone());
+        audio_sinks.get_handle(audio.play(handle.clone()));
     }
 }
 
@@ -126,10 +210,14 @@ impl Plugin for AudioStatePlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_audio_system)
             .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(play_menu_music))
+            .add_system_set(SystemSet::on_exit(AppState::MainMenu).with_system(stop_menu_music))
             .add_system_set(SystemSet::on_enter(AppState::InGame).with_system(play_level_music))
             .add_system(gunshot_listener)
             .add_system(gib_listener)
             .add_system(base_explosion_listener)
-            .add_system(explosion_listener);
+            .add_system(bomb_spawned_listener)
+            .add_system(bomb_explosion_listener)
+            .add_system(explosion_listener)
+            .add_system_to_stage(CoreStage::PostUpdate, whistler_despawn_listener);
     }
 }

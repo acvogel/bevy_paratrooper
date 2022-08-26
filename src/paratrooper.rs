@@ -230,7 +230,7 @@ fn bullet_collision_system(
     }
 }
 
-// Detect paratrooper landings
+/// Detect paratrooper landings
 fn paratrooper_landing_system(
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
@@ -251,7 +251,7 @@ fn paratrooper_landing_system(
             for (
                 paratrooper_entity,
                 mut paratrooper,
-                transform,
+                &transform,
                 mut _velocity,
                 _rb_mprops,
                 children_option,
@@ -263,10 +263,9 @@ fn paratrooper_landing_system(
                         || (ground_entity == entity1 && paratrooper_entity == entity2)
                     {
                         // Crash landing
-                        // TODO check for velocity?
                         if paratrooper.state == ParatrooperState::Falling {
                             gib_event_writer.send(GibEvent {
-                                transform: (*transform).with_scale(Vec3::new(
+                                transform: transform.with_scale(Vec3::new(
                                     PARATROOPER_SCALE,
                                     PARATROOPER_SCALE,
                                     1.0,
@@ -286,8 +285,9 @@ fn paratrooper_landing_system(
                                 commands.entity(*child).despawn_recursive();
                             }
                         } else {
+                            // Hit the ground with no Parachute
                             gib_event_writer.send(GibEvent {
-                                transform: (*transform).with_scale(Vec3::new(
+                                transform: transform.with_scale(Vec3::new(
                                     PARATROOPER_SCALE,
                                     PARATROOPER_SCALE,
                                     1.0,
