@@ -12,8 +12,6 @@ use crate::gun::Gun;
 use crate::terrain::Ground;
 use rand::Rng;
 
-use nrfind;
-
 const BOMBER_SPEED: f32 = 200.;
 const BOMBER_SCALE: f32 = 0.3;
 const BOMB_Z: f32 = 1.9;
@@ -101,17 +99,6 @@ fn spawn_bomber_system(mut commands: Commands, textures: Res<BomberTextures>) {
     }
 }
 
-/// Dropped from height y0, time t passed
-fn bomb_height(t: f32, y0: f32) -> f32 {
-    let k = BOMB_DAMPING;
-    GRAVITY * t / k - (k * t + 1.0).ln() / (k * k) + y0
-}
-
-/// Dropped with initial velocity v0, time t passed
-fn bomb_velocity(t: f32, v0: f32) -> f32 {
-    GRAVITY * BOMB_DAMPING * t / (1.0 + BOMB_DAMPING * t) + v0
-}
-
 /// Should drop the bomb?
 fn should_bomb(bomb_transform: &Transform, velocity: &Velocity, gun_transform: &Transform) -> bool {
     let drop_distance = bomb_transform.translation.y - gun_transform.translation.y;
@@ -119,34 +106,7 @@ fn should_bomb(bomb_transform: &Transform, velocity: &Velocity, gun_transform: &
     let simple_impact_time = (-2.0 * drop_distance / GRAVITY).sqrt();
     let pos_x = bomb_transform.translation.x - gun_transform.translation.x
         + 0.4 * velocity.linvel.x * (BOMB_DAMPING * simple_impact_time + 1.0).ln() / BOMB_DAMPING;
-    info!(
-        "time {} drop_distance {} plane_x {} pos_x {} diff {}",
-        simple_impact_time,
-        drop_distance,
-        bomb_transform.translation.x,
-        pos_x,
-        (pos_x - gun_transform.translation.x)
-    );
     (pos_x - gun_transform.translation.x).abs() < BOMB_AIM_EPSILON
-
-    //let f = |t| bomb_height(t, drop_distance);
-    //let fd = |t| bomb_velocity(t, velocity.linvel.y);
-    //if let Ok(impact_time) = nrfind::find_root(&f, &fd, 3.0, 0.5, 100) {
-    //    info!("found impact time {}", impact_time);
-    //    // now find X location at that time
-    //    let pos_x = bomb_transform.translation.x
-    //        + velocity.linvel.x * (BOMB_DAMPING * impact_time + 1.0).ln() / BOMB_DAMPING;
-    //    info!(
-    //        "drop_distance {} plane_x {} pos_x {} diff {}",
-    //        drop_distance,
-    //        bomb_transform.translation.x,
-    //        pos_x,
-    //        (pos_x - gun_transform.translation.x)
-    //    );
-    //    (pos_x - gun_transform.translation.x).abs() < BOMB_AIM_EPSILON
-    //} else {
-    //    false
-    //}
 }
 
 /// Set them up the bomb
