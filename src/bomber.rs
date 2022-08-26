@@ -7,15 +7,19 @@ use crate::{
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
+use crate::consts::GRAVITY;
 use crate::gun::Gun;
 use crate::terrain::Ground;
 use rand::Rng;
+
+use nrfind;
 
 const BOMBER_SPEED: f32 = 200.;
 const BOMBER_SCALE: f32 = 0.3;
 const BOMB_Z: f32 = 1.9;
 const BOMB_SCALE: f32 = 0.3;
 const BOMB_DAMPING: f32 = 1.0;
+const BOMB_AIM_EPSILON: f32 = 5.0;
 
 const BOMB_SPAWN_X_MAX: f32 = 250.;
 const BOMB_SPAWN_X_MIN: f32 = -250.;
@@ -97,6 +101,54 @@ fn spawn_bomber_system(mut commands: Commands, textures: Res<BomberTextures>) {
     }
 }
 
+/// Dropped from height y0, time t passed
+fn bomb_height(t: f32, y0: f32) -> f32 {
+    let k = BOMB_DAMPING;
+    GRAVITY * t / k - (k * t + 1.0).ln() / (k * k) + y0
+}
+
+/// Dropped with initial velocity v0, time t passed
+fn bomb_velocity(t: f32, v0: f32) -> f32 {
+    GRAVITY * BOMB_DAMPING * t / (1.0 + BOMB_DAMPING * t) + v0
+}
+
+/// Should drop the bomb?
+fn should_bomb(bomb_transform: &Transform, velocity: &Velocity, gun_transform: &Transform) -> bool {
+    let drop_distance = bomb_transform.translation.y - gun_transform.translation.y;
+    // Drop time without taking into account damping. Will result in short drops.
+    let simple_impact_time = (-2.0 * drop_distance / GRAVITY).sqrt();
+    let pos_x = bomb_transform.translation.x - gun_transform.translation.x
+        + 0.4 * velocity.linvel.x * (BOMB_DAMPING * simple_impact_time + 1.0).ln() / BOMB_DAMPING;
+    info!(
+        "time {} drop_distance {} plane_x {} pos_x {} diff {}",
+        simple_impact_time,
+        drop_distance,
+        bomb_transform.translation.x,
+        pos_x,
+        (pos_x - gun_transform.translation.x)
+    );
+    (pos_x - gun_transform.translation.x).abs() < BOMB_AIM_EPSILON
+
+    //let f = |t| bomb_height(t, drop_distance);
+    //let fd = |t| bomb_velocity(t, velocity.linvel.y);
+    //if let Ok(impact_time) = nrfind::find_root(&f, &fd, 3.0, 0.5, 100) {
+    //    info!("found impact time {}", impact_time);
+    //    // now find X location at that time
+    //    let pos_x = bomb_transform.translation.x
+    //        + velocity.linvel.x * (BOMB_DAMPING * impact_time + 1.0).ln() / BOMB_DAMPING;
+    //    info!(
+    //        "drop_distance {} plane_x {} pos_x {} diff {}",
+    //        drop_distance,
+    //        bomb_transform.translation.x,
+    //        pos_x,
+    //        (pos_x - gun_transform.translation.x)
+    //    );
+    //    (pos_x - gun_transform.translation.x).abs() < BOMB_AIM_EPSILON
+    //} else {
+    //    false
+    //}
+}
+
 /// Set them up the bomb
 fn spawn_bombs(
     mut commands: Commands,
@@ -106,13 +158,22 @@ fn spawn_bombs(
     mut event_writer: EventWriter<BombDropEvent>,
 ) {
     let mut rng = rand::thread_rng();
-    for (_gun, _gun_transform) in gun_query.iter() {
+    for (_gun, gun_transform) in gun_query.iter() {
         for (mut bomber, bomber_transform, velocity) in bomber_query.iter_mut() {
-            if bomber_transform.translation.x < BOMB_SPAWN_X_MAX
-                && bomber_transform.translation.x > BOMB_SPAWN_X_MIN
-                && bomber.num_dropped < BOMB_PAYLOAD
-                && rng.gen_range(0.0..1.0) < BOMB_SPAWN_RATE
+            if
+            /*bomber_transform.translation.x < BOMB_SPAWN_X_MAX
+            && bomber_transform.translation.x > BOMB_SPAWN_X_MIN
+            &&*/
+            bomber.num_dropped < BOMB_PAYLOAD
+                //&& rng.gen_range(0.0..1.0) < BOMB_SPAWN_RATE
+                && should_bomb(bomber_transform, velocity, gun_transform)
             {
+                //let closure = |x| bomb_height(x, 100.0);
+                //// check if it hits. have Transform, Velocity of bomber. other consts.
+                //// _gun_transform. use y position of gun ya.
+                //nrfind::find_root(&|x| bomb_height(x, 100.0), &closure, 100.0, 100.0, 100);
+                //nrfind::find_root(&closure, &closure, 100.0, 100.0, 100);
+                //nrfind::find_root(&bomb_height, &bomb_velocity, 100.0, 100.0, 100.0);
                 event_writer.send(BombDropEvent);
 
                 bomber.num_dropped += 1;
