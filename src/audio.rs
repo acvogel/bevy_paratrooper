@@ -211,8 +211,7 @@ impl Plugin for AudioStatePlugin {
         app.add_startup_system(setup_audio_system)
             .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(play_menu_music))
             .add_system_set(SystemSet::on_exit(AppState::MainMenu).with_system(stop_menu_music))
-            // XXX
-            //.add_system_set(SystemSet::on_enter(AppState::InGame).with_system(play_level_music))
+            .add_system_set(SystemSet::on_enter(AppState::InGame).with_system(play_level_music))
             .add_system(gunshot_listener)
             .add_system(gib_listener)
             .add_system(base_explosion_listener)

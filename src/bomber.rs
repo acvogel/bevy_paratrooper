@@ -19,9 +19,6 @@ const BOMB_SCALE: f32 = 0.3;
 const BOMB_DAMPING: f32 = 1.0;
 const BOMB_AIM_EPSILON: f32 = 5.0;
 
-const BOMB_SPAWN_X_MAX: f32 = 250.;
-const BOMB_SPAWN_X_MIN: f32 = -250.;
-const BOMB_SPAWN_RATE: f32 = 0.04;
 const BOMB_PAYLOAD: usize = 1;
 
 #[derive(Component)]
@@ -117,23 +114,11 @@ fn spawn_bombs(
     gun_query: Query<(&Gun, &Transform)>,
     mut event_writer: EventWriter<BombDropEvent>,
 ) {
-    let mut rng = rand::thread_rng();
     for (_gun, gun_transform) in gun_query.iter() {
         for (mut bomber, bomber_transform, velocity) in bomber_query.iter_mut() {
-            if
-            /*bomber_transform.translation.x < BOMB_SPAWN_X_MAX
-            && bomber_transform.translation.x > BOMB_SPAWN_X_MIN
-            &&*/
-            bomber.num_dropped < BOMB_PAYLOAD
-                //&& rng.gen_range(0.0..1.0) < BOMB_SPAWN_RATE
+            if bomber.num_dropped < BOMB_PAYLOAD
                 && should_bomb(bomber_transform, velocity, gun_transform)
             {
-                //let closure = |x| bomb_height(x, 100.0);
-                //// check if it hits. have Transform, Velocity of bomber. other consts.
-                //// _gun_transform. use y position of gun ya.
-                //nrfind::find_root(&|x| bomb_height(x, 100.0), &closure, 100.0, 100.0, 100);
-                //nrfind::find_root(&closure, &closure, 100.0, 100.0, 100);
-                //nrfind::find_root(&bomb_height, &bomb_velocity, 100.0, 100.0, 100.0);
                 event_writer.send(BombDropEvent);
 
                 bomber.num_dropped += 1;
