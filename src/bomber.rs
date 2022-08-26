@@ -1,10 +1,9 @@
-use crate::aircraft::{
-    Aircraft, AIRCRAFT_SPAWN_PROBABILITY, SPAWN_LEFT_X, SPAWN_RIGHT_X, SPAWN_Y_MAX, SPAWN_Y_MIN,
-};
+use crate::aircraft::{Aircraft, SPAWN_LEFT_X, SPAWN_RIGHT_X, SPAWN_Y_MAX, SPAWN_Y_MIN};
 use crate::{
     AppState, BombDropEvent, BulletCollisionEvent, CollisionType, ExplosionEvent, ExplosionType,
 };
 use bevy::prelude::*;
+use bevy_rapier2d::dynamics::MassProperties;
 use bevy_rapier2d::prelude::*;
 
 use crate::consts::GRAVITY;
@@ -12,7 +11,8 @@ use crate::gun::Gun;
 use crate::terrain::Ground;
 use rand::Rng;
 
-const BOMBER_SPEED: f32 = 200.;
+const BOMBER_SPAWN_PROBABILITY: f32 = 0.003;
+const BOMBER_SPEED: f32 = 300.;
 const BOMBER_SCALE: f32 = 0.3;
 const BOMB_Z: f32 = 1.9;
 const BOMB_SCALE: f32 = 0.3;
@@ -55,7 +55,7 @@ fn setup_bomber_system(
 /// Will add toggles or whatever else with "waves"
 fn spawn_bomber_system(mut commands: Commands, textures: Res<BomberTextures>) {
     let mut rng = rand::thread_rng();
-    if rng.gen_range(0.0..1.0) < AIRCRAFT_SPAWN_PROBABILITY {
+    if rng.gen_range(0.0..1.0) < BOMBER_SPAWN_PROBABILITY {
         let y = rng.gen_range(SPAWN_Y_MIN..SPAWN_Y_MAX);
         let heading_right = rng.gen_bool(0.5);
         let speed = rng.gen_range(0.8..1.3) * BOMBER_SPEED;
@@ -83,7 +83,7 @@ fn spawn_bomber_system(mut commands: Commands, textures: Res<BomberTextures>) {
             .insert(transform)
             .insert(RigidBody::Dynamic)
             .insert(Collider::cuboid(412. / 2.0, 114. / 2.0))
-            .insert(Sensor(true))
+            .insert(Sensor)
             .insert(ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC)
             .insert(CollisionGroups::new(0b0100, 0b1110))
             .insert(LockedAxes::TRANSLATION_LOCKED_Y)
@@ -131,7 +131,7 @@ fn spawn_bombs(
                 commands
                     .spawn()
                     .insert(RigidBody::Dynamic)
-                    .insert(Sensor(true))
+                    .insert(Sensor)
                     .insert_bundle(SpriteSheetBundle {
                         sprite: TextureAtlasSprite::new(1),
                         texture_atlas: bomber_textures.bomb.clone(),
@@ -148,11 +148,15 @@ fn spawn_bombs(
                         angular_damping: 1.0,
                     })
                     .insert(GravityScale(10.0))
-                    .insert(MassProperties {
-                        mass: 10.0,
-                        principal_inertia: 0.5,
-                        ..Default::default()
-                    })
+                    .insert(
+                        bevy_rapier2d::prelude::AdditionalMassProperties::MassProperties(
+                            MassProperties {
+                                mass: 10.0,
+                                principal_inertia: 0.5,
+                                ..Default::default()
+                            },
+                        ),
+                    )
                     .insert(Velocity {
                         linvel: velocity.linvel.clone(),
                         angvel: heading * -1.5,

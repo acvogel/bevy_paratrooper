@@ -57,11 +57,10 @@ fn main() {
         .add_plugin(EventPlugin)
         .add_plugin(AssaultPlugin)
         .add_startup_system(setup_camera)
-        .add_system(bevy::input::system::exit_on_esc_system)
+        .add_system(bevy::window::close_on_esc)
         .run();
 }
 
 fn setup_camera(mut commands: Commands) {
-    commands.spawn_bundle(UiCameraBundle::default());
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands.spawn_bundle(Camera2dBundle::default());
 }

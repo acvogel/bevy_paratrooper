@@ -118,11 +118,13 @@ pub fn setup_gun_barrel(mut commands: Commands) {
         .insert(Collider::cuboid(0.5 * sprite_size.x, 0.5 * sprite_size.y))
         .insert(ActiveEvents::COLLISION_EVENTS)
         .insert(Velocity::default())
-        .insert(MassProperties {
-            mass: 1.0,
-            principal_inertia: 0.1,
-            ..Default::default()
-        })
+        .insert(
+            bevy_rapier2d::prelude::AdditionalMassProperties::MassProperties(MassProperties {
+                mass: 1.0,
+                principal_inertia: 0.1,
+                ..Default::default()
+            }),
+        )
         .insert(Gun { last_fired: 0. });
 }
 

@@ -61,7 +61,7 @@ fn spawn_aircraft_system(mut commands: Commands, aircraft_textures: Res<Aircraft
             .insert(transform)
             .insert(RigidBody::Dynamic)
             .insert(Collider::cuboid(412. / 2.0, 114. / 2.0))
-            .insert(Sensor(true))
+            .insert(Sensor)
             .insert(ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC)
             .insert(CollisionGroups::new(0b0100, 0b1110))
             .insert(LockedAxes::TRANSLATION_LOCKED_Y)

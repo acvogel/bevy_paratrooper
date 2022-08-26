@@ -10,15 +10,24 @@ const PARATROOPER_ASSAULT_COLLISION_FILTER: u32 = 0b1001;
 
 /// Turn a lander into an assaulter
 fn enable_assault_system(
-    mut query: Query<(&mut Paratrooper, &mut CollisionGroups, &mut Sensor)>,
+    mut commands: Commands,
+    mut query: Query<(
+        Entity,
+        &mut Paratrooper,
+        &mut CollisionGroups, /*, &mut Sensor*/
+    )>,
     mut event_reader: EventReader<LandingEvent>,
 ) {
     for event in event_reader.iter() {
-        if let Ok((mut paratrooper, mut col_groups, mut sensor)) = query.get_mut(event.0) {
+        if let Ok((entity, mut paratrooper, mut col_groups /*, mut sensor*/)) =
+            query.get_mut(event.0)
+        {
             col_groups.memberships = PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP;
             col_groups.filters = PARATROOPER_ASSAULT_COLLISION_FILTER;
             paratrooper.state = ParatrooperState::Assault;
-            sensor.0 = false;
+            commands.entity(entity).remove::<Sensor>(); //.remove(sensor);
+                                                        // remove Sensor component
+                                                        //sensor.0 = false;
         }
     }
 }

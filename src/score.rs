@@ -100,24 +100,19 @@ fn setup_score_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
         .spawn_bundle(TextBundle {
             style: Style {
                 position_type: PositionType::Absolute,
-                position: Rect {
+                position: UiRect {
                     top: Val::Px(15.),
                     left: Val::Px(15.),
                     ..Default::default()
                 },
                 ..Default::default()
             },
-            text: Text::with_section(
+            text: Text::from_section(
                 "",
-                //get_clock_string(time.seconds_since_startup(), Score::default()),
                 TextStyle {
                     font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                     font_size: 40.,
                     color: Color::RED,
-                },
-                TextAlignment {
-                    horizontal: HorizontalAlign::Center,
-                    ..Default::default()
                 },
             ),
             ..Default::default()

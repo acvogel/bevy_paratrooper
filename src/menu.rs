@@ -34,30 +34,22 @@ fn setup_title_screen(mut commands: Commands, font_handles: Res<FontHandles>) {
             style: Style {
                 align_self: AlignSelf::Auto,
                 position_type: PositionType::Absolute,
-                position: Rect {
+                position: UiRect {
                     left: Val::Px(200.0),
                     top: Val::Px(15.0),
                     ..Default::default()
                 },
                 ..Default::default()
             },
-            text: Text::with_section(
+            text: Text::from_section(
                 "PARATROOPER",
                 TextStyle {
                     font: font_handles.handle.clone(),
                     font_size: 125.0,
                     color: Color::RED,
                 },
-                TextAlignment {
-                    horizontal: HorizontalAlign::Center,
-                    vertical: VerticalAlign::Center,
-                },
             ),
-            calculated_size: Default::default(),
-            focus_policy: Default::default(),
-            transform: Default::default(),
-            global_transform: Default::default(),
-            visibility: Default::default(),
+            ..Default::default()
         })
         .insert(TitleText);
 }
@@ -83,23 +75,19 @@ fn spawn_game_over_text(mut commands: Commands, font_handles: Res<FontHandles>) 
             style: Style {
                 align_self: AlignSelf::FlexEnd,
                 position_type: PositionType::Absolute,
-                position: Rect {
+                position: UiRect {
                     left: Val::Px(50.0),
                     bottom: Val::Px(250.0),
                     ..Default::default()
                 },
                 ..Default::default()
             },
-            text: Text::with_section(
+            text: Text::from_section(
                 "Press the ANY key to continue.",
                 TextStyle {
                     font: font_handles.handle.clone(),
                     font_size: 75.0,
                     color: Color::RED,
-                },
-                TextAlignment {
-                    horizontal: HorizontalAlign::Center,
-                    vertical: VerticalAlign::Center,
                 },
             ),
             ..Default::default()
@@ -158,16 +146,12 @@ fn spawn_pause_ui(mut commands: Commands, fonts: Res<FontHandles>) {
                     position_type: PositionType::Absolute,
                     ..Default::default()
                 },
-                text: Text::with_section(
+                text: Text::from_section(
                     "PAUSED",
                     TextStyle {
                         font: fonts.handle.clone(),
                         font_size: 75.0,
                         color: Color::BLUE,
-                    },
-                    TextAlignment {
-                        horizontal: HorizontalAlign::Center,
-                        vertical: VerticalAlign::Center,
                     },
                 ),
                 ..Default::default()

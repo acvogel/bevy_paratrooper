@@ -28,7 +28,6 @@ fn setup_ground(mut commands: Commands) {
             consts::WINDOW_WIDTH / 2.0,
             consts::GROUND_THICKNESS / 2.0,
         ))
-        .insert(Sensor(false))
         .insert(
             ActiveCollisionTypes::default()
                 | ActiveCollisionTypes::KINEMATIC_STATIC
@@ -74,6 +73,6 @@ impl Plugin for TerrainPlugin {
         app.add_startup_system(setup_ground)
             .add_startup_system(setup_skyline)
             .add_startup_system(setup_physics)
-            .add_plugin(RapierPhysicsPlugin::<NoUserData>::with_physics_scale(1.0));
+            .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(10.));
     }
 }

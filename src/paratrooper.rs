@@ -123,15 +123,14 @@ fn spawn_paratroopers(
                     scale: Vec3::new(PARATROOPER_SCALE, PARATROOPER_SCALE, 1.),
                 })
                 .insert(RigidBody::Dynamic)
-                .insert(Sensor(false))
                 .insert(Damping::default())
                 .insert(GravityScale(1.0))
                 .insert(LockedAxes::ROTATION_LOCKED)
-                .insert(MassProperties {
+                .insert(AdditionalMassProperties::MassProperties(MassProperties {
                     mass: 10.0,
                     principal_inertia: 0.5,
                     ..Default::default()
-                })
+                }))
                 .insert(Velocity {
                     linvel: Vec2::new(0., PARATROOPER_SPAWN_VELOCITY),
                     angvel: 0.,
@@ -239,7 +238,6 @@ fn paratrooper_landing_system(
         &mut Paratrooper,
         &Transform,
         &mut Velocity,
-        &MassProperties,
         Option<&Children>,
     )>,
     ground_query: Query<Entity, With<Ground>>,
@@ -248,14 +246,8 @@ fn paratrooper_landing_system(
 ) {
     for collision_event in collision_events.iter() {
         for ground_entity in ground_query.iter() {
-            for (
-                paratrooper_entity,
-                mut paratrooper,
-                &transform,
-                mut _velocity,
-                _rb_mprops,
-                children_option,
-            ) in paratrooper_query.iter_mut()
+            for (paratrooper_entity, mut paratrooper, &transform, mut _velocity, children_option) in
+                paratrooper_query.iter_mut()
             {
                 if let &CollisionEvent::Started(entity1, entity2, _) = collision_event {
                     // Ground / Paratrooper contact
@@ -315,13 +307,12 @@ fn spawn_parachutes(
         Entity,
         &mut Paratrooper,
         &mut Velocity,
-        &MassProperties,
         &mut Damping,
         &mut GravityScale,
     )>,
 ) {
     let mut rng = rand::thread_rng();
-    for (paratrooper_entity, mut paratrooper, mut velocity, _rb_mprops, mut damping, mut gravity) in
+    for (paratrooper_entity, mut paratrooper, mut velocity, mut damping, mut gravity) in
         paratrooper_query.iter_mut()
     {
         if !paratrooper.has_deployed_chute
@@ -341,7 +332,7 @@ fn spawn_parachutes(
                     ..Default::default()
                 })
                 .insert(Collider::cuboid(31. / 4., 49. / 4.))
-                .insert(Sensor(true))
+                .insert(Sensor)
                 .insert(CollisionGroups::new(0b0001, 0b1110))
                 //.insert(Transform::from_xyz(0.0, 30.0, 0.0)) // todo own offset separate from sprite?
                 .insert(Parachute)
