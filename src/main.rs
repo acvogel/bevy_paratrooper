@@ -32,16 +32,16 @@ mod terrain;
 
 fn main() {
     App::new()
-        .insert_resource(WindowDescriptor {
-            title: "Paratrooper".to_string(),
-            width: consts::WINDOW_WIDTH,
-            height: consts::WINDOW_HEIGHT,
-            resizable: false,
-            ..Default::default()
-        })
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Paratrooper".to_string(),
+                resolution: (consts::WINDOW_WIDTH, consts::WINDOW_HEIGHT).into(),
+                ..default()
+            }),
+            ..default()
+        }))
         .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
-        .add_state(AppState::MainMenu)
-        .add_plugins(DefaultPlugins)
+        .add_state::<AppState>()
         .add_plugin(ShapePlugin)
         .add_plugin(GunPlugin)
         .add_plugin(BulletPlugin)
@@ -62,5 +62,5 @@ fn main() {
 }
 
 fn setup_camera(mut commands: Commands) {
-    commands.spawn_bundle(Camera2dBundle::default());
+    commands.spawn(Camera2dBundle::default());
 }

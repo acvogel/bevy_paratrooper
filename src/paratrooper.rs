@@ -49,6 +49,7 @@ pub enum ParatrooperState {
     Landed,
     Assault,
 }
+#[derive(Resource)]
 struct ParatrooperTextures {
     pub body_handle: Handle<Image>,      // 31 x 49
     pub parachute_handle: Handle<Image>, // 89 x 86
@@ -115,8 +116,7 @@ fn spawn_paratroopers(
             );
 
             commands
-                .spawn()
-                .insert_bundle(paratrooper_sprite_bundle(&paratrooper_textures))
+                .spawn(paratrooper_sprite_bundle(&paratrooper_textures))
                 .insert(Transform {
                     translation: Vec3::new(paratrooper_pos.x, paratrooper_pos.y, PARATROOPER_Z),
                     rotation: Quat::IDENTITY,
@@ -145,8 +145,8 @@ fn spawn_paratroopers(
                     combine_rule: CoefficientCombineRule::Min,
                 })
                 .insert(CollisionGroups::new(
-                    PARATROOPER_COLLISION_MEMBERSHIP,
-                    PARATROOPER_COLLISION_FILTER,
+                    Group::from_bits(PARATROOPER_COLLISION_MEMBERSHIP).unwrap(),
+                    Group::from_bits(PARATROOPER_COLLISION_FILTER).unwrap(),
                 ))
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Paratrooper::default());
@@ -324,8 +324,7 @@ fn spawn_parachutes(
 
             // Spawn parachute
             let parachute_entity = commands
-                .spawn()
-                .insert_bundle(SpriteBundle {
+                .spawn(SpriteBundle {
                     texture: textures.parachute_handle.clone(),
                     // TODO scale to reasonable size
                     transform: Transform::from_translation(Vec3::new(0., 49.0, 0.)),
@@ -333,7 +332,10 @@ fn spawn_parachutes(
                 })
                 .insert(Collider::cuboid(31. / 4., 49. / 4.))
                 .insert(Sensor)
-                .insert(CollisionGroups::new(0b0001, 0b1110))
+                .insert(CollisionGroups::new(
+                    Group::from_bits(0b0001).unwrap(),
+                    Group::from_bits(0b1110).unwrap(),
+                ))
                 //.insert(Transform::from_xyz(0.0, 30.0, 0.0)) // todo own offset separate from sprite?
                 .insert(Parachute)
                 .id();
@@ -360,15 +362,15 @@ pub struct ParatrooperPlugin;
 impl Plugin for ParatrooperPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_paratroopers)
-            .add_system_set(
-                SystemSet::on_update(AppState::InGame)
-                    .with_system(paratrooper_landing_system)
-                    .with_system(bullet_collision_system)
-                    .with_system(spawn_paratroopers)
-                    .with_system(spawn_parachutes),
+            .add_systems(
+                (
+                    paratrooper_landing_system,
+                    bullet_collision_system,
+                    spawn_paratroopers,
+                    spawn_parachutes,
+                )
+                    .in_set(OnUpdate(AppState::InGame)),
             )
-            .add_system_set(
-                SystemSet::on_exit(AppState::InGame).with_system(despawn_paratrooper_system),
-            );
+            .add_system(despawn_paratrooper_system.in_schedule(OnExit(AppState::InGame)));
     }
 }

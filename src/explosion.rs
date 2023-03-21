@@ -10,6 +10,7 @@ pub struct Gib(f64);
 #[derive(Component, Deref, DerefMut)]
 struct AnimationTimer(Timer);
 
+#[derive(Resource)]
 struct ExplosionTextures {
     air_explosion_texture_atlas_handle: Handle<TextureAtlas>,
     gib_texture_atlas_handle: Handle<TextureAtlas>,
@@ -33,14 +34,17 @@ fn spawn_explosion_system(
             }
         };
         commands
-            .spawn_bundle(SpriteSheetBundle {
+            .spawn(SpriteSheetBundle {
                 texture_atlas: explosion_texture_atlas.clone(),
                 transform: event.transform,
                 ..Default::default()
             })
-            .insert(Explosion(time.seconds_since_startup()))
+            .insert(Explosion(time.elapsed_seconds_f64()))
             .insert(event.explosion_type)
-            .insert(AnimationTimer(Timer::from_seconds(EXPLOSION_TICK, true)));
+            .insert(AnimationTimer(Timer::from_seconds(
+                EXPLOSION_TICK,
+                TimerMode::Repeating,
+            )));
     }
 }
 
@@ -52,15 +56,18 @@ fn spawn_gun_explosion_system(
 ) {
     for event in event_reader.iter() {
         commands
-            .spawn_bundle(SpriteSheetBundle {
+            .spawn(SpriteSheetBundle {
                 texture_atlas: explosion_textures
                     .air_explosion_texture_atlas_handle
                     .clone(),
                 transform: Transform::from_translation(event.translation),
                 ..Default::default()
             })
-            .insert(Explosion(time.seconds_since_startup()))
-            .insert(AnimationTimer(Timer::from_seconds(EXPLOSION_TICK, true)));
+            .insert(Explosion(time.elapsed_seconds_f64()))
+            .insert(AnimationTimer(Timer::from_seconds(
+                EXPLOSION_TICK,
+                TimerMode::Repeating,
+            )));
     }
 }
 
@@ -96,20 +103,32 @@ fn setup_explosion_system(
 ) {
     // Air Explosion
     let air_explosion_texture_handle = asset_server.load("images/airplaneexplosion.png");
-    let air_explosion_texture_atlas =
-        TextureAtlas::from_grid(air_explosion_texture_handle, Vec2::new(128., 128.), 8, 1);
+    let air_explosion_texture_atlas = TextureAtlas::from_grid(
+        air_explosion_texture_handle,
+        Vec2::new(128., 128.),
+        8,
+        1,
+        None,
+        None,
+    );
     let air_explosion_texture_atlas_handle = texture_atlases.add(air_explosion_texture_atlas);
 
     // Bomb Explosion
     let ground_explosion_texture_handle = asset_server.load("images/ground_explosion.png");
-    let ground_explosion_textrue_atlas =
-        TextureAtlas::from_grid(ground_explosion_texture_handle, Vec2::new(128., 128.), 8, 1);
+    let ground_explosion_textrue_atlas = TextureAtlas::from_grid(
+        ground_explosion_texture_handle,
+        Vec2::new(128., 128.),
+        8,
+        1,
+        None,
+        None,
+    );
     let ground_explosion_texture_atlas_handle = texture_atlases.add(ground_explosion_textrue_atlas);
 
     // Gib
     let gib_texture_handle = asset_server.load("images/blood1.png");
     let gib_texture_atlas =
-        TextureAtlas::from_grid(gib_texture_handle, Vec2::new(128., 128.), 8, 1);
+        TextureAtlas::from_grid(gib_texture_handle, Vec2::new(128., 128.), 8, 1, None, None);
     let gib_texture_atlas_handle = texture_atlases.add(gib_texture_atlas);
 
     commands.insert_resource(ExplosionTextures {
@@ -127,13 +146,16 @@ fn spawn_gib_system(
 ) {
     for event in event_reader.iter() {
         commands
-            .spawn_bundle(SpriteSheetBundle {
+            .spawn(SpriteSheetBundle {
                 texture_atlas: explosion_textures.gib_texture_atlas_handle.clone(),
                 transform: event.transform,
                 ..Default::default()
             })
-            .insert(Gib(time.seconds_since_startup()))
-            .insert(AnimationTimer(Timer::from_seconds(GIB_TICK, true)));
+            .insert(Gib(time.elapsed_seconds_f64()))
+            .insert(AnimationTimer(Timer::from_seconds(
+                GIB_TICK,
+                TimerMode::Repeating,
+            )));
     }
 }
 
