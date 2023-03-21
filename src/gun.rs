@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use bevy::sprite::Anchor::BottomCenter;
 use bevy_prototype_lyon::entity::ShapeBundle;
-use bevy_prototype_lyon::prelude::FillMode;
 use bevy_prototype_lyon::prelude::*;
 use bevy_rapier2d::prelude::*;
 
@@ -46,7 +45,7 @@ pub fn setup_gun_base(mut commands: Commands) {
         ..Default::default()
     };
     commands
-        .spawn_bundle(sprite_bundle)
+        .spawn(sprite_bundle)
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(0.5 * w, 0.5 * h))
         .insert(Friction {
@@ -61,39 +60,36 @@ pub fn setup_gun_base(mut commands: Commands) {
         .insert(GunBase);
 }
 
-fn gun_mount_circle_shape() -> ShapeBundle {
-    let mount_circle_shape = shapes::Circle {
-        radius: GUN_MOUNT_X / 2.,
-        center: Vec2::ZERO,
-    };
-    GeometryBuilder::build_as(
-        &mount_circle_shape,
-        DrawMode::Fill(FillMode::color(Color::PINK)),
-        Transform::from_xyz(0., GUN_MOUNT_Y / 2.0, 2.0),
-    )
-}
-
-fn gun_mount_rectangle_shape() -> ShapeBundle {
+pub fn setup_gun_mount(mut commands: Commands) {
     let mount_rectangle_shape = shapes::Rectangle {
         extents: Vec2::new(GUN_MOUNT_X, GUN_MOUNT_Y),
         origin: RectangleOrigin::Center,
     };
     let rectangle_y = consts::GROUND_Y + GUN_BASE_Y + 0.5 * GUN_MOUNT_Y;
-    GeometryBuilder::build_as(
-        &mount_rectangle_shape,
-        DrawMode::Fill(FillMode::color(Color::PINK)),
-        Transform::from_xyz(0., rectangle_y, 2.0),
-    )
-}
 
-pub fn setup_gun_mount(mut commands: Commands) {
+    let mount_circle_shape = shapes::Circle {
+        radius: GUN_MOUNT_X / 2.,
+        center: Vec2::ZERO,
+    };
+
     commands
-        .spawn_bundle(gun_mount_rectangle_shape())
+        .spawn(ShapeBundle {
+            path: GeometryBuilder::build_as(&mount_rectangle_shape),
+            ..Default::default()
+        })
+        .insert(Fill::color(Color::PINK))
+        .insert(Transform::from_xyz(0., rectangle_y, 2.0))
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(0.5 * GUN_MOUNT_X, 0.5 * GUN_MOUNT_Y))
         .insert(ActiveEvents::COLLISION_EVENTS)
         .with_children(|parent| {
-            parent.spawn().insert_bundle(gun_mount_circle_shape());
+            parent
+                .spawn(ShapeBundle {
+                    path: GeometryBuilder::build_as(&mount_circle_shape),
+                    ..Default::default()
+                })
+                .insert(Fill::color(Color::PINK))
+                .insert(Transform::from_xyz(0., GUN_MOUNT_Y / 2.0, 2.0));
         })
         .insert(GunMount);
 }
@@ -112,8 +108,7 @@ pub fn setup_gun_barrel(mut commands: Commands) {
         ..Default::default()
     };
     commands
-        .spawn()
-        .insert_bundle(sprite_bundle)
+        .spawn(sprite_bundle)
         .insert(RigidBody::KinematicVelocityBased)
         .insert(Collider::cuboid(0.5 * sprite_size.x, 0.5 * sprite_size.y))
         .insert(ActiveEvents::COLLISION_EVENTS)
@@ -190,16 +185,10 @@ pub struct GunPlugin;
 
 impl Plugin for GunPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(
-            SystemSet::on_enter(AppState::MainMenu)
-                .with_system(setup_gun_base)
-                .with_system(setup_gun_mount)
-                .with_system(setup_gun_barrel),
+        app.add_systems(
+            (setup_gun_base, setup_gun_mount, setup_gun_barrel)
+                .in_schedule(OnEnter(AppState::MainMenu)),
         )
-        .add_system_set(
-            SystemSet::on_update(AppState::InGame)
-                .with_system(move_gun)
-                .with_system(gun_collision_system),
-        );
+        .add_systems((move_gun, gun_collision_system).in_set(OnUpdate(AppState::InGame)));
     }
 }

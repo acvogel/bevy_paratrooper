@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use crate::events::*;
 
-#[derive(Component, Debug, Default, Clone, Copy)]
+#[derive(Component, Debug, Default, Clone, Copy, Resource)]
 pub struct Score {
     pub shots: u32,
     pub aircraft_kills: u32,
@@ -46,12 +46,13 @@ pub struct ParatrooperText;
 pub struct BombText;
 
 /// AppState::InGame time
-#[derive(Component)]
+#[derive(Component, Resource)]
 pub struct GameClock {
     duration: Duration,
 }
 
 /// Score UI font and textures
+#[derive(Resource)]
 struct ScoreAssets {
     font: Handle<Font>,
     airplane: Handle<Image>,
@@ -82,7 +83,7 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
 
     commands
         // Root node
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             //node: Node {
             //    size: Vec2::new(WINDOW_WIDTH, bar_height),
             //},
@@ -93,14 +94,14 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
                 align_items: AlignItems::FlexStart,
                 ..Default::default()
             },
-            color: Color::BLACK.into(),
+            background_color: Color::BLACK.into(),
             ..Default::default()
         })
         .insert(ScoreBar)
         // Bottom left score
         .with_children(|parent| {
             parent
-                .spawn_bundle(NodeBundle {
+                .spawn(NodeBundle {
                     style: Style {
                         //size: Size::new(Val::Percent(20.0), Val::Percent(100.0)),
                         size: Size::new(Val::Px(150.0), Val::Px(bar_height)),
@@ -108,13 +109,13 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
                         align_items: AlignItems::Center,
                         ..Default::default()
                     },
-                    color: Color::BLUE.into(),
+                    background_color: Color::BLUE.into(),
                     ..Default::default()
                 })
                 // Score: 00000
                 .with_children(|parent| {
                     parent
-                        .spawn_bundle(
+                        .spawn(
                             TextBundle::from_section(
                                 "Score: 0000",
                                 TextStyle {
@@ -122,15 +123,14 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
                                     font_size: 30.0,
                                     color: Color::WHITE,
                                 },
-                            )
-                            .with_text_alignment(TextAlignment::CENTER_LEFT),
+                            ), //.with_text_alignment(TextAlignment::CENTER_LEFT),
                         )
                         .insert(ScoreText);
                 });
 
             // Subcomponent for icons
             parent
-                .spawn_bundle(NodeBundle {
+                .spawn(NodeBundle {
                     style: Style {
                         size: Size::new(Val::Px(icon_node_width * 5.0), Val::Percent(100.0)),
                         //justify_content: JustifyContent::FlexEnd,
@@ -139,13 +139,13 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
                         align_items: AlignItems::Center,
                         ..Default::default()
                     },
-                    color: Color::DARK_GREEN.into(),
+                    background_color: Color::DARK_GREEN.into(),
                     ..Default::default()
                 })
                 .with_children(|parent| {
                     // Bullets fired
                     parent
-                        .spawn_bundle(NodeBundle {
+                        .spawn(NodeBundle {
                             style: Style {
                                 //size: Size::new(Val::Percent(15.0), Val::Percent(100.0)),
                                 size: Size::new(Val::Px(icon_node_width), Val::Px(bar_height)),
@@ -154,18 +154,18 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
                                 align_items: AlignItems::Center,
                                 ..Default::default()
                             },
-                            color: Color::YELLOW_GREEN.into(),
+                            background_color: Color::YELLOW_GREEN.into(),
                             ..Default::default()
                         })
                         .with_children(|parent| {
-                            parent.spawn_bundle(ImageBundle {
+                            parent.spawn(ImageBundle {
                                 image: score_assets.bullet.clone().into(),
-                                transform: Transform::identity()
+                                transform: Transform::IDENTITY
                                     .with_scale(Vec3::new(0.25, 0.25, 1.0)),
                                 ..Default::default()
                             });
                             parent
-                                .spawn_bundle(TextBundle::from_section(
+                                .spawn(TextBundle::from_section(
                                     "0000",
                                     TextStyle {
                                         font: score_assets.font.clone(),
@@ -177,7 +177,7 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
                         });
                     // Aircraft downed
                     parent
-                        .spawn_bundle(NodeBundle {
+                        .spawn(NodeBundle {
                             style: Style {
                                 //size: Size::new(Val::Percent(15.0), Val::Percent(100.0)),
                                 size: Size::new(Val::Px(icon_node_width), Val::Px(bar_height)),
@@ -186,23 +186,23 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
                                 //align_self: AlignSelf::Center,
                                 ..Default::default()
                             },
-                            color: Color::GRAY.into(),
+                            background_color: Color::GRAY.into(),
                             ..Default::default()
                         })
                         .with_children(|parent| {
-                            parent.spawn_bundle(ImageBundle {
+                            parent.spawn(ImageBundle {
                                 image: score_assets.airplane.clone().into(),
                                 //style: Style {
                                 //    //justify_content: JustifyContent::FlexEnd,
                                 //    //justify_content: JustifyContent::SpaceAround,
                                 //    ..Default::default()
                                 //},
-                                transform: Transform::identity()
+                                transform: Transform::IDENTITY
                                     .with_scale(Vec3::new(0.15, 0.15, 1.0)),
                                 ..Default::default()
                             });
                             parent
-                                .spawn_bundle(
+                                .spawn(
                                     TextBundle::from_section(
                                         "000",
                                         TextStyle {
@@ -210,18 +210,17 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
                                             font_size: 30.0,
                                             color: Color::GOLD,
                                         },
-                                    )
-                                    .with_text_alignment(TextAlignment::CENTER_LEFT), //.with_style(Style {
-                                                                                      //    //justify_content: JustifyContent::SpaceAround,
-                                                                                      //    //align_self: AlignSelf::Center,
-                                                                                      //    ..Default::default()
-                                                                                      //}),
+                                    ), //.with_text_alignment(TextAlignment::CENTER_LEFT), //.with_style(Style {
+                                       //    //justify_content: JustifyContent::SpaceAround,
+                                       //    //align_self: AlignSelf::Center,
+                                       //    ..Default::default()
+                                       //}),
                                 )
                                 .insert(AircraftText);
                         });
                     // Paratroopers shot
                     parent
-                        .spawn_bundle(NodeBundle {
+                        .spawn(NodeBundle {
                             style: Style {
                                 //size: Size::new(Val::Percent(15.0), Val::Percent(100.0)),
                                 size: Size::new(Val::Px(icon_node_width), Val::Px(bar_height)),
@@ -229,18 +228,17 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
                                 align_items: AlignItems::Center,
                                 ..Default::default()
                             },
-                            color: Color::BLACK.into(),
+                            background_color: Color::BLACK.into(),
                             ..Default::default()
                         })
                         .with_children(|parent| {
-                            parent.spawn_bundle(ImageBundle {
+                            parent.spawn(ImageBundle {
                                 image: score_assets.paratrooper.clone().into(),
-                                transform: Transform::identity()
-                                    .with_scale(Vec3::new(0.5, 0.5, 1.0)),
+                                transform: Transform::IDENTITY.with_scale(Vec3::new(0.5, 0.5, 1.0)),
                                 ..Default::default()
                             });
                             parent
-                                .spawn_bundle(TextBundle::from_section(
+                                .spawn(TextBundle::from_section(
                                     "000",
                                     TextStyle {
                                         font: score_assets.font.clone(),
@@ -252,7 +250,7 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
                         });
                     // Bombs shot
                     parent
-                        .spawn_bundle(NodeBundle {
+                        .spawn(NodeBundle {
                             style: Style {
                                 //size: Size::new(Val::Percent(15.0), Val::Percent(100.0)),
                                 size: Size::new(Val::Px(icon_node_width), Val::Px(bar_height)),
@@ -260,18 +258,18 @@ fn setup_score_bar(mut commands: Commands, score_assets: Res<ScoreAssets>) {
                                 align_items: AlignItems::Center,
                                 ..Default::default()
                             },
-                            color: Color::RED.into(),
+                            background_color: Color::RED.into(),
                             ..Default::default()
                         })
                         .with_children(|parent| {
-                            parent.spawn_bundle(ImageBundle {
+                            parent.spawn(ImageBundle {
                                 image: score_assets.bomb.clone().into(),
-                                transform: Transform::identity()
+                                transform: Transform::IDENTITY
                                     .with_scale(Vec3::new(0.15, 0.15, 1.0)),
                                 ..Default::default()
                             });
                             parent
-                                .spawn_bundle(TextBundle::from_section(
+                                .spawn(TextBundle::from_section(
                                     "000",
                                     TextStyle {
                                         font: score_assets.font.clone(),
@@ -361,10 +359,10 @@ fn landing_listener_system(mut events: EventReader<LandingEvent>, mut score: Res
 
 fn gun_explosion_listener_system(
     mut events: EventReader<GunExplosionEvent>,
-    mut app_state: ResMut<State<AppState>>,
+    mut next_state: ResMut<NextState<AppState>>,
 ) {
     if events.iter().next().is_some() {
-        app_state.set(AppState::GameOver).unwrap();
+        next_state.set(AppState::GameOver);
     }
 }
 
@@ -403,7 +401,7 @@ fn get_clock_string(seconds_since_startup: f64, score: Score) -> String {
 fn setup_score_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Top center Timer MM:SS
     commands
-        .spawn_bundle(TextBundle {
+        .spawn(TextBundle {
             style: Style {
                 position_type: PositionType::Absolute,
                 position: UiRect {
@@ -443,26 +441,26 @@ impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Score>()
             .add_startup_system(load_assets)
-            .add_system_set(
-                SystemSet::on_enter(AppState::InGame)
-                    .with_system(setup_score_bar)
-                    .with_system(setup_game_clock), //.with_system(setup_score_ui),
+            .add_systems(
+                (setup_game_clock, setup_score_ui, setup_score_bar)
+                    .in_schedule(OnEnter(AppState::InGame)),
             )
-            .add_system_set(
-                SystemSet::on_update(AppState::InGame)
-                    .with_system(kill_listener_system)
-                    .with_system(gib_listener_system)
-                    .with_system(gun_listener_system)
-                    .with_system(landing_listener_system)
-                    .with_system(gun_explosion_listener_system)
-                    .with_system(update_game_clock)
-                    .with_system(update_score_bar), //.with_system(update_clock_ui),
+            .add_systems(
+                (
+                    kill_listener_system,
+                    gib_listener_system,
+                    gun_listener_system,
+                    landing_listener_system,
+                    gun_explosion_listener_system,
+                    update_game_clock,
+                    update_clock_ui,
+                    update_score_bar,
+                )
+                    .in_set(OnUpdate(AppState::InGame)),
             )
-            .add_system_set(
-                SystemSet::on_exit(AppState::InGame)
-                    //.with_system(despawn_score_ui)
-                    .with_system(despawn_score_bar),
+            .add_systems(
+                (despawn_score_bar, despawn_score_ui).in_schedule(OnExit(AppState::InGame)),
             )
-            .add_system_set(SystemSet::on_enter(AppState::GameOver).with_system(game_over));
+            .add_system(game_over.in_schedule(OnEnter(AppState::GameOver)));
     }
 }

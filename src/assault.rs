@@ -11,23 +11,18 @@ const PARATROOPER_ASSAULT_COLLISION_FILTER: u32 = 0b1001;
 /// Turn a lander into an assaulter
 fn enable_assault_system(
     mut commands: Commands,
-    mut query: Query<(
-        Entity,
-        &mut Paratrooper,
-        &mut CollisionGroups, /*, &mut Sensor*/
-    )>,
+    mut query: Query<(Entity, &mut Paratrooper, &mut CollisionGroups)>,
     mut event_reader: EventReader<LandingEvent>,
 ) {
     for event in event_reader.iter() {
         if let Ok((entity, mut paratrooper, mut col_groups /*, mut sensor*/)) =
             query.get_mut(event.0)
         {
-            col_groups.memberships = PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP;
-            col_groups.filters = PARATROOPER_ASSAULT_COLLISION_FILTER;
+            col_groups.memberships =
+                Group::from_bits(PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP).unwrap();
+            col_groups.filters = Group::from_bits(PARATROOPER_ASSAULT_COLLISION_FILTER).unwrap();
             paratrooper.state = ParatrooperState::Assault;
-            commands.entity(entity).remove::<Sensor>(); //.remove(sensor);
-                                                        // remove Sensor component
-                                                        //sensor.0 = false;
+            commands.entity(entity).remove::<Sensor>();
         }
     }
 }
@@ -76,11 +71,13 @@ fn assault_collision_system(
 pub struct AssaultPlugin;
 impl Plugin for AssaultPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(
-            SystemSet::on_update(AppState::InGame)
-                .with_system(enable_assault_system)
-                .with_system(assault_collision_system)
-                .with_system(assault_movement_system),
+        app.add_systems(
+            (
+                enable_assault_system,
+                assault_collision_system,
+                assault_movement_system,
+            )
+                .in_set(OnUpdate(AppState::InGame)),
         );
     }
 }

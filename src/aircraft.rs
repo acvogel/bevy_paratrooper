@@ -26,6 +26,7 @@ impl Default for Aircraft {
     }
 }
 
+#[derive(Resource)]
 struct AircraftTextures {
     image_handle: Handle<Image>,
 }
@@ -56,14 +57,16 @@ fn spawn_aircraft_system(mut commands: Commands, aircraft_textures: Res<Aircraft
         };
 
         commands
-            .spawn()
-            .insert_bundle(sprite_bundle)
+            .spawn(sprite_bundle)
             .insert(transform)
             .insert(RigidBody::Dynamic)
             .insert(Collider::cuboid(412. / 2.0, 114. / 2.0))
             .insert(Sensor)
             .insert(ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC)
-            .insert(CollisionGroups::new(0b0100, 0b1110))
+            .insert(CollisionGroups::new(
+                Group::from_bits(0b0100).unwrap(),
+                Group::from_bits(0b1110).unwrap(),
+            ))
             .insert(LockedAxes::TRANSLATION_LOCKED_Y)
             .insert(Velocity {
                 linvel: Vec2::new(velocity, 0.),
@@ -119,15 +122,15 @@ pub struct AircraftPlugin;
 
 impl Plugin for AircraftPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(
-            SystemSet::on_enter(AppState::InGame).with_system(setup_aircraft_system),
-        )
-        .add_system_set(
-            SystemSet::on_update(AppState::InGame)
-                .with_system(spawn_aircraft_system)
-                .with_system(bullet_collision_system)
-                .with_system(despawn_escaped_aircraft),
-        )
-        .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_all_aircraft));
+        app.add_startup_system(setup_aircraft_system)
+            .add_systems(
+                (
+                    spawn_aircraft_system,
+                    bullet_collision_system,
+                    despawn_escaped_aircraft,
+                )
+                    .in_set(OnUpdate(AppState::InGame)),
+            )
+            .add_system(despawn_all_aircraft.in_schedule(OnExit(AppState::InGame)));
     }
 }

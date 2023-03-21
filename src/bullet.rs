@@ -12,6 +12,7 @@ use std::collections::HashSet;
 #[derive(Component, Default)]
 pub struct Bullet;
 
+#[derive(Resource)]
 struct BulletTextures {
     bullet_handle: Handle<Image>,
 }
@@ -32,9 +33,9 @@ fn shoot_gun(
 ) {
     if keyboard_input.pressed(KeyCode::Space) {
         for (mut gun, transform) in query.iter_mut() {
-            if time.seconds_since_startup() - gun.last_fired > consts::GUN_COOLDOWN {
+            if time.elapsed_seconds_f64() - gun.last_fired > consts::GUN_COOLDOWN {
                 event_writer.send(GunshotEvent);
-                gun.last_fired = time.seconds_since_startup();
+                gun.last_fired = time.elapsed_seconds_f64();
 
                 // Spawn bullet
                 let mut bullet_transform = *transform;
@@ -56,8 +57,7 @@ fn shoot_gun(
                 let velocity_vector = consts::BULLET_SPEED * Vec2::new(local_y.x, local_y.y);
 
                 commands
-                    .spawn()
-                    .insert_bundle(sprite_bundle)
+                    .spawn(sprite_bundle)
                     .insert(RigidBody::Dynamic)
                     .insert(bullet_transform)
                     .insert(Velocity {
@@ -69,7 +69,10 @@ fn shoot_gun(
                         ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC,
                     )
                     .insert(ActiveEvents::COLLISION_EVENTS)
-                    .insert(CollisionGroups::new(0b0010, 0b1101))
+                    .insert(CollisionGroups::new(
+                        Group::from_bits(0b0010).unwrap(),
+                        Group::from_bits(0b1101).unwrap(),
+                    ))
                     .insert(LockedAxes::ROTATION_LOCKED)
                     .insert(Bullet);
             }
@@ -195,13 +198,15 @@ pub struct BulletPlugin;
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_bullets)
-            .add_system_set(
-                SystemSet::on_update(AppState::InGame)
-                    .with_system(shoot_gun)
-                    .with_system(bullet_collision_system)
-                    .with_system(bullet_collision_listener)
-                    .with_system(despawn_escaped_bullets),
+            .add_systems(
+                (
+                    shoot_gun,
+                    bullet_collision_system,
+                    bullet_collision_listener,
+                    despawn_escaped_bullets,
+                )
+                    .in_set(OnUpdate(AppState::InGame)),
             )
-            .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_all_bullets));
+            .add_system(despawn_all_bullets.in_schedule(OnExit(AppState::InGame)));
     }
 }
