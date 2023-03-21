@@ -8,13 +8,22 @@ use bevy::prelude::*;
 use rand::seq::SliceRandom;
 use std::collections::HashMap;
 
+#[derive(Resource)]
 struct GunshotHandle(Handle<AudioSource>);
+#[derive(Resource)]
 struct AircraftExplosionHandle(Handle<AudioSource>);
+#[derive(Resource)]
 struct ScreamHandles(Vec<Handle<AudioSource>>);
+#[derive(Resource)]
 struct BaseExplosionHandle(Handle<AudioSource>);
+
+#[derive(Resource)]
 struct IntroMusicHandle(Handle<AudioSource>);
+#[derive(Resource)]
 struct Level1MusicHandle(Handle<AudioSource>);
+#[derive(Resource)]
 struct CurrentMusic(Option<Handle<AudioSink>>);
+#[derive(Resource)]
 struct BombHandles {
     falling_bomb: Handle<AudioSource>,
     explosion: Handle<AudioSource>,
@@ -24,6 +33,7 @@ struct BombHandles {
 struct Whistler;
 
 /// Bomb entity -> whistling audio handle
+#[derive(Resource)]
 struct Whistles(HashMap<Entity, Handle<AudioSink>>);
 
 fn setup_audio_system(mut commands: Commands, asset_server: ResMut<AssetServer>) {
@@ -132,7 +142,7 @@ fn bomb_spawned_listener(
 
 /// Stop whistling when bombs despawn
 fn whistler_despawn_listener(
-    removed_whistlers: RemovedComponents<Whistler>,
+    mut removed_whistlers: RemovedComponents<Whistler>,
     whistles: Res<Whistles>,
     audio_sinks: Res<Assets<AudioSink>>,
 ) {
@@ -209,15 +219,15 @@ pub struct AudioStatePlugin;
 impl Plugin for AudioStatePlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_audio_system)
-            .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(play_menu_music))
-            .add_system_set(SystemSet::on_exit(AppState::MainMenu).with_system(stop_menu_music))
-            .add_system_set(SystemSet::on_enter(AppState::InGame).with_system(play_level_music))
+            .add_system(play_menu_music.in_schedule(OnEnter(AppState::MainMenu)))
+            .add_system(stop_menu_music.in_schedule(OnExit(AppState::MainMenu)))
+            .add_system(play_level_music.in_schedule(OnEnter(AppState::InGame)))
             .add_system(gunshot_listener)
             .add_system(gib_listener)
             .add_system(base_explosion_listener)
             .add_system(bomb_spawned_listener)
             .add_system(bomb_explosion_listener)
             .add_system(explosion_listener)
-            .add_system_to_stage(CoreStage::PostUpdate, whistler_despawn_listener);
+            .add_system(whistler_despawn_listener.in_set(OnUpdate(AppState::InGame)));
     }
 }

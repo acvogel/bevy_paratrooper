@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use crate::events::*;
 
-#[derive(Component, Debug, Default, Clone, Copy)]
+#[derive(Component, Debug, Default, Clone, Copy, Resource)]
 pub struct Score {
     pub shots: u32,
     pub aircraft_kills: u32,
@@ -19,7 +19,7 @@ pub struct Score {
 pub struct ClockText;
 
 /// AppState::InGame time
-#[derive(Component)]
+#[derive(Component, Resource)]
 pub struct GameClock {
     duration: Duration,
 }
@@ -55,10 +55,10 @@ fn landing_listener_system(mut events: EventReader<LandingEvent>, mut score: Res
 
 fn gun_explosion_listener_system(
     mut events: EventReader<GunExplosionEvent>,
-    mut app_state: ResMut<State<AppState>>,
+    mut next_state: ResMut<NextState<AppState>>,
 ) {
     if events.iter().next().is_some() {
-        app_state.set(AppState::GameOver).unwrap();
+        next_state.set(AppState::GameOver);
     }
 }
 
@@ -97,7 +97,7 @@ fn get_clock_string(seconds_since_startup: f64, score: Score) -> String {
 fn setup_score_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Top center Timer MM:SS
     commands
-        .spawn_bundle(TextBundle {
+        .spawn(TextBundle {
             style: Style {
                 position_type: PositionType::Absolute,
                 position: UiRect {
@@ -136,22 +136,20 @@ pub struct ScorePlugin;
 impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Score>()
-            .add_system_set(
-                SystemSet::on_enter(AppState::InGame)
-                    .with_system(setup_game_clock)
-                    .with_system(setup_score_ui),
+            .add_systems((setup_game_clock, setup_score_ui).in_schedule(OnEnter(AppState::InGame)))
+            .add_systems(
+                (
+                    kill_listener_system,
+                    gib_listener_system,
+                    gun_listener_system,
+                    landing_listener_system,
+                    gun_explosion_listener_system,
+                    update_game_clock,
+                    update_clock_ui,
+                )
+                    .in_set(OnUpdate(AppState::InGame)),
             )
-            .add_system_set(
-                SystemSet::on_update(AppState::InGame)
-                    .with_system(kill_listener_system)
-                    .with_system(gib_listener_system)
-                    .with_system(gun_listener_system)
-                    .with_system(landing_listener_system)
-                    .with_system(gun_explosion_listener_system)
-                    .with_system(update_game_clock)
-                    .with_system(update_clock_ui),
-            )
-            .add_system_set(SystemSet::on_exit(AppState::InGame).with_system(despawn_score_ui))
-            .add_system_set(SystemSet::on_enter(AppState::GameOver).with_system(game_over));
+            .add_system(despawn_score_ui.in_schedule(OnExit(AppState::InGame)))
+            .add_system(game_over.in_schedule(OnEnter(AppState::GameOver)));
     }
 }

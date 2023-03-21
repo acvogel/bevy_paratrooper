@@ -29,6 +29,7 @@ struct Bomber {
 #[derive(Component)]
 pub struct Bomb;
 
+#[derive(Resource)]
 struct BomberTextures {
     bomber: Handle<Image>,
     bomb: Handle<TextureAtlas>,
@@ -45,6 +46,8 @@ fn setup_bomber_system(
         Vec2::new(64., 128.),
         4,
         1,
+        None,
+        None,
     );
     commands.insert_resource(BomberTextures {
         bomber: asset_server.load("images/bomber.png"),
@@ -78,14 +81,16 @@ fn spawn_bomber_system(mut commands: Commands, textures: Res<BomberTextures>) {
         };
 
         commands
-            .spawn()
-            .insert_bundle(sprite_bundle)
+            .spawn(sprite_bundle)
             .insert(transform)
             .insert(RigidBody::Dynamic)
             .insert(Collider::cuboid(412. / 2.0, 114. / 2.0))
             .insert(Sensor)
             .insert(ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC)
-            .insert(CollisionGroups::new(0b0100, 0b1110))
+            .insert(CollisionGroups::new(
+                Group::from_bits(0b0100).unwrap(),
+                Group::from_bits(0b1110).unwrap(),
+            ))
             .insert(LockedAxes::TRANSLATION_LOCKED_Y)
             .insert(Velocity {
                 linvel: Vec2::new(velocity, 0.),
@@ -129,10 +134,9 @@ fn spawn_bombs(
                 );
 
                 commands
-                    .spawn()
-                    .insert(RigidBody::Dynamic)
+                    .spawn(RigidBody::Dynamic)
                     .insert(Sensor)
-                    .insert_bundle(SpriteSheetBundle {
+                    .insert(SpriteSheetBundle {
                         sprite: TextureAtlasSprite::new(1),
                         texture_atlas: bomber_textures.bomb.clone(),
                         ..Default::default()
@@ -232,16 +236,16 @@ pub struct BomberPlugin;
 
 impl Plugin for BomberPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_bomber_system)
-            .add_system_set(
-                SystemSet::on_update(AppState::InGame)
-                    .with_system(spawn_bomber_system)
-                    .with_system(bomb_bullet_collision_system)
-                    .with_system(bomb_terrain_collision_system)
-                    .with_system(spawn_bombs),
+        app.add_system(setup_bomber_system.in_base_set(StartupSet::PostStartupFlush))
+            .add_systems(
+                (
+                    spawn_bomber_system,
+                    bomb_bullet_collision_system,
+                    bomb_terrain_collision_system,
+                    spawn_bombs,
+                )
+                    .in_set(OnUpdate(AppState::InGame)),
             )
-            .add_system_set(
-                SystemSet::on_exit(AppState::InGame).with_system(despawn_bomber_system),
-            );
+            .add_system(despawn_bomber_system.in_schedule(OnExit(AppState::InGame)));
     }
 }

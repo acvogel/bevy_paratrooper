@@ -21,8 +21,7 @@ fn setup_ground(mut commands: Commands) {
         ..Default::default()
     };
     commands
-        .spawn()
-        .insert_bundle(sprite_bundle)
+        .spawn(sprite_bundle)
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(
             consts::WINDOW_WIDTH / 2.0,
@@ -55,7 +54,7 @@ fn setup_skyline(mut commands: Commands, asset_server: Res<AssetServer>) {
     let scale_multiplier = consts::WINDOW_WIDTH / width;
     let scale = Vec3::splat(scale_multiplier);
     let y = consts::GROUND_Y + 0.5 * height * scale_multiplier;
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         texture: asset_server.load("images/city4.png"),
         transform: Transform {
             translation: Vec3::new(0., y, 0.),

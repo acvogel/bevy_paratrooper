@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::RapierConfiguration;
 
-#[allow(unused)]
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(PartialEq, Default, Debug, Clone, Eq, Hash, Resource, States)]
 pub enum AppState {
+    #[default]
     MainMenu,
     InGame,
     GameOver,
@@ -16,6 +16,7 @@ pub struct TitleText;
 #[derive(Component)]
 pub struct PauseText;
 
+#[derive(Resource)]
 struct FontHandles {
     handle: Handle<Font>,
 }
@@ -29,7 +30,7 @@ fn load_fonts(mut commands: Commands, asset_server: Res<AssetServer>) {
 /// Draw a big text sprite in the top middle
 fn setup_title_screen(mut commands: Commands, font_handles: Res<FontHandles>) {
     commands
-        .spawn_bundle(TextBundle {
+        .spawn(TextBundle {
             node: Default::default(),
             style: Style {
                 align_self: AlignSelf::Auto,
@@ -60,9 +61,12 @@ fn despawn_title_screen(mut commands: Commands, query: Query<Entity, With<TitleT
     }
 }
 
-fn any_key_listener(keyboard_input: Res<Input<KeyCode>>, mut app_state: ResMut<State<AppState>>) {
+fn any_key_listener(
+    keyboard_input: Res<Input<KeyCode>>,
+    mut next_state: ResMut<NextState<AppState>>,
+) {
     if keyboard_input.get_just_pressed().count() > 0 {
-        app_state.set(AppState::InGame).unwrap();
+        next_state.set(AppState::InGame);
     }
 }
 
@@ -71,7 +75,7 @@ pub struct ContinueText;
 
 fn spawn_game_over_text(mut commands: Commands, font_handles: Res<FontHandles>) {
     commands
-        .spawn_bundle(TextBundle {
+        .spawn(TextBundle {
             style: Style {
                 align_self: AlignSelf::FlexEnd,
                 position_type: PositionType::Absolute,
@@ -103,23 +107,24 @@ fn despawn_game_over_text(mut commands: Commands, query: Query<Entity, With<Cont
 
 /// Pause the game, only while in game
 fn pause_listener(
-    mut state: ResMut<State<AppState>>,
+    state: ResMut<State<AppState>>,
+    mut next_state: ResMut<NextState<AppState>>,
     keyboard_input: Res<Input<KeyCode>>,
     mut rapier_configuration: ResMut<RapierConfiguration>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Pause) {
-        match state.current() {
+        match state.0 {
             AppState::Paused => {
                 // Unpause
                 rapier_configuration.physics_pipeline_active = true;
                 rapier_configuration.query_pipeline_active = true;
-                state.pop().unwrap();
+                next_state.set(AppState::InGame);
             }
             AppState::InGame => {
                 // Pause
                 rapier_configuration.physics_pipeline_active = false;
                 rapier_configuration.query_pipeline_active = false;
-                state.push(AppState::Paused).unwrap();
+                next_state.set(AppState::Paused);
             }
             _ => (),
         };
@@ -128,7 +133,7 @@ fn pause_listener(
 
 fn spawn_pause_ui(mut commands: Commands, fonts: Res<FontHandles>) {
     commands
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 size: Size::new(Val::Percent(100.), Val::Percent(100.)),
                 position_type: PositionType::Absolute,
@@ -136,11 +141,11 @@ fn spawn_pause_ui(mut commands: Commands, fonts: Res<FontHandles>) {
                 align_items: AlignItems::FlexEnd,
                 ..Default::default()
             },
-            color: Color::NONE.into(),
+            background_color: Color::NONE.into(),
             ..Default::default()
         })
         .with_children(|parent| {
-            parent.spawn_bundle(TextBundle {
+            parent.spawn(TextBundle {
                 style: Style {
                     align_self: AlignSelf::Center,
                     position_type: PositionType::Absolute,
@@ -172,19 +177,13 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(load_fonts)
             .add_system(pause_listener)
-            .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(setup_title_screen))
-            .add_system_set(SystemSet::on_update(AppState::MainMenu).with_system(any_key_listener))
-            .add_system_set(
-                SystemSet::on_exit(AppState::MainMenu).with_system(despawn_title_screen),
-            )
-            .add_system_set(
-                SystemSet::on_enter(AppState::GameOver).with_system(spawn_game_over_text),
-            )
-            .add_system_set(SystemSet::on_update(AppState::GameOver).with_system(any_key_listener))
-            .add_system_set(
-                SystemSet::on_exit(AppState::GameOver).with_system(despawn_game_over_text),
-            )
-            .add_system_set(SystemSet::on_enter(AppState::Paused).with_system(spawn_pause_ui))
-            .add_system_set(SystemSet::on_exit(AppState::Paused).with_system(despawn_pause_ui));
+            .add_system(setup_title_screen.in_schedule(OnEnter(AppState::MainMenu)))
+            .add_system(any_key_listener.in_set(OnUpdate(AppState::MainMenu)))
+            .add_system(despawn_title_screen.in_schedule(OnExit(AppState::MainMenu)))
+            .add_system(spawn_game_over_text.in_schedule(OnEnter(AppState::GameOver)))
+            .add_system(any_key_listener.in_set(OnUpdate(AppState::GameOver)))
+            .add_system(despawn_game_over_text.in_schedule(OnExit(AppState::GameOver)))
+            .add_system(spawn_pause_ui.in_schedule(OnEnter(AppState::Paused)))
+            .add_system(despawn_pause_ui.in_schedule(OnExit(AppState::Paused)));
     }
 }

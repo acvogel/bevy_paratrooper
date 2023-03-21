@@ -15,6 +15,7 @@ const SPAWN_RIGHT_X: f32 = WINDOW_WIDTH / 2.0 + 50.;
 #[derive(Component)]
 pub struct Cloud;
 
+#[derive(Resource)]
 struct CloudTextures {
     cloud_handles: Vec<Handle<Image>>,
 }
@@ -56,8 +57,7 @@ fn spawn_cloud_system(mut commands: Commands, textures: Res<CloudTextures>) {
         };
 
         commands
-            .spawn()
-            .insert_bundle(sprite_bundle)
+            .spawn(sprite_bundle)
             .insert(RigidBody::Dynamic)
             .insert(Transform {
                 scale: Vec3::new(CLOUD_SCALE, CLOUD_SCALE, 1.0),
