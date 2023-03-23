@@ -8,6 +8,9 @@ use std::time::Duration;
 use crate::events::*;
 use crate::paratrooper::PARATROOPER_SCALE;
 
+const SUBSCORE_COLOR: Color = Color::GOLD;
+const FONT_SIZE: f32 = 40.0;
+
 #[derive(Component, Debug, Default, Clone, Copy, Resource)]
 pub struct Score {
     pub shots: u32,
@@ -103,7 +106,6 @@ fn setup_score_bar(mut commands: Commands, assets: Res<ScoreAssets>) {
                         },
                         ..default()
                     },
-                    //background_color: BackgroundColor(Color::BLACK),
                     ..default()
                 })
                 .with_children(|parent| {
@@ -129,7 +131,6 @@ fn spawn_clock_text(builder: &mut ChildBuilder, font: Handle<Font>) {
         .with_children(|parent| {
             parent
                 .spawn(TextBundle {
-                    //style: Style::DEFAULT,
                     style: Style {
                         justify_content: JustifyContent::Center,
                         align_content: AlignContent::Center,
@@ -139,7 +140,7 @@ fn spawn_clock_text(builder: &mut ChildBuilder, font: Handle<Font>) {
                         "",
                         TextStyle {
                             font: font.clone(),
-                            font_size: 40.,
+                            font_size: FONT_SIZE,
                             color: Color::RED,
                         },
                     ),
@@ -153,13 +154,8 @@ fn spawn_aircraft_subscore(builder: &mut ChildBuilder, font: Handle<Font>, icon:
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3333)),
+                size: Size::width(Val::Percent(33.3)),
                 align_items: AlignItems::Center,
-                //padding: UiRect {
-                //    left: Val::Px(20.0),
-                //    right: Val::Px(20.0),
-                //    ..default()
-                //},
                 ..default()
             },
             ..default()
@@ -168,14 +164,13 @@ fn spawn_aircraft_subscore(builder: &mut ChildBuilder, font: Handle<Font>, icon:
             // padding right?
             parent.spawn(ImageBundle {
                 image: icon.clone().into(),
-                //style: Style {
-                //    padding: UiRect {
-                //        left: Val::Px(20.0),
-                //        right: Val::Px(20.0),
-                //        ..default()
-                //    },
-                //    ..default()
-                //},
+                style: Style {
+                    margin: UiRect {
+                        right: Val::Px(5.0),
+                        ..default()
+                    },
+                    ..default()
+                },
                 ..default()
             });
             parent
@@ -184,7 +179,7 @@ fn spawn_aircraft_subscore(builder: &mut ChildBuilder, font: Handle<Font>, icon:
                     TextStyle {
                         font: font.clone(),
                         font_size: 30.0,
-                        color: Color::GOLD,
+                        color: SUBSCORE_COLOR,
                     },
                 ))
                 .insert(AircraftText);
@@ -195,7 +190,7 @@ fn spawn_bomb_subscore(builder: &mut ChildBuilder, font: Handle<Font>, icon: Han
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3333)),
+                size: Size::width(Val::Percent(33.3)),
                 align_items: AlignItems::Center,
                 ..default()
             },
@@ -204,6 +199,13 @@ fn spawn_bomb_subscore(builder: &mut ChildBuilder, font: Handle<Font>, icon: Han
         .with_children(|parent| {
             parent.spawn(ImageBundle {
                 image: icon.clone().into(),
+                style: Style {
+                    margin: UiRect {
+                        right: Val::Px(5.0),
+                        ..default()
+                    },
+                    ..default()
+                },
                 ..default()
             });
             parent
@@ -212,7 +214,7 @@ fn spawn_bomb_subscore(builder: &mut ChildBuilder, font: Handle<Font>, icon: Han
                     TextStyle {
                         font: font.clone(),
                         font_size: 30.0,
-                        color: Color::GOLD,
+                        color: SUBSCORE_COLOR,
                     },
                 ))
                 .insert(BombText);
@@ -223,7 +225,7 @@ fn spawn_paratrooper_subscore(builder: &mut ChildBuilder, font: Handle<Font>, ic
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3333)),
+                size: Size::width(Val::Percent(25.0)),
                 align_items: AlignItems::Center,
                 ..default()
             },
@@ -245,7 +247,7 @@ fn spawn_paratrooper_subscore(builder: &mut ChildBuilder, font: Handle<Font>, ic
                     TextStyle {
                         font: font.clone(),
                         font_size: 30.0,
-                        color: Color::GOLD,
+                        color: SUBSCORE_COLOR,
                     },
                 ))
                 .insert(ParatrooperText);
@@ -254,7 +256,7 @@ fn spawn_paratrooper_subscore(builder: &mut ChildBuilder, font: Handle<Font>, ic
 
 /// Paratroopers
 /// Aircraft
-/// Bombers
+/// Bombs
 fn spawn_subscores(builder: &mut ChildBuilder, assets: Res<ScoreAssets>) {
     builder
         .spawn(NodeBundle {
@@ -426,7 +428,7 @@ fn setup_score_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                 "",
                 TextStyle {
                     font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: 40.,
+                    font_size: FONT_SIZE,
                     color: Color::RED,
                 },
             ),
