@@ -1,7 +1,5 @@
-use crate::aircraft::AIRCRAFT_SCALE;
 use crate::consts::{WINDOW_HEIGHT, WINDOW_WIDTH};
-use crate::{paratrooper, AppState};
-use bevy::prelude::KeyCode::Back;
+use crate::AppState;
 use bevy::prelude::*;
 use std::time::Duration;
 
@@ -27,7 +25,6 @@ pub struct Score {
 const SHOT_SCORE: i32 = -1;
 const AIRCRAFT_KILL_SCORE: i32 = 10;
 const PARATROOPER_KILL_SCORE: i32 = 5;
-const BOMBER_KILL_SCORE: i32 = 10;
 const BOMB_KILL_SCORE: i32 = 30;
 
 #[derive(Component)]
@@ -60,22 +57,18 @@ pub struct GameClock {
 /// Score UI font and textures
 #[derive(Resource)]
 struct ScoreAssets {
-    font: Handle<Font>,
     aircraft: Handle<Image>,
-    paratrooper: Handle<Image>,
-    bullet: Handle<Image>,
-    bomber: Handle<Image>,
     bomb: Handle<Image>,
+    font: Handle<Font>,
+    paratrooper: Handle<Image>,
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(ScoreAssets {
-        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
         aircraft: asset_server.load("images/paraplane1_icon.png"),
-        paratrooper: asset_server.load("images/paratrooperfly1_body.png"),
-        bullet: asset_server.load("images/bullet.png"),
-        bomber: asset_server.load("images/bomber.png"),
         bomb: asset_server.load("images/bomb4_icon.png"),
+        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+        paratrooper: asset_server.load("images/paratrooperfly1_body.png"),
     });
 }
 
@@ -410,39 +403,6 @@ fn update_game_clock(mut game_clock: ResMut<GameClock>, time: Res<Time>) {
     game_clock.duration += Duration::from_secs_f64(time.delta_seconds_f64());
 }
 
-// UI: simple text somewhere like upper left for now
-fn setup_score_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // Top center Timer MM:SS
-    commands
-        .spawn(TextBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                position: UiRect {
-                    top: Val::Px(15.),
-                    left: Val::Px(15.),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            text: Text::from_section(
-                "",
-                TextStyle {
-                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: FONT_SIZE,
-                    color: Color::RED,
-                },
-            ),
-            ..Default::default()
-        })
-        .insert(ClockText);
-}
-
-fn despawn_score_ui(mut commands: Commands, query: Query<Entity, With<ClockText>>) {
-    for entity in query.iter() {
-        commands.entity(entity).despawn();
-    }
-}
-
 fn game_over(mut game_clock: ResMut<GameClock>, mut score: ResMut<Score>) {
     game_clock.duration = Duration::ZERO;
     *score = Score::default();
@@ -454,13 +414,7 @@ impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Score>()
             .add_startup_system(setup)
-            .add_systems(
-                (
-                    setup_game_clock,
-                    setup_score_bar, /*setup_score_ui, setup_score_bar*/
-                )
-                    .in_schedule(OnEnter(AppState::InGame)),
-            )
+            .add_systems((setup_game_clock, setup_score_bar).in_schedule(OnEnter(AppState::InGame)))
             .add_systems(
                 (
                     kill_listener_system,
@@ -474,9 +428,7 @@ impl Plugin for ScorePlugin {
                 )
                     .in_set(OnUpdate(AppState::InGame)),
             )
-            .add_systems(
-                (despawn_score_bar /*despawn_score_ui*/,).in_schedule(OnExit(AppState::InGame)),
-            )
+            .add_system(despawn_score_bar.in_schedule(OnExit(AppState::InGame)))
             .add_system(game_over.in_schedule(OnEnter(AppState::GameOver)));
     }
 }

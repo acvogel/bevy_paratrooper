@@ -50,7 +50,7 @@ fn main() {
         .add_plugin(TerrainPlugin)
         .add_plugin(ParatrooperPlugin)
         .add_plugin(ScorePlugin)
-        //.add_plugin(AudioStatePlugin) // todo no audio testing
+        .add_plugin(AudioStatePlugin)
         .add_plugin(ExplosionPlugin)
         .add_plugin(MenuPlugin)
         .add_plugin(CloudPlugin)
