@@ -10,7 +10,7 @@ const PARACHUTE_SPAWN_PROBABILITY: f32 = 0.01;
 const PARACHUTE_DAMPING: f32 = 1.0; // 100% air resistance
 const MIN_PARACHUTE_VELOCITY: f32 = -70.; // meters / second
 const PARACHUTE_GRAVITY_SCALE: f32 = 2.0;
-const PARATROOPER_SCALE: f32 = 0.5;
+pub const PARATROOPER_SCALE: f32 = 0.5;
 
 // 31 x 49 texture, scaled
 pub const PARATROOPER_X: f32 = PARATROOPER_SCALE * 31.;

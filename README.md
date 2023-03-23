@@ -9,3 +9,6 @@
 ## Assets
 - https://opengameart.org/content/war-on-water-gfx
 - https://opengameart.org/content/512-sound-effects-8-bit-style
+
+## itch.io publish
+butler push paratrooper.zip mbusux/paratrooper:linux --userversion 0.1

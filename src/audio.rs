@@ -120,7 +120,10 @@ fn gunshot_listener(
     events: EventReader<GunshotEvent>,
 ) {
     if !events.is_empty() {
-        audio.play(gunshot_handle.0.clone());
+        audio.play_with_settings(
+            gunshot_handle.0.clone(),
+            PlaybackSettings::ONCE.with_volume(0.3),
+        );
     }
 }
 
