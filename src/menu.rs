@@ -135,7 +135,8 @@ fn spawn_pause_ui(mut commands: Commands, fonts: Res<FontHandles>) {
     commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size::new(Val::Percent(100.), Val::Percent(100.)),
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 position_type: PositionType::Absolute,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::FlexEnd,

@@ -77,7 +77,7 @@ fn setup_score_bar(mut commands: Commands, assets: Res<ScoreAssets>) {
     commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(100.0)),
+                width: Val::Percent(100.),
                 justify_content: JustifyContent::SpaceBetween,
                 ..default()
             },
@@ -87,7 +87,8 @@ fn setup_score_bar(mut commands: Commands, assets: Res<ScoreAssets>) {
             parent
                 .spawn(NodeBundle {
                     style: Style {
-                        size: Size::new(Val::Px(WINDOW_WIDTH), Val::Px(bar_height)),
+                        width: Val::Px(WINDOW_WIDTH),
+                        height: Val::Px(bar_height),
                         flex_direction: FlexDirection::Row,
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
@@ -113,7 +114,7 @@ fn spawn_clock_text(builder: &mut ChildBuilder, font: Handle<Font>) {
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3)),
+                width: Val::Percent(33.3),
                 align_items: AlignItems::Center,
                 align_content: AlignContent::Center,
                 justify_content: JustifyContent::Center,
@@ -147,7 +148,7 @@ fn spawn_aircraft_subscore(builder: &mut ChildBuilder, font: Handle<Font>, icon:
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3)),
+                width: Val::Percent(33.3),
                 align_items: AlignItems::Center,
                 ..default()
             },
@@ -183,7 +184,7 @@ fn spawn_bomb_subscore(builder: &mut ChildBuilder, font: Handle<Font>, icon: Han
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3)),
+                width: Val::Percent(33.3),
                 align_items: AlignItems::Center,
                 ..default()
             },
@@ -218,7 +219,7 @@ fn spawn_paratrooper_subscore(builder: &mut ChildBuilder, font: Handle<Font>, ic
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(25.0)),
+                width: Val::Percent(25.0),
                 align_items: AlignItems::Center,
                 ..default()
             },
@@ -254,7 +255,7 @@ fn spawn_subscores(builder: &mut ChildBuilder, assets: Res<ScoreAssets>) {
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3)),
+                width: Val::Percent(33.3),
                 ..default()
             },
             ..default()
@@ -271,7 +272,8 @@ fn spawn_score_text(builder: &mut ChildBuilder, font: Handle<Font>) {
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3)),
+                width: Val::Percent(33.3),
+
                 align_items: AlignItems::Center,
                 margin: UiRect {
                     left: Val::Px(20.0),
