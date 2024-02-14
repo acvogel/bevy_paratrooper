@@ -176,15 +176,17 @@ pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(load_fonts)
-            .add_system(pause_listener)
-            .add_system(setup_title_screen.in_schedule(OnEnter(AppState::MainMenu)))
-            .add_system(any_key_listener.in_set(OnUpdate(AppState::MainMenu)))
-            .add_system(despawn_title_screen.in_schedule(OnExit(AppState::MainMenu)))
-            .add_system(spawn_game_over_text.in_schedule(OnEnter(AppState::GameOver)))
-            .add_system(any_key_listener.in_set(OnUpdate(AppState::GameOver)))
-            .add_system(despawn_game_over_text.in_schedule(OnExit(AppState::GameOver)))
-            .add_system(spawn_pause_ui.in_schedule(OnEnter(AppState::Paused)))
-            .add_system(despawn_pause_ui.in_schedule(OnExit(AppState::Paused)));
+        app.add_system(Startup, load_fonts)
+            .add_system(OnEnter(AppState::MainMenu), setup_title_screen)
+            .add_system(
+                Update,
+                any_key_listener
+                    .run_if(in_state(AppState::MainMenu).or_else(in_state(AppState::GameOver))),
+            )
+            .add_system(OnExit(AppState::MainMenu), despawn_title_screen)
+            .add_system(OnEnter(AppState::GameOver), spawn_game_over_text)
+            .add_system(OnExit(AppState::GameOver), despawn_game_over_text)
+            .add_system(OnEnter(AppState::Paused), spawn_pause_ui)
+            .add_system(OnExit(AppState::Paused), despawn_pause_ui);
     }
 }

@@ -236,16 +236,17 @@ pub struct BomberPlugin;
 
 impl Plugin for BomberPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup_bomber_system.in_base_set(StartupSet::PostStartupFlush))
+        app.add_system(Startup, setup_bomber_system) // todo(adam): previously StartupSet::PostStartupFlush ??
             .add_systems(
+                Update,
                 (
                     spawn_bomber_system,
                     bomb_bullet_collision_system,
                     bomb_terrain_collision_system,
                     spawn_bombs,
                 )
-                    .in_set(OnUpdate(AppState::InGame)),
+                    .run_if(in_state(AppState::InGame)),
             )
-            .add_system(despawn_bomber_system.in_schedule(OnExit(AppState::InGame)));
+            .add_system(OnExit(AppState::InGame), despawn_bomber_system);
     }
 }

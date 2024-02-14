@@ -72,12 +72,13 @@ pub struct AssaultPlugin;
 impl Plugin for AssaultPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
+            Update,
             (
                 enable_assault_system,
                 assault_collision_system,
                 assault_movement_system,
             )
-                .in_set(OnUpdate(AppState::InGame)),
+                .run_if(in_state(AppState::InGame)),
         );
     }
 }

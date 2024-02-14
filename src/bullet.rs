@@ -197,16 +197,15 @@ pub struct BulletPlugin;
 
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_bullets)
-            .add_systems(
-                (
-                    shoot_gun,
-                    bullet_collision_system,
-                    bullet_collision_listener,
-                    despawn_escaped_bullets,
-                )
-                    .in_set(OnUpdate(AppState::InGame)),
+        app.add_systems(Startup, setup_bullets).add_systems(
+            Update,
+            (
+                shoot_gun,
+                bullet_collision_system,
+                bullet_collision_listener,
+                despawn_escaped_bullets,
             )
-            .add_system(despawn_all_bullets.in_schedule(OnExit(AppState::InGame)));
+                .run_if(in_state(AppState::InGame)),
+        );
     }
 }

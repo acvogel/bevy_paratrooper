@@ -186,9 +186,12 @@ pub struct GunPlugin;
 impl Plugin for GunPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            (setup_gun_base, setup_gun_mount, setup_gun_barrel)
-                .in_schedule(OnEnter(AppState::MainMenu)),
+            OnEnter(AppState::MainMenu),
+            (setup_gun_base, setup_gun_mount, setup_gun_barrel),
         )
-        .add_systems((move_gun, gun_collision_system).in_set(OnUpdate(AppState::InGame)));
+        .add_systems(
+            Update,
+            (move_gun, gun_collision_system).run_if(in_state(AppState::InGame)),
+        );
     }
 }

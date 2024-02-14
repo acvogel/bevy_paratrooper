@@ -415,9 +415,13 @@ pub struct ScorePlugin;
 impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Score>()
-            .add_startup_system(setup)
-            .add_systems((setup_game_clock, setup_score_bar).in_schedule(OnEnter(AppState::InGame)))
+            .add_system(Startup, setup)
             .add_systems(
+                OnEnter(AppState::InGame),
+                (setup_game_clock, setup_score_bar),
+            )
+            .add_systems(
+                Update,
                 (
                     kill_listener_system,
                     gib_listener_system,
@@ -428,9 +432,9 @@ impl Plugin for ScorePlugin {
                     update_clock_ui,
                     update_score_bar,
                 )
-                    .in_set(OnUpdate(AppState::InGame)),
+                    .run_if(in_state(AppState::InGame)),
             )
-            .add_system(despawn_score_bar.in_schedule(OnExit(AppState::InGame)))
-            .add_system(game_over.in_schedule(OnEnter(AppState::GameOver)));
+            .add_system(OnExit(AppState::InGame), despawn_score_bar)
+            .add_system(OnEnter(AppState::GameOver), game_over);
     }
 }

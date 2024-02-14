@@ -1,4 +1,4 @@
-use crate::{ExplosionEvent, ExplosionType, GibEvent, GunExplosionEvent};
+use crate::{AppState, ExplosionEvent, ExplosionType, GibEvent, GunExplosionEvent};
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -171,10 +171,15 @@ pub struct ExplosionPlugin;
 
 impl Plugin for ExplosionPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_explosion_system)
-            .add_system(spawn_explosion_system)
-            .add_system(spawn_gun_explosion_system)
-            .add_system(spawn_gib_system)
-            .add_system(animate_explosion_system);
+        app.add_system(Startup, setup_explosion_system).add_systems(
+            Update,
+            (
+                spawn_explosion_system,
+                spawn_gun_explosion_system,
+                spawn_gib_system,
+                animate_explosion_system,
+            )
+                .run_if(in_state(AppState::InGame)),
+        );
     }
 }

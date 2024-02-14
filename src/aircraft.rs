@@ -122,15 +122,16 @@ pub struct AircraftPlugin;
 
 impl Plugin for AircraftPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_aircraft_system)
+        app.add_system(Startup, setup_aircraft_system)
             .add_systems(
+                Update,
                 (
                     spawn_aircraft_system,
                     bullet_collision_system,
                     despawn_escaped_aircraft,
                 )
-                    .in_set(OnUpdate(AppState::InGame)),
+                    .run_if(in_state(AppState::InGame)),
             )
-            .add_system(despawn_all_aircraft.in_schedule(OnExit(AppState::InGame)));
+            .add_system(OnExit(AppState::InGame), despawn_all_aircraft);
     }
 }
