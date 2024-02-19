@@ -124,21 +124,6 @@ fn bomb_spawned_listener(
     }
 }
 
-/// Stop whistling when bombs despawn
-//fn whistler_despawn_listener(
-//    mut removed_whistlers: RemovedComponents<Whistler>,
-//    whistles: Res<Whistles>,
-//    audio_sinks: Res<Assets<AudioSink>>,
-//) {
-//    for entity in removed_whistlers.iter() {
-//        if let Some(whistle_handle) = whistles.0.get(&entity) {
-//            if let Some(sink) = audio_sinks.get(whistle_handle) {
-//                sink.stop();
-//            }
-//        }
-//    }
-//}
-
 /// Spawn bomb explosion sound
 fn bomb_explosion_listener(
     mut commands: Commands,
@@ -275,7 +260,6 @@ impl Plugin for AudioStatePlugin {
                     bomb_spawned_listener,
                     bomb_explosion_listener,
                     explosion_listener,
-                    //whistler_despawn_listener,// todo: does Bomb despawn also stop audio?
                 )
                     .run_if(in_state(AppState::InGame)),
             );
