@@ -80,9 +80,11 @@ fn play_level_music(
 fn gunshot_listener(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    events: EventReader<GunshotEvent>,
+    mut events: EventReader<GunshotEvent>,
 ) {
+    // xxx event not getting dropped?
     if !events.is_empty() {
+        events.clear();
         commands.spawn((
             AudioBundle {
                 source: asset_server.load("audio/sfx_weapon_singleshot20.wav"),
@@ -104,7 +106,7 @@ fn bomb_spawned_listener(
     asset_server: ResMut<AssetServer>,
     bomb_query: Query<(Entity, Added<Bomb>)>,
 ) {
-    for (entity, _) in bomb_query.iter() {
+    for (entity, _added_bomb) in bomb_query.iter().filter(|(_e, added_bomb)| *added_bomb) {
         // Attach AudioBundle to Bomb entity
         commands.entity(entity).insert({
             (
