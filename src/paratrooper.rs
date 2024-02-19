@@ -170,7 +170,7 @@ fn bullet_collision_system(
     mut event_reader: EventReader<BulletCollisionEvent>,
     mut event_writer: EventWriter<GibEvent>,
 ) {
-    for event in event_reader.iter() {
+    for event in event_reader.read() {
         match event.collision_type {
             CollisionType::Paratrooper => {
                 if let Ok((
@@ -244,7 +244,7 @@ fn paratrooper_landing_system(
     mut event_writer: EventWriter<LandingEvent>,
     mut gib_event_writer: EventWriter<GibEvent>,
 ) {
-    for collision_event in collision_events.iter() {
+    for collision_event in collision_events.read() {
         for ground_entity in ground_query.iter() {
             for (paratrooper_entity, mut paratrooper, &transform, mut _velocity, children_option) in
                 paratrooper_query.iter_mut()
@@ -361,7 +361,7 @@ pub struct ParatrooperPlugin;
 
 impl Plugin for ParatrooperPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(Startup, setup_paratroopers)
+        app.add_systems(Startup, setup_paratroopers)
             .add_systems(
                 Update,
                 (
@@ -372,6 +372,6 @@ impl Plugin for ParatrooperPlugin {
                 )
                     .run_if(in_state(AppState::InGame)),
             )
-            .add_system(OnExit(AppState::InGame), despawn_paratrooper_system);
+            .add_systems(OnExit(AppState::InGame), despawn_paratrooper_system);
     }
 }

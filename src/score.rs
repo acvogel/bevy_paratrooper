@@ -94,10 +94,7 @@ fn setup_score_bar(mut commands: Commands, assets: Res<ScoreAssets>) {
                         align_items: AlignItems::Center,
                         align_self: AlignSelf::Center,
                         position_type: PositionType::Absolute,
-                        position: UiRect {
-                            bottom: Val::Px(0.0),
-                            ..default()
-                        },
+                        bottom: Val::Px(0.0),
                         ..default()
                     },
                     ..default()
@@ -155,7 +152,6 @@ fn spawn_aircraft_subscore(builder: &mut ChildBuilder, font: Handle<Font>, icon:
             ..default()
         })
         .with_children(|parent| {
-            // padding right?
             parent.spawn(ImageBundle {
                 image: icon.clone().into(),
                 style: Style {
@@ -337,7 +333,7 @@ fn despawn_score_bar(mut commands: Commands, query: Query<Entity, With<ScoreBar>
 
 /// Update score on bullet kills
 fn kill_listener_system(mut events: EventReader<BulletCollisionEvent>, mut score: ResMut<Score>) {
-    for bullet_collision_event in events.iter() {
+    for bullet_collision_event in events.read() {
         match bullet_collision_event.collision_type {
             CollisionType::Aircraft => {
                 score.aircraft_kills += 1;
@@ -354,14 +350,14 @@ fn kill_listener_system(mut events: EventReader<BulletCollisionEvent>, mut score
 }
 
 fn gib_listener_system(mut events: EventReader<GibEvent>, mut score: ResMut<Score>) {
-    for _e in events.iter() {
+    for _e in events.read() {
         score.paratrooper_kills += 1;
         score.total_score += PARATROOPER_KILL_SCORE;
     }
 }
 
 fn gun_listener_system(mut events: EventReader<GunshotEvent>, mut score: ResMut<Score>) {
-    for _gunshot in events.iter() {
+    for _gunshot in events.read() {
         score.shots += 1;
         // Shots don't take score below 0
         score.total_score = (score.total_score + SHOT_SCORE).max(0);
@@ -369,7 +365,7 @@ fn gun_listener_system(mut events: EventReader<GunshotEvent>, mut score: ResMut<
 }
 
 fn landing_listener_system(mut events: EventReader<LandingEvent>, mut score: ResMut<Score>) {
-    for _landing in events.iter() {
+    for _landing in events.read() {
         score.paratroopers_landed += 1;
     }
 }
@@ -378,7 +374,7 @@ fn gun_explosion_listener_system(
     mut events: EventReader<GunExplosionEvent>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
-    if events.iter().next().is_some() {
+    if events.read().next().is_some() {
         next_state.set(AppState::GameOver);
     }
 }
@@ -415,7 +411,7 @@ pub struct ScorePlugin;
 impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Score>()
-            .add_system(Startup, setup)
+            .add_systems(Startup, setup)
             .add_systems(
                 OnEnter(AppState::InGame),
                 (setup_game_clock, setup_score_bar),
@@ -434,7 +430,7 @@ impl Plugin for ScorePlugin {
                 )
                     .run_if(in_state(AppState::InGame)),
             )
-            .add_system(OnExit(AppState::InGame), despawn_score_bar)
-            .add_system(OnEnter(AppState::GameOver), game_over);
+            .add_systems(OnExit(AppState::InGame), despawn_score_bar)
+            .add_systems(OnEnter(AppState::GameOver), game_over);
     }
 }

@@ -183,7 +183,7 @@ fn bomb_bullet_collision_system(
     mut event_writer: EventWriter<ExplosionEvent>,
     bombs: Query<&Transform, With<Bomb>>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         if event.collision_type == CollisionType::Bomb {
             if let Ok(transform) = bombs.get(event.target_entity) {
                 event_writer.send(ExplosionEvent {
@@ -205,7 +205,7 @@ fn bomb_terrain_collision_system(
     bomb_query: Query<&Transform, With<Bomb>>,
     ground_query: Query<Entity, With<Ground>>,
 ) {
-    for &event in events.iter() {
+    for &event in events.read() {
         if let CollisionEvent::Started(entity1, entity2, _) = event {
             if let Some((bomb_entity, _ground_entity)) = match (entity1, entity2) {
                 (e1, e2) if bomb_query.contains(e1) && ground_query.contains(e2) => Some((e1, e2)),
@@ -236,7 +236,7 @@ pub struct BomberPlugin;
 
 impl Plugin for BomberPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(Startup, setup_bomber_system) // todo(adam): previously StartupSet::PostStartupFlush ??
+        app.add_systems(Startup, setup_bomber_system) // todo(adam): previously StartupSet::PostStartupFlush ??
             .add_systems(
                 Update,
                 (
@@ -247,6 +247,6 @@ impl Plugin for BomberPlugin {
                 )
                     .run_if(in_state(AppState::InGame)),
             )
-            .add_system(OnExit(AppState::InGame), despawn_bomber_system);
+            .add_systems(OnExit(AppState::InGame), despawn_bomber_system);
     }
 }

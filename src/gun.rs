@@ -158,7 +158,7 @@ fn gun_collision_system(
     let (gun_entity, gun_transform) = gun_query.get_single().expect("No gun entity.");
     let (_gun_mount_entity, gun_mount_transform) =
         gun_mount_query.get_single().expect("No gun mount.");
-    for &collision_event in event_reader.iter() {
+    for &collision_event in event_reader.read() {
         if let CollisionEvent::Started(entity1, entity2, _) = collision_event {
             if entity1 == gun_entity || entity2 == gun_entity {
                 let other_entity = if entity1 == gun_entity {

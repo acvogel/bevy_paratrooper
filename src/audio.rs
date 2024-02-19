@@ -48,7 +48,7 @@ fn play_menu_music(
 }
 
 fn stop_menu_music(music_query: Query<&AudioSink, With<CurrentMusicAudio>>) {
-    for audio_sink in music_query {
+    for audio_sink in music_query.iter() {
         audio_sink.pause();
     }
 }
@@ -56,10 +56,10 @@ fn stop_menu_music(music_query: Query<&AudioSink, With<CurrentMusicAudio>>) {
 fn play_level_music(
     mut commands: Commands,
     asset_server: ResMut<AssetServer>,
-    current_music: Query<(&AudioSink, With<CurrentMusicAudio>)>,
+    current_music: Query<&AudioSink, With<CurrentMusicAudio>>,
 ) {
     // Stop all current music
-    for sink in current_music {
+    for sink in current_music.iter() {
         sink.stop();
     }
 
@@ -94,7 +94,7 @@ fn gunshot_listener(
                 ..default()
             },
             GunshotAudio,
-        ))
+        ));
     }
 }
 
@@ -104,7 +104,7 @@ fn bomb_spawned_listener(
     asset_server: ResMut<AssetServer>,
     bomb_query: Query<(Entity, Added<Bomb>)>,
 ) {
-    for entity in bomb_query {
+    for (entity, _) in bomb_query.iter() {
         // Attach AudioBundle to Bomb entity
         commands.entity(entity).insert({
             (
@@ -143,7 +143,10 @@ fn bomb_explosion_listener(
     asset_server: ResMut<AssetServer>,
     mut events: EventReader<ExplosionEvent>,
 ) {
-    for _event in events.filter(|&e| e.explosion_type == ExplosionType::Bomb) {
+    for _event in events
+        .read()
+        .filter(|&e| e.explosion_type == ExplosionType::Bomb)
+    {
         commands.spawn((
             AudioBundle {
                 source: asset_server.load("audio/bomb_explosion.wav"),
@@ -154,7 +157,7 @@ fn bomb_explosion_listener(
                 ..default()
             },
             BombExplosionAudio,
-        ))
+        ));
     }
 }
 
@@ -164,23 +167,26 @@ fn explosion_listener(
     asset_server: ResMut<AssetServer>,
     mut events: EventReader<BulletCollisionEvent>,
 ) {
-    for event in events {
+    for event in events.read() {
         match event.collision_type {
-            CollisionType::Aircraft => commands.spawn((
-                AudioBundle {
-                    source: asset_server.load("audio/sfx_exp_double2.wav"),
-                    settings: PlaybackSettings {
-                        mode: PlaybackMode::Despawn,
+            CollisionType::Aircraft => {
+                commands.spawn((
+                    AudioBundle {
+                        source: asset_server.load("audio/sfx_exp_double2.wav"),
+                        settings: PlaybackSettings {
+                            mode: PlaybackMode::Despawn,
+                            ..default()
+                        },
                         ..default()
                     },
-                    ..default()
-                },
-                AircraftExplosionAudio,
-            )),
+                    AircraftExplosionAudio,
+                ));
+            }
             CollisionType::Paratrooper => {
                 let scream_path = scream_audio_paths()
                     .choose(&mut rand::thread_rng())
-                    .expect("Scream audio path not found.");
+                    .expect("Scream audio path not found.")
+                    .to_string();
                 commands.spawn((
                     AudioBundle {
                         source: asset_server.load(scream_path),
@@ -191,8 +197,9 @@ fn explosion_listener(
                         ..default()
                     },
                     ScreamAudio,
-                ))
+                ));
             }
+            _ => (),
         }
     }
 }
@@ -203,10 +210,11 @@ fn gib_listener(
     asset_server: ResMut<AssetServer>,
     mut events: EventReader<GibEvent>,
 ) {
-    for _event in events {
+    for _event in events.read() {
         let scream_path = scream_audio_paths()
             .choose(&mut rand::thread_rng())
-            .expect("Scream audio path not found.");
+            .expect("Scream audio path not found.")
+            .to_string();
         commands.spawn((
             AudioBundle {
                 source: asset_server.load(scream_path),
@@ -217,7 +225,7 @@ fn gib_listener(
                 ..default()
             },
             ScreamAudio,
-        ))
+        ));
     }
 }
 
@@ -245,7 +253,7 @@ fn base_explosion_listener(
                 ..default()
             },
             BaseExplosionAudio,
-        ))
+        ));
     }
 }
 
@@ -253,10 +261,10 @@ pub struct AudioStatePlugin;
 
 impl Plugin for AudioStatePlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(OnEnter(AppState::MainMenu), play_menu_music)
-            .add_system(OnExit(AppState::MainMenu), stop_menu_music)
-            .add_system(OnEnter(AppState::InGame), play_level_music)
-            .add_system(
+        app.add_systems(OnEnter(AppState::MainMenu), play_menu_music)
+            .add_systems(OnExit(AppState::MainMenu), stop_menu_music)
+            .add_systems(OnEnter(AppState::InGame), play_level_music)
+            .add_systems(
                 Update,
                 (
                     gunshot_listener,

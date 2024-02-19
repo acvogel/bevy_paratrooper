@@ -94,7 +94,7 @@ fn bullet_collision_system(
     for (bullet, _transform) in bullet_query.iter() {
         bullet_handles.insert(bullet);
     }
-    for collision_event in collision_events.iter() {
+    for collision_event in collision_events.read() {
         if let CollisionEvent::Started(entity1, entity2, _) = collision_event {
             if bullet_handles.contains(entity1) || bullet_handles.contains(entity2) {
                 let (&bullet_entity, &target_entity) = if bullet_handles.contains(entity1) {
@@ -158,7 +158,7 @@ fn bullet_collision_listener(
     mut event_reader: EventReader<BulletCollisionEvent>,
     mut event_writer: EventWriter<ExplosionEvent>,
 ) {
-    for event in event_reader.iter() {
+    for event in event_reader.read() {
         if event.collision_type == CollisionType::Aircraft
             || event.collision_type == CollisionType::Bomb
         {
