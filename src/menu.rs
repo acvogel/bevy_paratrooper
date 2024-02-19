@@ -176,6 +176,11 @@ impl Plugin for MenuPlugin {
                 any_key_listener
                     .run_if(in_state(AppState::MainMenu).or_else(in_state(AppState::GameOver))),
             )
+            .add_systems(
+                Update,
+                pause_listener
+                    .run_if(in_state(AppState::InGame).or_else(in_state(AppState::Paused))),
+            )
             .add_systems(OnExit(AppState::MainMenu), despawn_title_screen)
             .add_systems(OnEnter(AppState::GameOver), spawn_game_over_text)
             .add_systems(OnExit(AppState::GameOver), despawn_game_over_text)

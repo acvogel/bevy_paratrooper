@@ -372,6 +372,7 @@ impl Plugin for ParatrooperPlugin {
                 )
                     .run_if(in_state(AppState::InGame)),
             )
-            .add_systems(OnExit(AppState::InGame), despawn_paratrooper_system);
+            .add_systems(OnEnter(AppState::MainMenu), despawn_paratrooper_system)
+            .add_systems(OnEnter(AppState::GameOver), despawn_paratrooper_system);
     }
 }

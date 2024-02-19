@@ -132,6 +132,7 @@ impl Plugin for AircraftPlugin {
                 )
                     .run_if(in_state(AppState::InGame)),
             )
-            .add_systems(OnExit(AppState::InGame), despawn_all_aircraft);
+            .add_systems(OnEnter(AppState::MainMenu), despawn_all_aircraft)
+            .add_systems(OnEnter(AppState::GameOver), despawn_all_aircraft);
     }
 }

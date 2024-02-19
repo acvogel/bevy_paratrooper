@@ -236,7 +236,7 @@ pub struct BomberPlugin;
 
 impl Plugin for BomberPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_bomber_system) // todo(adam): previously StartupSet::PostStartupFlush ??
+        app.add_systems(Startup, setup_bomber_system)
             .add_systems(
                 Update,
                 (
@@ -247,6 +247,7 @@ impl Plugin for BomberPlugin {
                 )
                     .run_if(in_state(AppState::InGame)),
             )
-            .add_systems(OnExit(AppState::InGame), despawn_bomber_system);
+            .add_systems(OnEnter(AppState::MainMenu), despawn_bomber_system)
+            .add_systems(OnEnter(AppState::GameOver), despawn_bomber_system);
     }
 }
