@@ -180,7 +180,7 @@ impl Plugin for ExplosionPlugin {
                     spawn_gib_system,
                     animate_explosion_system,
                 )
-                    .run_if(in_state(AppState::InGame)),
+                    .run_if(not(in_state(AppState::Paused))),
             );
     }
 }
