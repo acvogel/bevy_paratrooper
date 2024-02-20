@@ -18,21 +18,27 @@ struct BaseExplosionAudio;
 #[derive(Component)]
 struct AircraftExplosionAudio;
 #[derive(Component)]
-struct CurrentMusicAudio;
+struct MainMenuMusic;
+#[derive(Component)]
+struct LevelMusic;
 #[derive(Component)]
 struct WhistleAudio;
 
-fn play_menu_music(
-    mut commands: Commands,
-    asset_server: ResMut<AssetServer>,
-    current_music: Query<&AudioSink, With<CurrentMusicAudio>>,
-) {
-    // Stop current music, if any.
-    // todo(adam): need to remove component?
-    if let Ok(sink) = current_music.get_single() {
-        sink.stop();
-    }
+/*
+  Music control flow:
+    * enter MainMenu: start menu music
+    * exit MainMenu: stop menu music
+    * enter InGame: Start in-game music if not already playing
+    * enter GameOver: stop level music, if playing
+    * enter pause: stop all sound
+    * exit pause: start all paused sound
 
+  Audio control flow:
+    * Event listeners for explosions, gibs, gunshots
+    * Play anytime except for pause
+*/
+
+fn play_menu_music(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     // Start menu music
     commands.spawn((
         AudioBundle {
@@ -43,38 +49,48 @@ fn play_menu_music(
             },
             ..default()
         },
-        CurrentMusicAudio,
+        MainMenuMusic,
     ));
 }
 
-fn stop_menu_music(music_query: Query<&AudioSink, With<CurrentMusicAudio>>) {
-    for audio_sink in music_query.iter() {
-        audio_sink.pause();
+fn stop_menu_music(
+    mut commands: Commands,
+    music_query: Query<(Entity, &AudioSink), With<MainMenuMusic>>,
+) {
+    for (entity, audio_sink) in music_query.iter() {
+        audio_sink.stop();
+        commands.entity(entity).despawn();
     }
 }
 
 fn play_level_music(
     mut commands: Commands,
     asset_server: ResMut<AssetServer>,
-    current_music: Query<&AudioSink, With<CurrentMusicAudio>>,
+    current_music: Query<&AudioSink, With<LevelMusic>>,
 ) {
-    // Stop all current music
-    for sink in current_music.iter() {
-        sink.stop();
-    }
-
-    // Start level music
-    commands.spawn((
-        AudioBundle {
-            source: asset_server.load("audio/565_tocf_mono_level_1.ogg"),
-            settings: PlaybackSettings {
-                mode: PlaybackMode::Loop,
+    if current_music.is_empty() {
+        commands.spawn((
+            AudioBundle {
+                source: asset_server.load("audio/565_tocf_mono_level_1.ogg"),
+                settings: PlaybackSettings {
+                    mode: PlaybackMode::Loop,
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
-        },
-        CurrentMusicAudio,
-    ));
+            LevelMusic,
+        ));
+    }
+}
+
+fn stop_level_music(
+    mut commands: Commands,
+    level_music: Query<(Entity, &AudioSink), With<LevelMusic>>,
+) {
+    for (entity, audio_sink) in level_music.iter() {
+        audio_sink.stop();
+        commands.entity(entity).despawn();
+    }
 }
 
 fn gunshot_listener(
@@ -82,9 +98,7 @@ fn gunshot_listener(
     asset_server: Res<AssetServer>,
     mut events: EventReader<GunshotEvent>,
 ) {
-    // xxx event not getting dropped?
-    if !events.is_empty() {
-        events.clear();
+    for _ in events.read() {
         commands.spawn((
             AudioBundle {
                 source: asset_server.load("audio/sfx_weapon_singleshot20.wav"),
@@ -227,9 +241,10 @@ fn scream_audio_paths() -> Vec<String> {
 fn base_explosion_listener(
     mut commands: Commands,
     asset_server: ResMut<AssetServer>,
-    events: EventReader<GunExplosionEvent>,
+    mut events: EventReader<GunExplosionEvent>,
 ) {
     if !events.is_empty() {
+        events.clear();
         commands.spawn((
             AudioBundle {
                 source: asset_server.load("audio/sfx_exp_long4.wav"),
@@ -241,6 +256,22 @@ fn base_explosion_listener(
             },
             BaseExplosionAudio,
         ));
+    }
+}
+
+/// Pause all active playing audio in pause (including music), resume otherwise
+fn pause_all_audio(query: Query<&AudioSink>) {
+    for audio_sink in query
+        .iter()
+        .filter(|&audio_sink| !audio_sink.is_paused() && !audio_sink.empty())
+    {
+        audio_sink.pause();
+    }
+}
+
+fn play_all_audio(query: Query<&AudioSink>) {
+    for audio_sink in query.iter().filter(|&audio_sink| audio_sink.is_paused()) {
+        audio_sink.play();
     }
 }
 
@@ -260,8 +291,10 @@ impl Plugin for AudioStatePlugin {
                     bomb_spawned_listener,
                     bomb_explosion_listener,
                     explosion_listener,
-                )
-                    .run_if(in_state(AppState::InGame)),
-            );
+                ),
+            )
+            .add_systems(OnEnter(AppState::Paused), pause_all_audio)
+            .add_systems(OnExit(AppState::Paused), play_all_audio)
+            .add_systems(OnEnter(AppState::GameOver), stop_level_music);
     }
 }
