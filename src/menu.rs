@@ -70,8 +70,8 @@ fn any_key_listener(
 pub struct ContinueText;
 
 fn spawn_game_over_text(mut commands: Commands, font_handles: Res<FontHandles>) {
-    commands
-        .spawn(TextBundle {
+    commands.spawn((
+        TextBundle {
             style: Style {
                 align_self: AlignSelf::FlexEnd,
                 position_type: PositionType::Absolute,
@@ -88,13 +88,14 @@ fn spawn_game_over_text(mut commands: Commands, font_handles: Res<FontHandles>) 
                 },
             ),
             ..default()
-        })
-        .insert(ContinueText);
+        },
+        ContinueText,
+    ));
 }
 
 fn despawn_game_over_text(mut commands: Commands, query: Query<Entity, With<ContinueText>>) {
-    if let Some(handle) = query.iter().next() {
-        commands.entity(handle).despawn();
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
     }
 }
 

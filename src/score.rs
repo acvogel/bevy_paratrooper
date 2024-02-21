@@ -290,7 +290,7 @@ fn spawn_score_text(builder: &mut ChildBuilder, font: Handle<Font>) {
                             color: Color::WHITE,
                         },
                     )
-                    .with_text_alignment(TextAlignment::Left),
+                        .with_text_alignment(TextAlignment::Left),
                 )
                 .insert(ScoreText);
         });
@@ -374,7 +374,8 @@ fn gun_explosion_listener_system(
     mut events: EventReader<GunExplosionEvent>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
-    if events.read().next().is_some() {
+    if !events.is_empty() {
+        events.clear();
         next_state.set(AppState::GameOver);
     }
 }
