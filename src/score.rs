@@ -89,12 +89,11 @@ fn setup_score_bar(mut commands: Commands, assets: Res<ScoreAssets>) {
                     style: Style {
                         width: Val::Px(WINDOW_WIDTH),
                         height: Val::Px(bar_height),
-                        flex_direction: FlexDirection::Row,
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
-                        align_self: AlignSelf::Center,
                         position_type: PositionType::Absolute,
-                        bottom: Val::Px(0.0),
+                        top: Val::Px(WINDOW_HEIGHT - bar_height),
+                        left: Val::Px(0.),
                         ..default()
                     },
                     ..default()
