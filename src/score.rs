@@ -77,7 +77,7 @@ fn setup_score_bar(mut commands: Commands, assets: Res<ScoreAssets>) {
     commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(100.0)),
+                width: Val::Percent(100.),
                 justify_content: JustifyContent::SpaceBetween,
                 ..default()
             },
@@ -87,16 +87,13 @@ fn setup_score_bar(mut commands: Commands, assets: Res<ScoreAssets>) {
             parent
                 .spawn(NodeBundle {
                     style: Style {
-                        size: Size::new(Val::Px(WINDOW_WIDTH), Val::Px(bar_height)),
-                        flex_direction: FlexDirection::Row,
+                        width: Val::Px(WINDOW_WIDTH),
+                        height: Val::Px(bar_height),
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
-                        align_self: AlignSelf::Center,
                         position_type: PositionType::Absolute,
-                        position: UiRect {
-                            bottom: Val::Px(0.0),
-                            ..default()
-                        },
+                        top: Val::Px(WINDOW_HEIGHT - bar_height),
+                        left: Val::Px(0.),
                         ..default()
                     },
                     ..default()
@@ -113,7 +110,7 @@ fn spawn_clock_text(builder: &mut ChildBuilder, font: Handle<Font>) {
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3)),
+                width: Val::Percent(33.3),
                 align_items: AlignItems::Center,
                 align_content: AlignContent::Center,
                 justify_content: JustifyContent::Center,
@@ -147,14 +144,13 @@ fn spawn_aircraft_subscore(builder: &mut ChildBuilder, font: Handle<Font>, icon:
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3)),
+                width: Val::Percent(33.3),
                 align_items: AlignItems::Center,
                 ..default()
             },
             ..default()
         })
         .with_children(|parent| {
-            // padding right?
             parent.spawn(ImageBundle {
                 image: icon.clone().into(),
                 style: Style {
@@ -183,7 +179,7 @@ fn spawn_bomb_subscore(builder: &mut ChildBuilder, font: Handle<Font>, icon: Han
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3)),
+                width: Val::Percent(33.3),
                 align_items: AlignItems::Center,
                 ..default()
             },
@@ -218,7 +214,7 @@ fn spawn_paratrooper_subscore(builder: &mut ChildBuilder, font: Handle<Font>, ic
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(25.0)),
+                width: Val::Percent(25.0),
                 align_items: AlignItems::Center,
                 ..default()
             },
@@ -254,7 +250,7 @@ fn spawn_subscores(builder: &mut ChildBuilder, assets: Res<ScoreAssets>) {
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3)),
+                width: Val::Percent(33.3),
                 ..default()
             },
             ..default()
@@ -271,7 +267,8 @@ fn spawn_score_text(builder: &mut ChildBuilder, font: Handle<Font>) {
     builder
         .spawn(NodeBundle {
             style: Style {
-                size: Size::width(Val::Percent(33.3)),
+                width: Val::Percent(33.3),
+
                 align_items: AlignItems::Center,
                 margin: UiRect {
                     left: Val::Px(20.0),
@@ -292,7 +289,7 @@ fn spawn_score_text(builder: &mut ChildBuilder, font: Handle<Font>) {
                             color: Color::WHITE,
                         },
                     )
-                    .with_text_alignment(TextAlignment::Left),
+                        .with_text_alignment(TextAlignment::Left),
                 )
                 .insert(ScoreText);
         });
@@ -335,7 +332,7 @@ fn despawn_score_bar(mut commands: Commands, query: Query<Entity, With<ScoreBar>
 
 /// Update score on bullet kills
 fn kill_listener_system(mut events: EventReader<BulletCollisionEvent>, mut score: ResMut<Score>) {
-    for bullet_collision_event in events.iter() {
+    for bullet_collision_event in events.read() {
         match bullet_collision_event.collision_type {
             CollisionType::Aircraft => {
                 score.aircraft_kills += 1;
@@ -352,14 +349,14 @@ fn kill_listener_system(mut events: EventReader<BulletCollisionEvent>, mut score
 }
 
 fn gib_listener_system(mut events: EventReader<GibEvent>, mut score: ResMut<Score>) {
-    for _e in events.iter() {
+    for _e in events.read() {
         score.paratrooper_kills += 1;
         score.total_score += PARATROOPER_KILL_SCORE;
     }
 }
 
 fn gun_listener_system(mut events: EventReader<GunshotEvent>, mut score: ResMut<Score>) {
-    for _gunshot in events.iter() {
+    for _gunshot in events.read() {
         score.shots += 1;
         // Shots don't take score below 0
         score.total_score = (score.total_score + SHOT_SCORE).max(0);
@@ -367,7 +364,7 @@ fn gun_listener_system(mut events: EventReader<GunshotEvent>, mut score: ResMut<
 }
 
 fn landing_listener_system(mut events: EventReader<LandingEvent>, mut score: ResMut<Score>) {
-    for _landing in events.iter() {
+    for _landing in events.read() {
         score.paratroopers_landed += 1;
     }
 }
@@ -376,7 +373,8 @@ fn gun_explosion_listener_system(
     mut events: EventReader<GunExplosionEvent>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
-    if events.iter().next().is_some() {
+    if !events.is_empty() {
+        events.clear();
         next_state.set(AppState::GameOver);
     }
 }
@@ -413,9 +411,13 @@ pub struct ScorePlugin;
 impl Plugin for ScorePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Score>()
-            .add_startup_system(setup)
-            .add_systems((setup_game_clock, setup_score_bar).in_schedule(OnEnter(AppState::InGame)))
+            .add_systems(Startup, setup)
             .add_systems(
+                OnEnter(AppState::InGame),
+                (setup_game_clock, setup_score_bar),
+            )
+            .add_systems(
+                Update,
                 (
                     kill_listener_system,
                     gib_listener_system,
@@ -426,9 +428,9 @@ impl Plugin for ScorePlugin {
                     update_clock_ui,
                     update_score_bar,
                 )
-                    .in_set(OnUpdate(AppState::InGame)),
+                    .run_if(in_state(AppState::InGame)),
             )
-            .add_system(despawn_score_bar.in_schedule(OnExit(AppState::InGame)))
-            .add_system(game_over.in_schedule(OnEnter(AppState::GameOver)));
+            .add_systems(OnExit(AppState::InGame), despawn_score_bar)
+            .add_systems(OnEnter(AppState::GameOver), game_over);
     }
 }

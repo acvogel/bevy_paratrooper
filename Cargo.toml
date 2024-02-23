@@ -4,28 +4,29 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy_prototype_lyon = "0.8.0"
+bevy_prototype_lyon = "0.10.0"
 rand = "0.8.5"
 
 [dependencies.bevy_rapier2d]
-version = "0.21.0"
+version = "0.24.0"
 features = [
     "wasm-bindgen"
 ]
 
 [dependencies.bevy]
-version = "0.10"
+version = "0.12.1"
 #default-features = false
 # These are the remaining default features other than `bevy_audio` and `mp3`
 features = [
     "wav",
-##    "render",
-##    "bevy_winit",
-##    "bevy_gilrs",
+    ##    "render",
+    ##    "bevy_winit",
+    ##    "bevy_gilrs",
     "png",
-##    "hdr",
-##    "filesystem_watcher",
-##    "x11"
+    ##    "hdr",
+    ##    "filesystem_watcher",
+    ##    "x11"
+    "dynamic_linking", # remove for release builds
 ]
 
 # Enable only a small amount of optimization in debug mode
@@ -40,6 +41,11 @@ opt-level = 3
 strip = true  # Automatically strip symbols from the binary.
 opt-level = "z"  # Optimize for size.
 codegen-units = 1
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+    "-C", "link-arg=-fuse-ld=lld",
+]
 
 # Build using official Windows libs
 #[target.x86_64-pc-windows-msvc]

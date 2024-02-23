@@ -158,7 +158,7 @@ fn gun_collision_system(
     let (gun_entity, gun_transform) = gun_query.get_single().expect("No gun entity.");
     let (_gun_mount_entity, gun_mount_transform) =
         gun_mount_query.get_single().expect("No gun mount.");
-    for &collision_event in event_reader.iter() {
+    for &collision_event in event_reader.read() {
         if let CollisionEvent::Started(entity1, entity2, _) = collision_event {
             if entity1 == gun_entity || entity2 == gun_entity {
                 let other_entity = if entity1 == gun_entity {
@@ -186,9 +186,12 @@ pub struct GunPlugin;
 impl Plugin for GunPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            (setup_gun_base, setup_gun_mount, setup_gun_barrel)
-                .in_schedule(OnEnter(AppState::MainMenu)),
+            OnEnter(AppState::MainMenu),
+            (setup_gun_base, setup_gun_mount, setup_gun_barrel),
         )
-        .add_systems((move_gun, gun_collision_system).in_set(OnUpdate(AppState::InGame)));
+        .add_systems(
+            Update,
+            (move_gun, gun_collision_system).run_if(in_state(AppState::InGame)),
+        );
     }
 }

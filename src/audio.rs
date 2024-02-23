@@ -3,190 +3,202 @@ use crate::{
     AppState, BulletCollisionEvent, CollisionType, ExplosionEvent, ExplosionType, GibEvent,
     GunExplosionEvent, GunshotEvent,
 };
-use bevy::audio::AudioSink;
+use bevy::audio::{AudioSink, PlaybackMode, Volume};
 use bevy::prelude::*;
 use rand::seq::SliceRandom;
-use std::collections::HashMap;
-
-#[derive(Resource)]
-struct GunshotHandle(Handle<AudioSource>);
-#[derive(Resource)]
-struct AircraftExplosionHandle(Handle<AudioSource>);
-#[derive(Resource)]
-struct ScreamHandles(Vec<Handle<AudioSource>>);
-#[derive(Resource)]
-struct BaseExplosionHandle(Handle<AudioSource>);
-
-#[derive(Resource)]
-struct IntroMusicHandle(Handle<AudioSource>);
-#[derive(Resource)]
-struct Level1MusicHandle(Handle<AudioSource>);
-#[derive(Resource)]
-struct CurrentMusic(Option<Handle<AudioSink>>);
-#[derive(Resource)]
-struct BombHandles {
-    falling_bomb: Handle<AudioSource>,
-    explosion: Handle<AudioSource>,
-}
 
 #[derive(Component)]
-struct Whistler;
+struct GunshotAudio;
+#[derive(Component)]
+struct BombExplosionAudio;
+#[derive(Component)]
+struct ScreamAudio;
+#[derive(Component)]
+struct BaseExplosionAudio;
+#[derive(Component)]
+struct AircraftExplosionAudio;
+#[derive(Component)]
+struct MainMenuMusic;
+#[derive(Component)]
+struct LevelMusic;
+#[derive(Component)]
+struct WhistleAudio;
 
-/// Bomb entity -> whistling audio handle
-#[derive(Resource)]
-struct Whistles(HashMap<Entity, Handle<AudioSink>>);
+/*
+  Music control flow:
+    * enter MainMenu: start menu music
+    * exit MainMenu: stop menu music
+    * enter InGame: Start in-game music if not already playing
+    * enter GameOver: stop level music, if playing
+    * enter pause: stop all sound
+    * exit pause: start all paused sound
 
-fn setup_audio_system(mut commands: Commands, asset_server: ResMut<AssetServer>) {
-    commands.insert_resource(GunshotHandle(
-        asset_server.load("audio/sfx_weapon_singleshot20.wav"),
+  Audio control flow:
+    * Event listeners for explosions, gibs, gunshots
+    * Play anytime except for pause
+*/
+
+fn play_menu_music(mut commands: Commands, asset_server: ResMut<AssetServer>) {
+    // Start menu music
+    commands.spawn((
+        AudioBundle {
+            source: asset_server.load("audio/565_tocf_mono_intro.ogg"),
+            settings: PlaybackSettings {
+                mode: PlaybackMode::Loop,
+                ..default()
+            },
+            ..default()
+        },
+        MainMenuMusic,
     ));
-    commands.insert_resource(AircraftExplosionHandle(
-        asset_server.load("audio/sfx_exp_double2.wav"),
-    ));
-    commands.insert_resource(BaseExplosionHandle(
-        asset_server.load("audio/sfx_exp_long4.wav"),
-    ));
-    let mut scream_handles = Vec::new();
-    for i in 1..=14 {
-        let path = format!("audio/screams/sfx_deathscream_human{}.wav", i);
-        scream_handles.push(asset_server.load(&path));
-    }
-    commands.insert_resource(ScreamHandles(scream_handles));
-
-    commands.insert_resource(IntroMusicHandle(
-        asset_server.load("audio/565_tocf_mono_intro.ogg"),
-    ));
-
-    commands.insert_resource(Level1MusicHandle(
-        asset_server.load("audio/565_tocf_mono_level_1.ogg"),
-    ));
-
-    commands.insert_resource(BombHandles {
-        falling_bomb: asset_server.load("audio/falling-bomb-41038.ogg"),
-        explosion: asset_server.load("audio/bomb_explosion.wav"),
-    });
-
-    commands.insert_resource(Whistles(HashMap::new()));
-
-    // No song playing at startup
-    commands.insert_resource(CurrentMusic(None));
 }
 
-fn play_menu_music(
-    audio: Res<Audio>,
-    intro_music: Res<IntroMusicHandle>,
-    mut current_music: ResMut<CurrentMusic>,
-    audio_sinks: ResMut<Assets<AudioSink>>,
+fn stop_menu_music(
+    mut commands: Commands,
+    music_query: Query<(Entity, &AudioSink), With<MainMenuMusic>>,
 ) {
-    let intro_handle = audio_sinks
-        .get_handle(audio.play_with_settings(intro_music.0.clone(), PlaybackSettings::LOOP));
-    // Stop current music
-    if let Some(current_music_sink) = &current_music.0 {
-        if let Some(old_sink) = audio_sinks.get(current_music_sink) {
-            old_sink.pause();
-        }
-    }
-    current_music.0 = Some(intro_handle);
-}
-
-fn stop_menu_music(audio_sinks: ResMut<Assets<AudioSink>>, current_music: Res<CurrentMusic>) {
-    if let Some(current_music_sink) = &current_music.0 {
-        if let Some(old_sink) = audio_sinks.get(current_music_sink) {
-            old_sink.pause();
-        }
+    for (entity, audio_sink) in music_query.iter() {
+        audio_sink.stop();
+        commands.entity(entity).despawn();
     }
 }
 
-#[allow(dead_code)]
 fn play_level_music(
-    audio: Res<Audio>,
-    level_music: Res<Level1MusicHandle>,
-    mut current_music: ResMut<CurrentMusic>,
-    audio_sinks: ResMut<Assets<AudioSink>>,
+    mut commands: Commands,
+    asset_server: ResMut<AssetServer>,
+    current_music: Query<&AudioSink, With<LevelMusic>>,
 ) {
-    let level_handle = audio_sinks
-        .get_handle(audio.play_with_settings(level_music.0.clone(), PlaybackSettings::LOOP));
-    if let Some(current_music_sink) = &current_music.0 {
-        if let Some(old_sink) = audio_sinks.get(current_music_sink) {
-            old_sink.pause();
-        }
+    if current_music.is_empty() {
+        commands.spawn((
+            AudioBundle {
+                source: asset_server.load("audio/565_tocf_mono_level_1.ogg"),
+                settings: PlaybackSettings {
+                    mode: PlaybackMode::Loop,
+                    ..default()
+                },
+                ..default()
+            },
+            LevelMusic,
+        ));
     }
-    current_music.0 = Some(level_handle);
+}
+
+fn stop_level_music(
+    mut commands: Commands,
+    level_music: Query<(Entity, &AudioSink), With<LevelMusic>>,
+) {
+    for (entity, audio_sink) in level_music.iter() {
+        audio_sink.stop();
+        commands.entity(entity).despawn();
+    }
 }
 
 fn gunshot_listener(
-    audio: Res<Audio>,
-    gunshot_handle: ResMut<GunshotHandle>,
-    events: EventReader<GunshotEvent>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut events: EventReader<GunshotEvent>,
 ) {
-    if !events.is_empty() {
-        audio.play_with_settings(
-            gunshot_handle.0.clone(),
-            PlaybackSettings::ONCE.with_volume(0.3),
-        );
+    for _ in events.read() {
+        commands.spawn((
+            AudioBundle {
+                source: asset_server.load("audio/sfx_weapon_singleshot20.wav"),
+                settings: PlaybackSettings {
+                    mode: PlaybackMode::Despawn,
+                    volume: Volume::new_relative(0.3),
+                    ..default()
+                },
+                ..default()
+            },
+            GunshotAudio,
+        ));
     }
 }
 
 /// Starts whistling on Bomb spawn
 fn bomb_spawned_listener(
     mut commands: Commands,
-    audio: Res<Audio>,
-    bomb_audio: Res<BombHandles>,
-    bomb_query: Query<Entity, Added<Bomb>>,
-    mut whistles: ResMut<Whistles>,
-    audio_sinks: Res<Assets<AudioSink>>,
+    asset_server: ResMut<AssetServer>,
+    bomb_query: Query<(Entity, Added<Bomb>)>,
 ) {
-    for entity in bomb_query.iter() {
-        let audio_sink = audio_sinks.get_handle(audio.play(bomb_audio.falling_bomb.clone()));
-        whistles.0.insert(entity, audio_sink);
-        commands.entity(entity).insert(Whistler);
-    }
-}
-
-/// Stop whistling when bombs despawn
-fn whistler_despawn_listener(
-    mut removed_whistlers: RemovedComponents<Whistler>,
-    whistles: Res<Whistles>,
-    audio_sinks: Res<Assets<AudioSink>>,
-) {
-    for entity in removed_whistlers.iter() {
-        if let Some(whistle_handle) = whistles.0.get(&entity) {
-            if let Some(sink) = audio_sinks.get(whistle_handle) {
-                sink.stop();
-            }
-        }
+    for (entity, _added_bomb) in bomb_query.iter().filter(|(_e, added_bomb)| *added_bomb) {
+        // Attach AudioBundle to Bomb entity
+        commands.entity(entity).insert({
+            (
+                AudioBundle {
+                    source: asset_server.load("audio/falling-bomb-41038.ogg"),
+                    settings: PlaybackSettings {
+                        mode: PlaybackMode::Despawn,
+                        ..default()
+                    },
+                    ..default()
+                },
+                WhistleAudio,
+            )
+        });
     }
 }
 
 /// Spawn bomb explosion sound
 fn bomb_explosion_listener(
+    mut commands: Commands,
+    asset_server: ResMut<AssetServer>,
     mut events: EventReader<ExplosionEvent>,
-    audio: Res<Audio>,
-    bomb_audio: Res<BombHandles>,
 ) {
     for _event in events
-        .iter()
+        .read()
         .filter(|&e| e.explosion_type == ExplosionType::Bomb)
     {
-        audio.play(bomb_audio.explosion.clone());
+        commands.spawn((
+            AudioBundle {
+                source: asset_server.load("audio/bomb_explosion.wav"),
+                settings: PlaybackSettings {
+                    mode: PlaybackMode::Despawn,
+                    ..default()
+                },
+                ..default()
+            },
+            BombExplosionAudio,
+        ));
     }
 }
 
 /// Aircraft explosion
 fn explosion_listener(
-    audio: Res<Audio>,
+    mut commands: Commands,
+    asset_server: ResMut<AssetServer>,
     mut events: EventReader<BulletCollisionEvent>,
-    aircraft_explosion_handle: ResMut<AircraftExplosionHandle>,
-    screams: Res<ScreamHandles>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         match event.collision_type {
-            CollisionType::Aircraft /*| CollisionType::Bomb*/ => {
-                audio.play(aircraft_explosion_handle.0.clone());
+            CollisionType::Aircraft => {
+                commands.spawn((
+                    AudioBundle {
+                        source: asset_server.load("audio/sfx_exp_double2.wav"),
+                        settings: PlaybackSettings {
+                            mode: PlaybackMode::Despawn,
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    AircraftExplosionAudio,
+                ));
             }
             CollisionType::Paratrooper => {
-                let handle = screams.0.choose(&mut rand::thread_rng()).unwrap();
-                audio.play(handle.clone());
+                let scream_path = scream_audio_paths()
+                    .choose(&mut rand::thread_rng())
+                    .expect("Scream audio path not found.")
+                    .to_string();
+                commands.spawn((
+                    AudioBundle {
+                        source: asset_server.load(scream_path),
+                        settings: PlaybackSettings {
+                            mode: PlaybackMode::Despawn,
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    ScreamAudio,
+                ));
             }
             _ => (),
         }
@@ -195,25 +207,71 @@ fn explosion_listener(
 
 /// Paratrooper death
 fn gib_listener(
-    audio: Res<Audio>,
+    mut commands: Commands,
+    asset_server: ResMut<AssetServer>,
     mut events: EventReader<GibEvent>,
-    screams: Res<ScreamHandles>,
-    audio_sinks: Res<Assets<AudioSink>>,
 ) {
-    for _event in events.iter() {
-        let handle = screams.0.choose(&mut rand::thread_rng()).unwrap();
-        audio_sinks.get_handle(audio.play(handle.clone()));
+    for _event in events.read() {
+        let scream_path = scream_audio_paths()
+            .choose(&mut rand::thread_rng())
+            .expect("Scream audio path not found.")
+            .to_string();
+        commands.spawn((
+            AudioBundle {
+                source: asset_server.load(scream_path),
+                settings: PlaybackSettings {
+                    mode: PlaybackMode::Despawn,
+                    ..default()
+                },
+                ..default()
+            },
+            ScreamAudio,
+        ));
     }
+}
+
+/// Relative file paths to scream audio files
+fn scream_audio_paths() -> Vec<String> {
+    (1..=14)
+        .map(|i| format!("audio/screams/sfx_deathscream_human{}.wav", i))
+        .collect()
 }
 
 /// End of game explosion
 fn base_explosion_listener(
-    audio: Res<Audio>,
-    events: EventReader<GunExplosionEvent>,
-    base_explosion_handle: Res<BaseExplosionHandle>,
+    mut commands: Commands,
+    asset_server: ResMut<AssetServer>,
+    mut events: EventReader<GunExplosionEvent>,
 ) {
     if !events.is_empty() {
-        audio.play(base_explosion_handle.0.clone());
+        events.clear();
+        commands.spawn((
+            AudioBundle {
+                source: asset_server.load("audio/sfx_exp_long4.wav"),
+                settings: PlaybackSettings {
+                    mode: PlaybackMode::Despawn,
+                    ..default()
+                },
+                ..default()
+            },
+            BaseExplosionAudio,
+        ));
+    }
+}
+
+/// Pause all active playing audio in pause (including music), resume otherwise
+fn pause_all_audio(query: Query<&AudioSink>) {
+    for audio_sink in query
+        .iter()
+        .filter(|&audio_sink| !audio_sink.is_paused() && !audio_sink.empty())
+    {
+        audio_sink.pause();
+    }
+}
+
+fn play_all_audio(query: Query<&AudioSink>) {
+    for audio_sink in query.iter().filter(|&audio_sink| audio_sink.is_paused()) {
+        audio_sink.play();
     }
 }
 
@@ -221,16 +279,22 @@ pub struct AudioStatePlugin;
 
 impl Plugin for AudioStatePlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_audio_system)
-            .add_system(play_menu_music.in_schedule(OnEnter(AppState::MainMenu)))
-            .add_system(stop_menu_music.in_schedule(OnExit(AppState::MainMenu)))
-            .add_system(play_level_music.in_schedule(OnEnter(AppState::InGame)))
-            .add_system(gunshot_listener)
-            .add_system(gib_listener)
-            .add_system(base_explosion_listener)
-            .add_system(bomb_spawned_listener)
-            .add_system(bomb_explosion_listener)
-            .add_system(explosion_listener)
-            .add_system(whistler_despawn_listener.in_set(OnUpdate(AppState::InGame)));
+        app.add_systems(OnEnter(AppState::MainMenu), play_menu_music)
+            .add_systems(OnExit(AppState::MainMenu), stop_menu_music)
+            .add_systems(OnEnter(AppState::InGame), play_level_music)
+            .add_systems(
+                Update,
+                (
+                    gunshot_listener,
+                    gib_listener,
+                    base_explosion_listener,
+                    bomb_spawned_listener,
+                    bomb_explosion_listener,
+                    explosion_listener,
+                ),
+            )
+            .add_systems(OnEnter(AppState::Paused), pause_all_audio)
+            .add_systems(OnExit(AppState::Paused), play_all_audio)
+            .add_systems(OnEnter(AppState::GameOver), stop_level_music);
     }
 }

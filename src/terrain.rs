@@ -69,9 +69,7 @@ pub struct TerrainPlugin;
 
 impl Plugin for TerrainPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_ground)
-            .add_startup_system(setup_skyline)
-            .add_startup_system(setup_physics)
-            .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(10.));
+        app.add_systems(Startup, (setup_ground, setup_skyline, setup_physics))
+            .add_plugins(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(10.));
     }
 }

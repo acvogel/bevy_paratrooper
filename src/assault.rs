@@ -14,7 +14,7 @@ fn enable_assault_system(
     mut query: Query<(Entity, &mut Paratrooper, &mut CollisionGroups)>,
     mut event_reader: EventReader<LandingEvent>,
 ) {
-    for event in event_reader.iter() {
+    for event in event_reader.read() {
         if let Ok((entity, mut paratrooper, mut col_groups /*, mut sensor*/)) =
             query.get_mut(event.0)
         {
@@ -47,7 +47,7 @@ fn assault_collision_system(
     gun_base_query: Query<Entity, With<GunBase>>,
 ) {
     let gun_base_entity = gun_base_query.single();
-    for collision_event in collision_events.iter() {
+    for collision_event in collision_events.read() {
         if let CollisionEvent::Started(entity1, entity2, _) = collision_event {
             if gun_base_entity == *entity1 || gun_base_entity == *entity2 {
                 info!("Gun base collision.");
@@ -72,12 +72,13 @@ pub struct AssaultPlugin;
 impl Plugin for AssaultPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
+            Update,
             (
                 enable_assault_system,
                 assault_collision_system,
                 assault_movement_system,
             )
-                .in_set(OnUpdate(AppState::InGame)),
+                .run_if(in_state(AppState::InGame)),
         );
     }
 }

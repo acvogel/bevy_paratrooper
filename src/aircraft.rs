@@ -107,7 +107,7 @@ fn bullet_collision_system(
     mut event_reader: EventReader<BulletCollisionEvent>,
     mut event_writer: EventWriter<ExplosionEvent>,
 ) {
-    for event in event_reader.iter() {
+    for event in event_reader.read() {
         if let Ok((aircraft_entity, aircraft_transform)) = aircraft_query.get(event.target_entity) {
             event_writer.send(ExplosionEvent {
                 transform: (*aircraft_transform).with_scale(Vec3::ONE),
@@ -122,15 +122,17 @@ pub struct AircraftPlugin;
 
 impl Plugin for AircraftPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_aircraft_system)
+        app.add_systems(Startup, setup_aircraft_system)
             .add_systems(
+                Update,
                 (
                     spawn_aircraft_system,
                     bullet_collision_system,
                     despawn_escaped_aircraft,
                 )
-                    .in_set(OnUpdate(AppState::InGame)),
+                    .run_if(in_state(AppState::InGame)),
             )
-            .add_system(despawn_all_aircraft.in_schedule(OnExit(AppState::InGame)));
+            .add_systems(OnEnter(AppState::MainMenu), despawn_all_aircraft)
+            .add_systems(OnEnter(AppState::GameOver), despawn_all_aircraft);
     }
 }

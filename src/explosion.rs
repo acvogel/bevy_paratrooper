@@ -1,4 +1,4 @@
-use crate::{ExplosionEvent, ExplosionType, GibEvent, GunExplosionEvent};
+use crate::{AppState, ExplosionEvent, ExplosionType, GibEvent, GunExplosionEvent};
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -26,7 +26,7 @@ fn spawn_explosion_system(
     time: Res<Time>,
     mut event_reader: EventReader<ExplosionEvent>,
 ) {
-    for event in event_reader.iter() {
+    for event in event_reader.read() {
         let explosion_texture_atlas = match event.explosion_type {
             ExplosionType::Bomb => &explosion_textures.ground_explosion_texture_atlas_handle,
             ExplosionType::Aircraft | ExplosionType::Bullet => {
@@ -54,7 +54,7 @@ fn spawn_gun_explosion_system(
     time: Res<Time>,
     mut event_reader: EventReader<GunExplosionEvent>,
 ) {
-    for event in event_reader.iter() {
+    for event in event_reader.read() {
         commands
             .spawn(SpriteSheetBundle {
                 texture_atlas: explosion_textures
@@ -144,7 +144,7 @@ fn spawn_gib_system(
     time: Res<Time>,
     mut event_reader: EventReader<GibEvent>,
 ) {
-    for event in event_reader.iter() {
+    for event in event_reader.read() {
         commands
             .spawn(SpriteSheetBundle {
                 texture_atlas: explosion_textures.gib_texture_atlas_handle.clone(),
@@ -171,10 +171,16 @@ pub struct ExplosionPlugin;
 
 impl Plugin for ExplosionPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_explosion_system)
-            .add_system(spawn_explosion_system)
-            .add_system(spawn_gun_explosion_system)
-            .add_system(spawn_gib_system)
-            .add_system(animate_explosion_system);
+        app.add_systems(Startup, setup_explosion_system)
+            .add_systems(
+                Update,
+                (
+                    spawn_explosion_system,
+                    spawn_gun_explosion_system,
+                    spawn_gib_system,
+                    animate_explosion_system,
+                )
+                    .run_if(not(in_state(AppState::Paused))),
+            );
     }
 }

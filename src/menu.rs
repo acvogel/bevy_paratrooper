@@ -31,16 +31,12 @@ fn load_fonts(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn setup_title_screen(mut commands: Commands, font_handles: Res<FontHandles>) {
     commands
         .spawn(TextBundle {
-            node: Default::default(),
             style: Style {
                 align_self: AlignSelf::Auto,
                 position_type: PositionType::Absolute,
-                position: UiRect {
-                    left: Val::Px(200.0),
-                    top: Val::Px(15.0),
-                    ..Default::default()
-                },
-                ..Default::default()
+                left: Val::Px(200.0),
+                top: Val::Px(15.0),
+                ..default()
             },
             text: Text::from_section(
                 "PARATROOPER",
@@ -50,7 +46,7 @@ fn setup_title_screen(mut commands: Commands, font_handles: Res<FontHandles>) {
                     color: Color::RED,
                 },
             ),
-            ..Default::default()
+            ..default()
         })
         .insert(TitleText);
 }
@@ -74,17 +70,14 @@ fn any_key_listener(
 pub struct ContinueText;
 
 fn spawn_game_over_text(mut commands: Commands, font_handles: Res<FontHandles>) {
-    commands
-        .spawn(TextBundle {
+    commands.spawn((
+        TextBundle {
             style: Style {
                 align_self: AlignSelf::FlexEnd,
                 position_type: PositionType::Absolute,
-                position: UiRect {
-                    left: Val::Px(50.0),
-                    bottom: Val::Px(250.0),
-                    ..Default::default()
-                },
-                ..Default::default()
+                left: Val::Px(50.0),
+                bottom: Val::Px(250.0),
+                ..default()
             },
             text: Text::from_section(
                 "Press the ANY key to continue.",
@@ -94,14 +87,15 @@ fn spawn_game_over_text(mut commands: Commands, font_handles: Res<FontHandles>) 
                     color: Color::RED,
                 },
             ),
-            ..Default::default()
-        })
-        .insert(ContinueText);
+            ..default()
+        },
+        ContinueText,
+    ));
 }
 
 fn despawn_game_over_text(mut commands: Commands, query: Query<Entity, With<ContinueText>>) {
-    if let Some(handle) = query.iter().next() {
-        commands.entity(handle).despawn();
+    for entity in query.iter() {
+        commands.entity(entity).despawn();
     }
 }
 
@@ -113,7 +107,7 @@ fn pause_listener(
     mut rapier_configuration: ResMut<RapierConfiguration>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Pause) {
-        match state.0 {
+        match state.get() {
             AppState::Paused => {
                 // Unpause
                 rapier_configuration.physics_pipeline_active = true;
@@ -135,21 +129,22 @@ fn spawn_pause_ui(mut commands: Commands, fonts: Res<FontHandles>) {
     commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size::new(Val::Percent(100.), Val::Percent(100.)),
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 position_type: PositionType::Absolute,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::FlexEnd,
-                ..Default::default()
+                ..default()
             },
             background_color: Color::NONE.into(),
-            ..Default::default()
+            ..default()
         })
         .with_children(|parent| {
             parent.spawn(TextBundle {
                 style: Style {
                     align_self: AlignSelf::Center,
                     position_type: PositionType::Absolute,
-                    ..Default::default()
+                    ..default()
                 },
                 text: Text::from_section(
                     "PAUSED",
@@ -159,7 +154,7 @@ fn spawn_pause_ui(mut commands: Commands, fonts: Res<FontHandles>) {
                         color: Color::BLUE,
                     },
                 ),
-                ..Default::default()
+                ..default()
             });
         })
         .insert(PauseText);
@@ -175,15 +170,22 @@ pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(load_fonts)
-            .add_system(pause_listener)
-            .add_system(setup_title_screen.in_schedule(OnEnter(AppState::MainMenu)))
-            .add_system(any_key_listener.in_set(OnUpdate(AppState::MainMenu)))
-            .add_system(despawn_title_screen.in_schedule(OnExit(AppState::MainMenu)))
-            .add_system(spawn_game_over_text.in_schedule(OnEnter(AppState::GameOver)))
-            .add_system(any_key_listener.in_set(OnUpdate(AppState::GameOver)))
-            .add_system(despawn_game_over_text.in_schedule(OnExit(AppState::GameOver)))
-            .add_system(spawn_pause_ui.in_schedule(OnEnter(AppState::Paused)))
-            .add_system(despawn_pause_ui.in_schedule(OnExit(AppState::Paused)));
+        app.add_systems(Startup, load_fonts)
+            .add_systems(OnEnter(AppState::MainMenu), setup_title_screen)
+            .add_systems(
+                Update,
+                any_key_listener
+                    .run_if(in_state(AppState::MainMenu).or_else(in_state(AppState::GameOver))),
+            )
+            .add_systems(
+                Update,
+                pause_listener
+                    .run_if(in_state(AppState::InGame).or_else(in_state(AppState::Paused))),
+            )
+            .add_systems(OnExit(AppState::MainMenu), despawn_title_screen)
+            .add_systems(OnEnter(AppState::GameOver), spawn_game_over_text)
+            .add_systems(OnExit(AppState::GameOver), despawn_game_over_text)
+            .add_systems(OnEnter(AppState::Paused), spawn_pause_ui)
+            .add_systems(OnExit(AppState::Paused), despawn_pause_ui);
     }
 }

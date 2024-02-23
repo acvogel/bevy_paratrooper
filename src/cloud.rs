@@ -86,8 +86,8 @@ pub struct CloudPlugin;
 
 impl Plugin for CloudPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_cloud_system)
-            .add_system(spawn_cloud_system)
-            .add_system(despawn_escaped_clouds);
+        app.add_systems(Startup, setup_cloud_system)
+            .add_systems(Update, spawn_cloud_system)
+            .add_systems(Update, despawn_escaped_clouds);
     }
 }
