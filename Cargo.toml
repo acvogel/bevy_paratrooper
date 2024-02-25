@@ -8,13 +8,13 @@ bevy_prototype_lyon = "0.10.0"
 rand = "0.8.5"
 
 [dependencies.bevy_rapier2d]
-version = "0.24.0"
+version = "0.25.0"
 features = [
     "wasm-bindgen"
 ]
 
 [dependencies.bevy]
-version = "0.12.1"
+version = "0.13.0"
 #default-features = false
 # These are the remaining default features other than `bevy_audio` and `mp3`
 features = [
