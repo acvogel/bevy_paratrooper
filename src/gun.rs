@@ -125,7 +125,7 @@ pub fn setup_gun_barrel(mut commands: Commands) {
 
 /// Move gun with keyboard, within bounds.
 fn move_gun(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Velocity, &Transform), With<Gun>>,
 ) {
     let angular_velocity = ANGULAR_VELOCITY;

@@ -25,7 +25,7 @@ fn setup_bullets(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn shoot_gun(
     mut commands: Commands,
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Gun, &Transform)>,
     time: Res<Time>,
     mut event_writer: EventWriter<GunshotEvent>,
