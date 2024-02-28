@@ -10,6 +10,8 @@ use crate::{consts, AppState, GunExplosionEvent};
 
 const ANGULAR_VELOCITY: f32 = 2.5;
 
+/// Right-side angle boundary
+const BOUNDARY_ANGLE: f32 = std::f32::consts::PI / 2.9;
 #[derive(Component)]
 pub struct Gun {
     pub last_fired: f64,
@@ -123,27 +125,42 @@ pub fn setup_gun_barrel(mut commands: Commands) {
         .insert(Gun { last_fired: 0. });
 }
 
-/// Move gun with keyboard, within bounds.
+/// Move gun with keyboard or gamepad, within bounds.
 fn move_gun(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
+    gamepads: Res<Gamepads>,
+    button_inputs: Res<ButtonInput<GamepadButton>>,
+    keyboard_inputs: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Velocity, &Transform), With<Gun>>,
 ) {
-    let angular_velocity = ANGULAR_VELOCITY;
-    let boundary_angle = std::f32::consts::PI / 2.9; // right boundary
-    for (mut velocity, transform) in query.iter_mut() {
-        let (gun_axis, gun_angle) = transform.rotation.to_axis_angle();
-        if (keyboard_input.pressed(KeyCode::KeyA) || keyboard_input.pressed(KeyCode::ArrowLeft))
-            && (gun_axis.z <= 0. || gun_angle < boundary_angle)
-        {
-            velocity.angvel = angular_velocity;
-        } else if (keyboard_input.pressed(KeyCode::KeyD)
-            || keyboard_input.pressed(KeyCode::ArrowRight))
-            && (gun_axis.z >= 0. || gun_angle < boundary_angle)
-        {
-            velocity.angvel = -angular_velocity;
-        } else {
-            velocity.angvel = 0.
-        }
+    let keyboard_left =
+        keyboard_inputs.pressed(KeyCode::KeyA) || keyboard_inputs.pressed(KeyCode::ArrowLeft);
+    let keyboard_right =
+        keyboard_inputs.pressed(KeyCode::KeyD) || keyboard_inputs.pressed(KeyCode::ArrowRight);
+    let gamepad_right = gamepads
+        .iter()
+        .find(|&gamepad| {
+            button_inputs.pressed(GamepadButton::new(gamepad, GamepadButtonType::DPadRight))
+        })
+        .is_some();
+    let gamepad_left = gamepads
+        .iter()
+        .find(|&gamepad| {
+            button_inputs.pressed(GamepadButton::new(gamepad, GamepadButtonType::DPadLeft))
+        })
+        .is_some();
+    let any_left = keyboard_left || gamepad_left;
+    let any_right = keyboard_right || gamepad_right;
+
+    let (mut velocity, transform) = query.get_single_mut().expect("Gun entity not found!");
+    let (gun_axis, gun_angle) = transform.rotation.to_axis_angle();
+    velocity.angvel = if any_left && any_right {
+        0.
+    } else if any_left && (gun_axis.z <= 0. || gun_angle < BOUNDARY_ANGLE) {
+        ANGULAR_VELOCITY
+    } else if any_right && (gun_axis.z >= 0. || gun_angle < BOUNDARY_ANGLE) {
+        -ANGULAR_VELOCITY
+    } else {
+        0.
     }
 }
 
