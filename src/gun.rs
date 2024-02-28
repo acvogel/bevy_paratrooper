@@ -132,11 +132,12 @@ fn move_gun(
     let boundary_angle = std::f32::consts::PI / 2.9; // right boundary
     for (mut velocity, transform) in query.iter_mut() {
         let (gun_axis, gun_angle) = transform.rotation.to_axis_angle();
-        if (keyboard_input.pressed(KeyCode::A) || keyboard_input.pressed(KeyCode::Left))
+        if (keyboard_input.pressed(KeyCode::KeyA) || keyboard_input.pressed(KeyCode::ArrowLeft))
             && (gun_axis.z <= 0. || gun_angle < boundary_angle)
         {
             velocity.angvel = angular_velocity;
-        } else if (keyboard_input.pressed(KeyCode::D) || keyboard_input.pressed(KeyCode::Right))
+        } else if (keyboard_input.pressed(KeyCode::KeyD)
+            || keyboard_input.pressed(KeyCode::ArrowRight))
             && (gun_axis.z >= 0. || gun_angle < boundary_angle)
         {
             velocity.angvel = -angular_velocity;
