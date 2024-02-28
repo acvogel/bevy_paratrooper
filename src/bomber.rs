@@ -31,27 +31,22 @@ pub struct Bomb;
 
 #[derive(Resource)]
 struct BomberTextures {
-    bomber: Handle<Image>,
-    bomb: Handle<TextureAtlas>,
+    bomber_texture_handle: Handle<Image>,
+    bomb_texture_atlas_handle: Handle<TextureAtlasLayout>,
+    bomb_texture_handle: Handle<Image>,
 }
 
 /// Load textures
 fn setup_bomber_system(
     mut commands: Commands,
     asset_server: ResMut<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let bomb_texture_atlas = TextureAtlas::from_grid(
-        asset_server.load("images/bomb4.png"),
-        Vec2::new(64., 128.),
-        4,
-        1,
-        None,
-        None,
-    );
+    let bomb_texture_atlas = TextureAtlasLayout::from_grid(Vec2::new(64., 128.), 4, 1, None, None);
     commands.insert_resource(BomberTextures {
-        bomber: asset_server.load("images/bomber.png"),
-        bomb: texture_atlases.add(bomb_texture_atlas),
+        bomber_texture_handle: asset_server.load("images/bomber.png"),
+        bomb_texture_atlas_handle: texture_atlases.add(bomb_texture_atlas),
+        bomb_texture_handle: asset_server.load("images/bomb4.png"),
     });
 }
 
@@ -72,12 +67,12 @@ fn spawn_bomber_system(mut commands: Commands, textures: Res<BomberTextures>) {
         .with_scale(Vec3::new(BOMBER_SCALE, BOMBER_SCALE, 1.));
 
         let sprite_bundle = SpriteBundle {
-            texture: textures.bomber.clone(),
+            texture: textures.bomber_texture_handle.clone(),
             sprite: Sprite {
                 flip_x: !heading_right,
-                ..Default::default()
+                ..default()
             },
-            ..Default::default()
+            ..default()
         };
 
         commands
@@ -137,9 +132,13 @@ fn spawn_bombs(
                     .spawn(RigidBody::Dynamic)
                     .insert(Sensor)
                     .insert(SpriteSheetBundle {
-                        sprite: TextureAtlasSprite::new(1),
-                        texture_atlas: bomber_textures.bomb.clone(),
-                        ..Default::default()
+                        atlas: TextureAtlas {
+                            layout: bomber_textures.bomb_texture_atlas_handle.clone(),
+                            index: 0,
+                        },
+
+                        texture: bomber_textures.bomb_texture_handle.clone(),
+                        ..default()
                     })
                     .insert(Transform {
                         translation: Vec3::new(bomb_pos.x, bomb_pos.y, BOMB_Z),
@@ -225,9 +224,9 @@ fn bomb_terrain_collision_system(
 
 fn despawn_bomber_system(
     mut commands: Commands,
-    mut bombers: Query<(Entity, Or<(With<Bomber>, With<Bomb>)>)>,
+    mut bombers: Query<Entity, Or<(With<Bomber>, With<Bomb>)>>,
 ) {
-    for (entity, _component) in bombers.iter_mut() {
+    for entity in bombers.iter_mut() {
         commands.entity(entity).despawn_recursive();
     }
 }

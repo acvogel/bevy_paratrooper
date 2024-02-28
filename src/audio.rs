@@ -104,7 +104,7 @@ fn gunshot_listener(
                 source: asset_server.load("audio/sfx_weapon_singleshot20.wav"),
                 settings: PlaybackSettings {
                     mode: PlaybackMode::Despawn,
-                    volume: Volume::new_relative(0.3),
+                    volume: Volume::new(0.3),
                     ..default()
                 },
                 ..default()
@@ -118,9 +118,9 @@ fn gunshot_listener(
 fn bomb_spawned_listener(
     mut commands: Commands,
     asset_server: ResMut<AssetServer>,
-    bomb_query: Query<(Entity, Added<Bomb>)>,
+    bomb_query: Query<Entity, Added<Bomb>>,
 ) {
-    for (entity, _added_bomb) in bomb_query.iter().filter(|(_e, added_bomb)| *added_bomb) {
+    for entity in bomb_query.iter() {
         // Attach AudioBundle to Bomb entity
         commands.entity(entity).insert({
             (

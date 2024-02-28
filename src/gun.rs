@@ -125,18 +125,19 @@ pub fn setup_gun_barrel(mut commands: Commands) {
 
 /// Move gun with keyboard, within bounds.
 fn move_gun(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Velocity, &Transform), With<Gun>>,
 ) {
     let angular_velocity = ANGULAR_VELOCITY;
     let boundary_angle = std::f32::consts::PI / 2.9; // right boundary
     for (mut velocity, transform) in query.iter_mut() {
         let (gun_axis, gun_angle) = transform.rotation.to_axis_angle();
-        if (keyboard_input.pressed(KeyCode::A) || keyboard_input.pressed(KeyCode::Left))
+        if (keyboard_input.pressed(KeyCode::KeyA) || keyboard_input.pressed(KeyCode::ArrowLeft))
             && (gun_axis.z <= 0. || gun_angle < boundary_angle)
         {
             velocity.angvel = angular_velocity;
-        } else if (keyboard_input.pressed(KeyCode::D) || keyboard_input.pressed(KeyCode::Right))
+        } else if (keyboard_input.pressed(KeyCode::KeyD)
+            || keyboard_input.pressed(KeyCode::ArrowRight))
             && (gun_axis.z >= 0. || gun_angle < boundary_angle)
         {
             velocity.angvel = -angular_velocity;

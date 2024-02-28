@@ -25,7 +25,7 @@ fn setup_bullets(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn shoot_gun(
     mut commands: Commands,
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Gun, &Transform)>,
     time: Res<Time>,
     mut event_writer: EventWriter<GunshotEvent>,
@@ -40,7 +40,7 @@ fn shoot_gun(
                 // Spawn bullet
                 let mut bullet_transform = *transform;
                 bullet_transform.translation.z -= 0.1;
-                bullet_transform.translation += 30. * bullet_transform.local_y();
+                bullet_transform.translation += bullet_transform.local_y() * 30.;
 
                 let sprite_bundle = SpriteBundle {
                     texture: bullet_textures.bullet_handle.clone(),
@@ -109,7 +109,7 @@ fn bullet_collision_system(
                         translation: bomb_transform.translation,
                         bullet_entity,
                         target_entity,
-                    })
+                    });
                 }
 
                 // Aircraft
@@ -184,12 +184,6 @@ fn despawn_escaped_bullets(
         {
             commands.entity(entity).despawn_recursive();
         }
-    }
-}
-
-fn despawn_all_bullets(mut commands: Commands, query: Query<Entity, With<Bullet>>) {
-    for entity in query.iter() {
-        commands.entity(entity).despawn();
     }
 }
 

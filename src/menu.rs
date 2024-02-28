@@ -58,7 +58,7 @@ fn despawn_title_screen(mut commands: Commands, query: Query<Entity, With<TitleT
 }
 
 fn any_key_listener(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
     if keyboard_input.get_just_pressed().count() > 0 {
@@ -103,7 +103,7 @@ fn despawn_game_over_text(mut commands: Commands, query: Query<Entity, With<Cont
 fn pause_listener(
     state: ResMut<State<AppState>>,
     mut next_state: ResMut<NextState<AppState>>,
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut rapier_configuration: ResMut<RapierConfiguration>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Pause) {

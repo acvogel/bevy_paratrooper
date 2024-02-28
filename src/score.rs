@@ -289,7 +289,7 @@ fn spawn_score_text(builder: &mut ChildBuilder, font: Handle<Font>) {
                             color: Color::WHITE,
                         },
                     )
-                        .with_text_alignment(TextAlignment::Left),
+                    .with_text_justify(JustifyText::Left),
                 )
                 .insert(ScoreText);
         });
