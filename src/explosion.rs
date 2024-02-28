@@ -25,24 +25,27 @@ const GIB_TICK: f32 = 0.1;
 
 fn spawn_explosion_system(
     mut commands: Commands,
-    explosion_textures: &Res<ExplosionTextures>,
+    explosion_textures: Res<ExplosionTextures>,
     time: Res<Time>,
     mut event_reader: EventReader<ExplosionEvent>,
 ) {
     for event in event_reader.read() {
         let (explosion_texture_atlas, explosion_texture) = match event.explosion_type {
             ExplosionType::Bomb => (
-                *explosion_textures.ground_explosion_texture_atlas_handle,
-                *explosion_textures.ground_explosion_texture_handle,
+                explosion_textures
+                    .ground_explosion_texture_atlas_handle
+                    .clone(),
+                explosion_textures.ground_explosion_texture_handle.clone(),
             ),
             ExplosionType::Aircraft | ExplosionType::Bullet => (
-                *explosion_textures.air_explosion_texture_atlas_handle,
-                *explosion_textures.air_explosion_texture_handle,
+                explosion_textures
+                    .air_explosion_texture_atlas_handle
+                    .clone(),
+                explosion_textures.air_explosion_texture_handle.clone(),
             ),
         };
         commands
             .spawn(SpriteSheetBundle {
-                sprite: Sprite::default(),
                 atlas: TextureAtlas {
                     layout: explosion_texture_atlas,
                     index: 0,
@@ -62,7 +65,7 @@ fn spawn_explosion_system(
 
 fn spawn_gun_explosion_system(
     mut commands: Commands,
-    explosion_textures: &Res<ExplosionTextures>,
+    explosion_textures: Res<ExplosionTextures>,
     time: Res<Time>,
     mut event_reader: EventReader<GunExplosionEvent>,
 ) {
@@ -70,10 +73,12 @@ fn spawn_gun_explosion_system(
         commands
             .spawn(SpriteSheetBundle {
                 atlas: TextureAtlas {
-                    layout: *explosion_textures.air_explosion_texture_atlas_handle,
+                    layout: explosion_textures
+                        .air_explosion_texture_atlas_handle
+                        .clone(),
                     index: 0,
                 },
-                texture: *explosion_textures.air_explosion_texture_handle,
+                texture: explosion_textures.air_explosion_texture_handle.clone(),
                 transform: Transform::from_translation(event.translation),
                 ..default()
             })
@@ -89,20 +94,14 @@ fn animate_explosion_system(
     mut commands: Commands,
     time: Res<Time>,
     texture_atlases: Res<Assets<TextureAtlasLayout>>,
-    mut query: Query<(
-        Entity,
-        &mut AnimationTimer,
-        &mut TextureAtlas,
-        &Handle<TextureAtlasLayout>,
-    )>,
+    mut query: Query<(Entity, &mut AnimationTimer, &mut TextureAtlas)>,
 ) {
-    for (entity, mut timer, mut sprite, animation_texture_atlas_handle) in query.iter_mut() {
+    for (entity, mut timer, mut atlas) in query.iter_mut() {
         timer.tick(time.delta());
         if timer.finished() {
-            let texture_atlas = texture_atlases.get(animation_texture_atlas_handle).unwrap();
-            let num_textures = texture_atlas.textures.len();
-            if sprite.index + 1 < num_textures {
-                sprite.index += 1;
+            let num_textures = texture_atlases.get(&atlas.layout).unwrap().len();
+            if atlas.index + 1 < num_textures {
+                atlas.index += 1;
             } else {
                 commands.entity(entity).despawn();
             }
@@ -144,7 +143,7 @@ fn setup_explosion_system(
 
 fn spawn_gib_system(
     mut commands: Commands,
-    explosion_textures: &Res<ExplosionTextures>,
+    explosion_textures: Res<ExplosionTextures>,
     time: Res<Time>,
     mut event_reader: EventReader<GibEvent>,
 ) {
@@ -152,10 +151,10 @@ fn spawn_gib_system(
         commands
             .spawn(SpriteSheetBundle {
                 atlas: TextureAtlas {
-                    layout: *explosion_textures.gib_texture_atlas_handle,
+                    layout: explosion_textures.gib_texture_atlas_handle.clone(),
                     index: 0,
                 },
-                texture: *explosion_textures.gib_texture_handle,
+                texture: explosion_textures.gib_texture_handle.clone(),
                 transform: event.transform,
                 ..default()
             })

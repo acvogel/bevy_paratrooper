@@ -42,7 +42,7 @@ fn setup_bomber_system(
     asset_server: ResMut<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let bomb_texture_atlas = TextureAtlas::from_grid(Vec2::new(64., 128.), 4, 1, None, None);
+    let bomb_texture_atlas = TextureAtlasLayout::from_grid(Vec2::new(64., 128.), 4, 1, None, None);
     commands.insert_resource(BomberTextures {
         bomber_texture_handle: asset_server.load("images/bomber.png"),
         bomb_texture_atlas_handle: texture_atlases.add(bomb_texture_atlas),
@@ -51,7 +51,7 @@ fn setup_bomber_system(
 }
 
 /// Will add toggles or whatever else with "waves"
-fn spawn_bomber_system(mut commands: Commands, textures: &Res<BomberTextures>) {
+fn spawn_bomber_system(mut commands: Commands, textures: Res<BomberTextures>) {
     let mut rng = rand::thread_rng();
     if rng.gen_range(0.0..1.0) < BOMBER_SPAWN_PROBABILITY {
         let y = rng.gen_range(SPAWN_Y_MIN..SPAWN_Y_MAX);
@@ -67,7 +67,7 @@ fn spawn_bomber_system(mut commands: Commands, textures: &Res<BomberTextures>) {
         .with_scale(Vec3::new(BOMBER_SCALE, BOMBER_SCALE, 1.));
 
         let sprite_bundle = SpriteBundle {
-            texture: *textures.bomber_texture_handle,
+            texture: textures.bomber_texture_handle.clone(),
             sprite: Sprite {
                 flip_x: !heading_right,
                 ..default()
@@ -110,7 +110,7 @@ fn should_bomb(bomb_transform: &Transform, velocity: &Velocity, gun_transform: &
 fn spawn_bombs(
     mut commands: Commands,
     mut bomber_query: Query<(&mut Bomber, &Transform, &Velocity)>,
-    bomber_textures: &Res<BomberTextures>,
+    bomber_textures: Res<BomberTextures>,
     gun_query: Query<(&Gun, &Transform)>,
     mut event_writer: EventWriter<BombDropEvent>,
 ) {
@@ -132,13 +132,12 @@ fn spawn_bombs(
                     .spawn(RigidBody::Dynamic)
                     .insert(Sensor)
                     .insert(SpriteSheetBundle {
-                        sprite: Sprite::new(1),
                         atlas: TextureAtlas {
-                            layout: *bomber_textures.bomb_texture_atlas_handle,
+                            layout: bomber_textures.bomb_texture_atlas_handle.clone(),
                             index: 0,
                         },
 
-                        texture: *bomber_textures.bomb_texture_handle,
+                        texture: bomber_textures.bomb_texture_handle.clone(),
                         ..default()
                     })
                     .insert(Transform {

@@ -44,7 +44,7 @@ fn main() {
             ..default()
         }))
         .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
-        .add_state::<AppState>()
+        .insert_state(AppState::MainMenu)
         .add_plugins(ShapePlugin)
         .add_plugins(GunPlugin)
         .add_plugins(BulletPlugin)
@@ -59,7 +59,6 @@ fn main() {
         .add_plugins(CloudPlugin)
         .add_plugins(EventPlugin)
         .add_plugins(AssaultPlugin)
-        //.add_startup_system(setup_camera)
         .add_systems(Startup, setup_camera)
         .add_systems(Update, bevy::window::close_on_esc)
         .run();
