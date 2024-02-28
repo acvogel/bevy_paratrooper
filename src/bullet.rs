@@ -25,13 +25,31 @@ fn setup_bullets(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn shoot_gun(
     mut commands: Commands,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
+    gamepads: Res<Gamepads>,
+    button_inputs: Res<ButtonInput<GamepadButton>>,
+    keyboard_inputs: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Gun, &Transform)>,
     time: Res<Time>,
     mut event_writer: EventWriter<GunshotEvent>,
     bullet_textures: Res<BulletTextures>,
 ) {
-    if keyboard_input.pressed(KeyCode::Space) {
+    let keyboard_shot = keyboard_inputs.pressed(KeyCode::Space);
+    let gamepad_shot_button_types = [
+        GamepadButtonType::East,
+        GamepadButtonType::West,
+        GamepadButtonType::South,
+        GamepadButtonType::North,
+    ];
+    let mut gamepad_shot = false;
+    for gamepad in gamepads.iter() {
+        let gamepad_shot_buttons =
+            gamepad_shot_button_types.map(|button_type| GamepadButton::new(gamepad, button_type));
+        if button_inputs.any_pressed(gamepad_shot_buttons) {
+            gamepad_shot = true;
+            break;
+        }
+    }
+    if gamepad_shot || keyboard_shot {
         for (mut gun, transform) in query.iter_mut() {
             if time.elapsed_seconds_f64() - gun.last_fired > consts::GUN_COOLDOWN {
                 event_writer.send(GunshotEvent);

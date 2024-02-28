@@ -58,10 +58,13 @@ fn despawn_title_screen(mut commands: Commands, query: Query<Entity, With<TitleT
 }
 
 fn any_key_listener(
+    button_inputs: Res<ButtonInput<GamepadButton>>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
-    if keyboard_input.get_just_pressed().count() > 0 {
+    let keyboard_any = keyboard_input.get_just_pressed().count() > 0;
+    let gamepad_any = button_inputs.get_just_pressed().count() > 0;
+    if keyboard_any || gamepad_any {
         next_state.set(AppState::InGame);
     }
 }
@@ -103,10 +106,19 @@ fn despawn_game_over_text(mut commands: Commands, query: Query<Entity, With<Cont
 fn pause_listener(
     state: ResMut<State<AppState>>,
     mut next_state: ResMut<NextState<AppState>>,
+    gamepads: Res<Gamepads>,
+    button_inputs: Res<ButtonInput<GamepadButton>>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut rapier_configuration: ResMut<RapierConfiguration>,
 ) {
-    if keyboard_input.just_pressed(KeyCode::Pause) {
+    let keyboard_pause = keyboard_input.just_pressed(KeyCode::Pause);
+    let gamepad_pause = gamepads
+        .iter()
+        .find(|&gamepad| {
+            button_inputs.just_pressed(GamepadButton::new(gamepad, GamepadButtonType::Start))
+        })
+        .is_some();
+    if keyboard_pause || gamepad_pause {
         match state.get() {
             AppState::Paused => {
                 // Unpause
