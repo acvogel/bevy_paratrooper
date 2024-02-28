@@ -34,18 +34,19 @@ fn shoot_gun(
     bullet_textures: Res<BulletTextures>,
 ) {
     let keyboard_shot = keyboard_inputs.pressed(KeyCode::Space);
+    let gamepad_shot_button_types = [
+        GamepadButtonType::East,
+        GamepadButtonType::West,
+        GamepadButtonType::South,
+        GamepadButtonType::North,
+    ];
     let mut gamepad_shot = false;
     for gamepad in gamepads.iter() {
-        for gamepad_button_type in [
-            GamepadButtonType::East,
-            GamepadButtonType::West,
-            GamepadButtonType::South,
-            GamepadButtonType::North,
-        ] {
-            if button_inputs.pressed(GamepadButton::new(gamepad, gamepad_button_type)) {
-                gamepad_shot = true;
-                break;
-            }
+        let gamepad_shot_buttons =
+            gamepad_shot_button_types.map(|button_type| GamepadButton::new(gamepad, button_type));
+        if button_inputs.any_pressed(gamepad_shot_buttons) {
+            gamepad_shot = true;
+            break;
         }
     }
     if gamepad_shot || keyboard_shot {

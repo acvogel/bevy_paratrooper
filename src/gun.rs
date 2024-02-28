@@ -132,10 +132,8 @@ fn move_gun(
     keyboard_inputs: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Velocity, &Transform), With<Gun>>,
 ) {
-    let keyboard_left =
-        keyboard_inputs.pressed(KeyCode::KeyA) || keyboard_inputs.pressed(KeyCode::ArrowLeft);
-    let keyboard_right =
-        keyboard_inputs.pressed(KeyCode::KeyD) || keyboard_inputs.pressed(KeyCode::ArrowRight);
+    let keyboard_left = keyboard_inputs.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
+    let keyboard_right = keyboard_inputs.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
     let gamepad_right = gamepads
         .iter()
         .find(|&gamepad| {
