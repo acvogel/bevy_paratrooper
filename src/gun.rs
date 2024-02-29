@@ -197,6 +197,12 @@ fn gun_collision_system(
     }
 }
 
+/// Stop gun rotation.
+fn stop_gun(mut gun_query: Query<&mut Velocity, With<Gun>>) {
+    let mut velocity = gun_query.get_single_mut().expect("Gun velocity not found.");
+    velocity.angvel = 0.;
+}
+
 pub struct GunPlugin;
 
 impl Plugin for GunPlugin {
@@ -208,6 +214,7 @@ impl Plugin for GunPlugin {
         .add_systems(
             Update,
             (move_gun, gun_collision_system).run_if(in_state(AppState::InGame)),
-        );
+        )
+        .add_systems(OnEnter(AppState::GameOver), stop_gun);
     }
 }
