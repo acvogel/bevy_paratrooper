@@ -88,10 +88,11 @@ fn shoot_gun(
                     )
                     .insert(ActiveEvents::COLLISION_EVENTS)
                     .insert(CollisionGroups::new(
-                        Group::from_bits(0b0010).unwrap(),
-                        Group::from_bits(0b1101).unwrap(),
+                        Group::GROUP_2,
+                        Group::GROUP_1 | Group::GROUP_3 | Group::GROUP_4,
                     ))
                     .insert(LockedAxes::ROTATION_LOCKED)
+                    .insert(Sensor)
                     .insert(Bullet);
             }
         }

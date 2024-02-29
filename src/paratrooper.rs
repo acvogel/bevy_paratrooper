@@ -16,9 +16,6 @@ pub const PARATROOPER_SCALE: f32 = 0.5;
 pub const PARATROOPER_X: f32 = PARATROOPER_SCALE * 31.;
 pub const PARATROOPER_Y: f32 = PARATROOPER_SCALE * 49.;
 
-const PARATROOPER_COLLISION_MEMBERSHIP: u32 = 0b0001;
-pub const PARATROOPER_COLLISION_FILTER: u32 = 0b1110;
-
 const PARATROOPER_SPAWN_X_MAX: f32 = 400.;
 const PARATROOPER_SPAWN_X_MIN: f32 = 50.;
 const PARATROOPER_SPAWN_VELOCITY: f32 = -100.;
@@ -145,8 +142,8 @@ fn spawn_paratroopers(
                     combine_rule: CoefficientCombineRule::Min,
                 })
                 .insert(CollisionGroups::new(
-                    Group::from_bits(PARATROOPER_COLLISION_MEMBERSHIP).unwrap(),
-                    Group::from_bits(PARATROOPER_COLLISION_FILTER).unwrap(),
+                    Group::GROUP_1,
+                    Group::GROUP_2 | Group::GROUP_3 | Group::GROUP_4,
                 ))
                 .insert(ActiveEvents::COLLISION_EVENTS)
                 .insert(Paratrooper::default());
@@ -333,8 +330,8 @@ fn spawn_parachutes(
                 .insert(Collider::cuboid(31. / 4., 49. / 4.))
                 .insert(Sensor)
                 .insert(CollisionGroups::new(
-                    Group::from_bits(0b0001).unwrap(),
-                    Group::from_bits(0b1110).unwrap(),
+                    Group::GROUP_1,
+                    Group::GROUP_2 | Group::GROUP_3 | Group::GROUP_4,
                 ))
                 //.insert(Transform::from_xyz(0.0, 30.0, 0.0)) // todo own offset separate from sprite?
                 .insert(Parachute)
