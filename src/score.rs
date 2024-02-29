@@ -413,7 +413,7 @@ impl Plugin for ScorePlugin {
         app.init_resource::<Score>()
             .add_systems(Startup, setup)
             .add_systems(
-                OnEnter(AppState::InGame),
+                OnExit(AppState::MainMenu),
                 (setup_game_clock, setup_score_bar),
             )
             .add_systems(
