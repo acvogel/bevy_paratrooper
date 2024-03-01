@@ -36,15 +36,14 @@ pub fn setup_gun_base(mut commands: Commands) {
     let h = GUN_BASE_Y;
     let w = GUN_BASE_X;
     let y = consts::GROUND_Y + 0.5 * h;
-    // todo replace with lyon shape?
     let sprite_bundle = SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(-0.1, 0.1, 0.1),
             custom_size: Some(Vec2::new(w, h)),
-            ..Default::default()
+            ..default()
         },
         transform: Transform::from_translation(Vec3::new(0., y, 2.)),
-        ..Default::default()
+        ..default()
     };
     commands
         .spawn(sprite_bundle)
@@ -77,7 +76,7 @@ pub fn setup_gun_mount(mut commands: Commands) {
     commands
         .spawn(ShapeBundle {
             path: GeometryBuilder::build_as(&mount_rectangle_shape),
-            ..Default::default()
+            ..default()
         })
         .insert(Fill::color(Color::PINK))
         .insert(Transform::from_xyz(0., rectangle_y, 2.0))
@@ -88,7 +87,7 @@ pub fn setup_gun_mount(mut commands: Commands) {
             parent
                 .spawn(ShapeBundle {
                     path: GeometryBuilder::build_as(&mount_circle_shape),
-                    ..Default::default()
+                    ..default()
                 })
                 .insert(Fill::color(Color::PINK))
                 .insert(Transform::from_xyz(0., GUN_MOUNT_Y / 2.0, 2.0));
@@ -104,10 +103,10 @@ pub fn setup_gun_barrel(mut commands: Commands) {
             color: Color::rgb(0.32, 0.36, 0.41),
             custom_size: Some(sprite_size),
             anchor: BottomCenter,
-            ..Default::default()
+            ..default()
         },
         transform: Transform::from_translation(Vec3::new(0., y, 1.)),
-        ..Default::default()
+        ..default()
     };
     commands
         .spawn(sprite_bundle)
@@ -119,7 +118,7 @@ pub fn setup_gun_barrel(mut commands: Commands) {
             bevy_rapier2d::prelude::AdditionalMassProperties::MassProperties(MassProperties {
                 mass: 1.0,
                 principal_inertia: 0.1,
-                ..Default::default()
+                ..default()
             }),
         )
         .insert(Gun { last_fired: 0. });
