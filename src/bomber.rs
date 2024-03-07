@@ -151,15 +151,11 @@ fn spawn_bombs(
                         angular_damping: 1.0,
                     })
                     .insert(GravityScale(10.0))
-                    .insert(
-                        bevy_rapier2d::prelude::AdditionalMassProperties::MassProperties(
-                            MassProperties {
-                                mass: 10.0,
-                                principal_inertia: 0.5,
-                                ..Default::default()
-                            },
-                        ),
-                    )
+                    .insert(AdditionalMassProperties::MassProperties(MassProperties {
+                        mass: 10.0,
+                        principal_inertia: 0.5,
+                        ..Default::default()
+                    }))
                     .insert(Velocity {
                         linvel: velocity.linvel.clone(),
                         angvel: heading * -1.5,
@@ -169,6 +165,10 @@ fn spawn_bombs(
                         BOMB_SCALE * 128. / 2.0,
                     ))
                     .insert(ActiveEvents::COLLISION_EVENTS)
+                    .insert(CollisionGroups::new(
+                        Group::GROUP_3,
+                        Group::GROUP_2 | Group::GROUP_4, // bullets and gun
+                    ))
                     .insert(Bomb);
             }
         }

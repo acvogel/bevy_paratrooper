@@ -5,8 +5,6 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 const PARATROOPER_WALK_SPEED: f32 = 50.;
-const PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP: u32 = 0b1001;
-const PARATROOPER_ASSAULT_COLLISION_FILTER: u32 = 0b1001;
 
 /// Turn a lander into an assaulter
 fn enable_assault_system(
@@ -15,12 +13,9 @@ fn enable_assault_system(
     mut event_reader: EventReader<LandingEvent>,
 ) {
     for event in event_reader.read() {
-        if let Ok((entity, mut paratrooper, mut col_groups /*, mut sensor*/)) =
-            query.get_mut(event.0)
-        {
-            col_groups.memberships =
-                Group::from_bits(PARATROOPER_ASSAULT_COLLISION_MEMBERSHIP).unwrap();
-            col_groups.filters = Group::from_bits(PARATROOPER_ASSAULT_COLLISION_FILTER).unwrap();
+        if let Ok((entity, mut paratrooper, mut col_groups)) = query.get_mut(event.0) {
+            col_groups.memberships = Group::GROUP_1;
+            col_groups.filters = Group::GROUP_1 | Group::GROUP_4;
             paratrooper.state = ParatrooperState::Assault;
             commands.entity(entity).remove::<Sensor>();
         }
@@ -69,6 +64,7 @@ fn assault_collision_system(
 }
 
 pub struct AssaultPlugin;
+
 impl Plugin for AssaultPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
