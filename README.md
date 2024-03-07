@@ -1,4 +1,9 @@
-### Paratrooper
+# Paratrooper
+
+## Play from source code (Linux and MacOS)
+1. [Install Rust](https://www.rust-lang.org/tools/install)
+2. Clone repository: `git clone git@github.com:acvogel/bevy_paratrooper.git`
+3. Compile and run: `cd bevy_paratrooper; cargo run --release`
 
 ## Webasm Build
 - Disable kira audio plugin dependency and plugin
