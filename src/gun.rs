@@ -3,6 +3,7 @@ use bevy::sprite::Anchor::BottomCenter;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::*;
 use bevy_rapier2d::prelude::*;
+use std::collections::HashSet;
 
 use crate::bomber::Bomb;
 use crate::paratrooper::Paratrooper;
@@ -12,6 +13,7 @@ const ANGULAR_VELOCITY: f32 = 2.5;
 
 /// Right-side angle boundary
 const BOUNDARY_ANGLE: f32 = std::f32::consts::PI / 2.9;
+
 #[derive(Component)]
 pub struct Gun {
     pub last_fired: f64,
@@ -58,6 +60,7 @@ pub fn setup_gun_base(mut commands: Commands) {
             combine_rule: CoefficientCombineRule::Min,
         })
         .insert(ActiveEvents::COLLISION_EVENTS)
+        .insert(CollisionGroups::new(Group::GROUP_4, Group::ALL))
         .insert(GunBase);
 }
 
@@ -83,6 +86,7 @@ pub fn setup_gun_mount(mut commands: Commands) {
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(0.5 * GUN_MOUNT_X, 0.5 * GUN_MOUNT_Y))
         .insert(ActiveEvents::COLLISION_EVENTS)
+        .insert(CollisionGroups::new(Group::GROUP_4, Group::ALL))
         .with_children(|parent| {
             parent
                 .spawn(ShapeBundle {
@@ -113,14 +117,13 @@ pub fn setup_gun_barrel(mut commands: Commands) {
         .insert(RigidBody::KinematicVelocityBased)
         .insert(Collider::cuboid(0.5 * sprite_size.x, 0.5 * sprite_size.y))
         .insert(ActiveEvents::COLLISION_EVENTS)
+        .insert(CollisionGroups::new(Group::GROUP_4, Group::ALL))
         .insert(Velocity::default())
-        .insert(
-            bevy_rapier2d::prelude::AdditionalMassProperties::MassProperties(MassProperties {
-                mass: 1.0,
-                principal_inertia: 0.1,
-                ..default()
-            }),
-        )
+        .insert(AdditionalMassProperties::MassProperties(MassProperties {
+            mass: 1.0,
+            principal_inertia: 0.1,
+            ..default()
+        }))
         .insert(Gun { last_fired: 0. });
 }
 
@@ -131,6 +134,7 @@ fn move_gun(
     keyboard_inputs: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Velocity, &Transform), With<Gun>>,
 ) {
+    // Resolve keyboard and gamepad inputs
     let keyboard_left = keyboard_inputs.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
     let keyboard_right = keyboard_inputs.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
     let gamepad_right = gamepads
@@ -148,6 +152,7 @@ fn move_gun(
     let any_left = keyboard_left || gamepad_left;
     let any_right = keyboard_right || gamepad_right;
 
+    // Rotate the gun
     let (mut velocity, transform) = query.get_single_mut().expect("Gun entity not found!");
     let (gun_axis, gun_angle) = transform.rotation.to_axis_angle();
     velocity.angvel = if any_left && any_right {
@@ -161,36 +166,61 @@ fn move_gun(
     }
 }
 
-/// Paratrooper or bombing collision explodes gun
-fn gun_collision_system(
+/// Bomb colliding with any part of gun assembly causes explosion
+fn gun_bomb_collision_system(
     mut event_reader: EventReader<CollisionEvent>,
     mut event_writer: EventWriter<GunExplosionEvent>,
     gun_query: Query<(Entity, &Transform), With<Gun>>,
     gun_mount_query: Query<(Entity, &Transform), With<GunMount>>,
-    paratrooper_query: Query<Entity, With<Paratrooper>>,
-    bomb_query: Query<Entity, With<Bomb>>,
+    gun_base_query: Query<(Entity, &Transform), With<GunBase>>,
+    bombs_query: Query<Entity, With<Bomb>>,
 ) {
     let (gun_entity, gun_transform) = gun_query.get_single().expect("No gun entity.");
-    let (_gun_mount_entity, gun_mount_transform) =
-        gun_mount_query.get_single().expect("No gun mount.");
+    let (gun_mount_entity, gun_mount_transform) =
+        gun_mount_query.get_single().expect("No gun mount entity.");
+    let (gun_base_entity, _gun_base_transform) =
+        gun_base_query.get_single().expect("No gun base entity.");
+    let targets = HashSet::from([gun_entity, gun_mount_entity, gun_base_entity]);
     for &collision_event in event_reader.read() {
-        if let CollisionEvent::Started(entity1, entity2, _) = collision_event {
-            if entity1 == gun_entity || entity2 == gun_entity {
-                let other_entity = if entity1 == gun_entity {
-                    entity2
-                } else {
-                    entity1
-                };
+        if let CollisionEvent::Started(entity1, entity2, _flags) = collision_event {
+            let is_bomb_collision = bombs_query.contains(entity1) || bombs_query.contains(entity2);
+            let is_gun_collision = targets.contains(&entity1) || targets.contains(&entity2);
+            if is_bomb_collision && is_gun_collision {
+                event_writer.send(GunExplosionEvent {
+                    translation: gun_transform.translation,
+                });
+                event_writer.send(GunExplosionEvent {
+                    translation: gun_mount_transform.translation,
+                });
+            }
+        }
+    }
+}
 
-                if bomb_query.contains(other_entity) || paratrooper_query.contains(other_entity) {
-                    // Game over.
-                    event_writer.send(GunExplosionEvent {
-                        translation: gun_transform.translation,
-                    });
-                    event_writer.send(GunExplosionEvent {
-                        translation: gun_mount_transform.translation,
-                    });
-                }
+/// Landed paratrooper colliding with gun or mount causes explosion
+fn gun_paratrooper_collision_system(
+    mut event_reader: EventReader<CollisionEvent>,
+    mut event_writer: EventWriter<GunExplosionEvent>,
+    gun_query: Query<(Entity, &Transform), With<Gun>>,
+    gun_mount_query: Query<(Entity, &Transform), With<GunMount>>,
+    paratroopers_query: Query<Entity, With<Paratrooper>>,
+) {
+    let (gun_entity, gun_transform) = gun_query.get_single().expect("No gun entity.");
+    let (gun_mount_entity, gun_mount_transform) =
+        gun_mount_query.get_single().expect("No gun mount entity.");
+    let targets = HashSet::from([gun_entity, gun_mount_entity]);
+    for &collision_event in event_reader.read() {
+        if let CollisionEvent::Started(entity1, entity2, _flags) = collision_event {
+            let is_bomb_collision =
+                paratroopers_query.contains(entity1) || paratroopers_query.contains(entity2);
+            let is_gun_collision = targets.contains(&entity1) || targets.contains(&entity2);
+            if is_bomb_collision && is_gun_collision {
+                event_writer.send(GunExplosionEvent {
+                    translation: gun_transform.translation,
+                });
+                event_writer.send(GunExplosionEvent {
+                    translation: gun_mount_transform.translation,
+                });
             }
         }
     }
@@ -212,7 +242,12 @@ impl Plugin for GunPlugin {
         )
         .add_systems(
             Update,
-            (move_gun, gun_collision_system).run_if(in_state(AppState::InGame)),
+            (
+                move_gun,
+                gun_bomb_collision_system,
+                gun_paratrooper_collision_system,
+            )
+                .run_if(in_state(AppState::InGame)),
         )
         .add_systems(OnEnter(AppState::GameOver), stop_gun);
     }
