@@ -51,6 +51,37 @@ fn setup_title_screen(mut commands: Commands, font_handles: Res<FontHandles>) {
         .insert(TitleText);
 }
 
+/// Press ENTER to start
+fn setup_instructions(mut commands: Commands, fonts: Res<FontHandles>) {
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                width: Val::Percent(100.),
+                height: Val::Percent(70.),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                position_type: PositionType::Absolute,
+                ..default()
+            },
+            background_color: Color::NONE.into(),
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn((
+                TextBundle::from_section(
+                    "Press ENTER to start",
+                    TextStyle {
+                        font: fonts.handle.clone(),
+                        font_size: 50.0,
+                        color: Color::BLUE,
+                    },
+                )
+                .with_text_justify(JustifyText::Center),
+                TitleText,
+            ));
+        });
+}
+
 fn despawn_title_screen(mut commands: Commands, query: Query<Entity, With<TitleText>>) {
     for title_text in query.iter() {
         commands.entity(title_text).despawn();
@@ -65,6 +96,25 @@ fn any_key_listener(
     let keyboard_any = keyboard_input.get_just_pressed().count() > 0;
     let gamepad_any = button_inputs.get_just_pressed().count() > 0;
     if keyboard_any || gamepad_any {
+        next_state.set(AppState::InGame);
+    }
+}
+
+/// Start game with keyboard Enter or gamepad Start
+fn start_key_listener(
+    gamepads: Res<Gamepads>,
+    button_inputs: Res<ButtonInput<GamepadButton>>,
+    keyboard_inputs: Res<ButtonInput<KeyCode>>,
+    mut next_state: ResMut<NextState<AppState>>,
+) {
+    let keyboard_start = keyboard_inputs.just_pressed(KeyCode::Enter);
+    let gamepad_start = gamepads
+        .iter()
+        .find(|&gamepad| {
+            button_inputs.pressed(GamepadButton::new(gamepad, GamepadButtonType::Start))
+        })
+        .is_some();
+    if keyboard_start || gamepad_start {
         next_state.set(AppState::InGame);
     }
 }
@@ -183,10 +233,13 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, load_fonts)
-            .add_systems(OnEnter(AppState::MainMenu), setup_title_screen)
+            .add_systems(
+                OnEnter(AppState::MainMenu),
+                (setup_title_screen, setup_instructions),
+            )
             .add_systems(
                 Update,
-                any_key_listener
+                start_key_listener
                     .run_if(in_state(AppState::MainMenu).or_else(in_state(AppState::GameOver))),
             )
             .add_systems(
