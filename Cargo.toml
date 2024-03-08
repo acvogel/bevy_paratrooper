@@ -1,6 +1,6 @@
 [package]
 name = "bevy_paratrooper"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
 
 [dependencies]
@@ -19,13 +19,7 @@ version = "0.13.0"
 # These are the remaining default features other than `bevy_audio` and `mp3`
 features = [
     "wav",
-    ##    "render",
-    ##    "bevy_winit",
-    ##    "bevy_gilrs",
     "png",
-    ##    "hdr",
-    ##    "filesystem_watcher",
-    ##    "x11"
     "dynamic_linking", # remove for release builds
 ]
 
@@ -41,17 +35,3 @@ opt-level = 3
 strip = true  # Automatically strip symbols from the binary.
 opt-level = "z"  # Optimize for size.
 codegen-units = 1
-
-[target.x86_64-unknown-linux-gnu]
-rustflags = [
-    "-C", "link-arg=-fuse-ld=lld",
-]
-
-# Build using official Windows libs
-#[target.x86_64-pc-windows-msvc]
-#linker = "lld"
-#rustflags = [
-#    "-Lnative=/home/mbusux/.xwin/crt/lib/x86_64",
-#    "-Lnative=/home/mbusux/.xwin/sdk/lib/um/x86_64",
-#    "-Lnative=/home/mbusux/.xwin/sdk/lib/ucrt/x86_64"
-#]
