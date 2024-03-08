@@ -35,12 +35,3 @@ opt-level = 3
 strip = true  # Automatically strip symbols from the binary.
 opt-level = "z"  # Optimize for size.
 codegen-units = 1
-
-# Build using official Windows libs
-#[target.x86_64-pc-windows-msvc]
-#linker = "lld"
-#rustflags = [
-#    "-Lnative=/home/mbusux/.xwin/crt/lib/x86_64",
-#    "-Lnative=/home/mbusux/.xwin/sdk/lib/um/x86_64",
-#    "-Lnative=/home/mbusux/.xwin/sdk/lib/ucrt/x86_64"
-#]
