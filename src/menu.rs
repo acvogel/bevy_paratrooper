@@ -57,7 +57,8 @@ fn setup_instructions(mut commands: Commands, fonts: Res<FontHandles>) {
         .spawn(NodeBundle {
             style: Style {
                 width: Val::Percent(100.),
-                height: Val::Percent(70.),
+                height: Val::Percent(90.),
+                flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 position_type: PositionType::Absolute,
@@ -76,7 +77,33 @@ fn setup_instructions(mut commands: Commands, fonts: Res<FontHandles>) {
                         color: Color::BLUE,
                     },
                 )
-                .with_text_justify(JustifyText::Center),
+                .with_text_justify(JustifyText::Center)
+                .with_style(Style {
+                    margin: UiRect {
+                        top: Val::Percent(10.),
+                        ..default()
+                    },
+                    ..default()
+                }),
+                TitleText,
+            ));
+            parent.spawn((
+                TextBundle::from_section(
+                    "Move ← →\nShoot SPACE",
+                    TextStyle {
+                        font: fonts.handle.clone(),
+                        font_size: 30.0,
+                        color: Color::WHITE,
+                    },
+                )
+                .with_text_justify(JustifyText::Center)
+                .with_style(Style {
+                    margin: UiRect {
+                        top: Val::Percent(5.),
+                        ..default()
+                    },
+                    ..default()
+                }),
                 TitleText,
             ));
         });
