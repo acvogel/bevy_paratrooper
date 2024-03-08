@@ -721,7 +721,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_paratrooper"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "bevy",
  "bevy_prototype_lyon",
