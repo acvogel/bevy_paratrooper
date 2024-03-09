@@ -115,18 +115,6 @@ fn despawn_title_screen(mut commands: Commands, query: Query<Entity, With<TitleT
     }
 }
 
-fn any_key_listener(
-    button_inputs: Res<ButtonInput<GamepadButton>>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut next_state: ResMut<NextState<AppState>>,
-) {
-    let keyboard_any = keyboard_input.get_just_pressed().count() > 0;
-    let gamepad_any = button_inputs.get_just_pressed().count() > 0;
-    if keyboard_any || gamepad_any {
-        next_state.set(AppState::InGame);
-    }
-}
-
 /// Start game with keyboard Enter or gamepad Start
 fn start_key_listener(
     gamepads: Res<Gamepads>,
