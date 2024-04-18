@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use std::time::Duration;
 
 use crate::events::*;
+use crate::menu::FontHandles;
 use crate::paratrooper::PARATROOPER_SCALE;
 
 const SUBSCORE_COLOR: Color = Color::GOLD;
@@ -47,6 +48,9 @@ pub struct ParatrooperText;
 
 #[derive(Component)]
 pub struct BombText;
+
+#[derive(Component)]
+pub struct ScoreGrid;
 
 /// AppState::InGame time
 #[derive(Component, Resource)]
@@ -408,12 +412,18 @@ fn game_over(mut game_clock: ResMut<GameClock>, mut score: ResMut<Score>) {
     *score = Score::default();
 }
 
+fn despawn_score_box_grid(mut commands: Commands, query: Query<Entity, With<ScoreGrid>>) {
+    for e in query.iter() {
+        commands.entity(e).despawn_recursive();
+    }
+}
+
 // score grid stuff.
 fn spawn_score_box_grid(
     mut commands: Commands,
     score: Res<Score>,
     score_assets: Res<ScoreAssets>,
-    fonts: Res<crate::menu::FontHandles>,
+    fonts: Res<FontHandles>,
 ) {
     // NodeBundle root.
     commands
@@ -466,7 +476,8 @@ fn spawn_score_box_grid(
                         (score.aircraft_kills * AIRCRAFT_KILL_SCORE).to_string(),
                     );
                 });
-        });
+        })
+        .insert(ScoreGrid);
 }
 
 fn score_count_column(builder: &mut ChildBuilder, font: Handle<Font>, count: i32) {
@@ -589,6 +600,7 @@ impl Plugin for ScorePlugin {
             .add_systems(
                 OnEnter(AppState::GameOver),
                 (game_over, spawn_score_box_grid),
-            );
+            )
+            .add_systems(OnExit(AppState::GameOver), despawn_score_box_grid);
     }
 }
