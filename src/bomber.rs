@@ -11,7 +11,9 @@ use crate::gun::Gun;
 use crate::terrain::Ground;
 use rand::Rng;
 
-const BOMBER_SPAWN_PROBABILITY: f32 = 0.003;
+//const BOMBER_SPAWN_PROBABILITY: f32 = 0.003;
+// xxx todo die quick
+const BOMBER_SPAWN_PROBABILITY: f32 = 0.1;
 const BOMBER_SPEED: f32 = 300.;
 const BOMBER_SCALE: f32 = 0.3;
 const BOMB_Z: f32 = 1.9;

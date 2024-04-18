@@ -11,13 +11,13 @@ const FONT_SIZE: f32 = 40.0;
 
 #[derive(Component, Debug, Default, Clone, Copy, Resource)]
 pub struct Score {
-    pub shots: u32,
-    pub aircraft_kills: u32,
-    pub aircraft_escapes: u32,
-    pub paratrooper_kills: u32,
-    pub paratroopers_landed: u32,
-    pub parachute_hits: u32,
-    pub bomb_kills: u32,
+    pub shots: i32,
+    pub aircraft_kills: i32,
+    pub aircraft_escapes: i32,
+    pub paratrooper_kills: i32,
+    pub paratroopers_landed: i32,
+    pub parachute_hits: i32,
+    pub bomb_kills: i32,
     pub total_score: i32,
 }
 
@@ -56,16 +56,18 @@ pub struct GameClock {
 
 /// Score UI font and textures
 #[derive(Resource)]
-struct ScoreAssets {
-    aircraft: Handle<Image>,
-    bomb: Handle<Image>,
-    font: Handle<Font>,
-    paratrooper: Handle<Image>,
+pub struct ScoreAssets {
+    pub aircraft: Handle<Image>,
+    pub aircraft_full: Handle<Image>,
+    pub bomb: Handle<Image>,
+    pub font: Handle<Font>,
+    pub paratrooper: Handle<Image>,
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(ScoreAssets {
         aircraft: asset_server.load("images/paraplane1_icon.png"),
+        aircraft_full: asset_server.load("images/paraplane1.png"),
         bomb: asset_server.load("images/bomb4_icon.png"),
         font: asset_server.load("fonts/FiraSans-Bold.ttf"),
         paratrooper: asset_server.load("images/paratrooperfly1_body.png"),
@@ -406,6 +408,159 @@ fn game_over(mut game_clock: ResMut<GameClock>, mut score: ResMut<Score>) {
     *score = Score::default();
 }
 
+// score grid stuff.
+fn spawn_score_box_grid(
+    mut commands: Commands,
+    score: Res<Score>,
+    score_assets: Res<ScoreAssets>,
+    fonts: Res<crate::menu::FontHandles>,
+) {
+    // NodeBundle root.
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                display: Display::Grid,
+                width: Val::Percent(80.),
+                height: Val::Percent(20.),
+                grid_template_rows: vec![GridTrack::auto(), GridTrack::auto()],
+                position_type: PositionType::Absolute,
+                top: Val::Percent(20.),
+                left: Val::Percent(10.),
+                //justify_self: JustifySelf::Center,
+                row_gap: Val::Px(10.),
+                column_gap: Val::Px(10.),
+                ..default()
+            },
+            background_color: Color::DARK_GRAY.into(),
+            ..default()
+        })
+        .with_children(|builder| {
+            // Example row, to be replaced by more generic sub fn
+            builder
+                .spawn(NodeBundle {
+                    style: Style {
+                        display: Display::Grid,
+                        //grid_template_columns: RepeatedGridTrack::flex(3, 1.),
+                        grid_template_columns: vec![
+                            GridTrack::auto(),
+                            GridTrack::auto(),
+                            GridTrack::auto(),
+                        ],
+                        grid_template_rows: vec![GridTrack::auto()],
+                        row_gap: Val::Px(10.),
+                        column_gap: Val::Px(10.),
+                        ..default()
+                    },
+                    background_color: BackgroundColor(Color::GRAY),
+                    ..default()
+                })
+                .with_children(|builder| {
+                    // Score count (23 planes)
+                    score_count_column(builder, fonts.handle.clone(), score.aircraft_kills);
+                    // Target icon (plane icon)
+                    score_icon_column(builder, score_assets.aircraft_full.clone());
+                    // Target score (4321 pts)
+                    score_subtotal_column(
+                        builder,
+                        fonts.handle.clone(),
+                        (score.aircraft_kills * AIRCRAFT_KILL_SCORE).to_string(),
+                    );
+                });
+        });
+}
+
+fn score_count_column(builder: &mut ChildBuilder, font: Handle<Font>, count: i32) {
+    builder
+        .spawn(NodeBundle {
+            style: Style {
+                display: Display::Grid,
+                align_items: AlignItems::Center,
+                justify_items: JustifyItems::End,
+                ..default()
+            },
+            //align items center and right
+            background_color: Color::LIME_GREEN.into(),
+            ..default()
+        })
+        .with_children(|builder| {
+            builder.spawn(TextBundle::from_section(
+                count.to_string(),
+                TextStyle {
+                    font,
+                    font_size: 24.,
+                    color: Color::WHITE,
+                },
+            ));
+        });
+}
+
+fn score_icon_column(builder: &mut ChildBuilder, target_icon: Handle<Image>) {
+    builder
+        .spawn(NodeBundle {
+            style: Style {
+                display: Display::Grid,
+                //align_items: AlignItems::Center,
+                //justify_items: JustifyItems::Start,
+                //align_self: AlignSelf::Center,
+                //justify_self: JustifySelf::Start,
+                ..default()
+            },
+            //align items center and right
+            background_color: Color::BLUE.into(),
+            ..default()
+        })
+        .with_children(|builder| {
+            builder.spawn(ImageBundle {
+                image: UiImage::new(target_icon),
+                style: Style {
+                    display: Display::Grid,
+                    margin: UiRect {
+                        left: Val::Px(5.),
+                        ..default()
+                    },
+                    //min_width: Val::Px(100.),
+                    //min_height: Val::Px(100.),
+                    //position_type: PositionType::Relative,
+                    //align_items: AlignItems::Start,
+                    //justify_items: JustifyItems::Start,
+                    align_self: AlignSelf::Start,
+                    justify_self: JustifySelf::Start,
+                    ..default()
+                },
+                transform: Transform::from_scale(Vec3::new(0.3, 0.3, 1.)),
+                //background_color: Color::RED.into(),
+                ..default()
+            });
+        });
+}
+
+fn score_subtotal_column(builder: &mut ChildBuilder, font: Handle<Font>, score_str: String) {
+    builder
+        .spawn(NodeBundle {
+            style: Style {
+                display: Display::Grid,
+                align_items: AlignItems::Center,
+                justify_items: JustifyItems::Start,
+                ..default()
+            },
+            //align items center and right
+            background_color: Color::PURPLE.into(),
+            ..default()
+        })
+        .with_children(|builder| {
+            builder.spawn(TextBundle::from_section(
+                //"4231",
+                //score.to_string(),
+                score_str,
+                TextStyle {
+                    font,
+                    font_size: 24.,
+                    color: Color::WHITE,
+                },
+            ));
+        });
+}
+
 pub struct ScorePlugin;
 
 impl Plugin for ScorePlugin {
@@ -431,6 +586,9 @@ impl Plugin for ScorePlugin {
                     .run_if(in_state(AppState::InGame)),
             )
             .add_systems(OnExit(AppState::InGame), despawn_score_bar)
-            .add_systems(OnEnter(AppState::GameOver), game_over);
+            .add_systems(
+                OnEnter(AppState::GameOver),
+                (game_over, spawn_score_box_grid),
+            );
     }
 }

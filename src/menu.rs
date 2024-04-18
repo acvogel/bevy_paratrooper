@@ -17,8 +17,8 @@ pub struct TitleText;
 pub struct PauseText;
 
 #[derive(Resource)]
-struct FontHandles {
-    handle: Handle<Font>,
+pub struct FontHandles {
+    pub handle: Handle<Font>,
 }
 
 fn load_fonts(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -34,15 +34,15 @@ fn setup_title_screen(mut commands: Commands, font_handles: Res<FontHandles>) {
             style: Style {
                 align_self: AlignSelf::Auto,
                 position_type: PositionType::Absolute,
-                left: Val::Px(200.0),
-                top: Val::Px(15.0),
+                left: Val::Px(200.),
+                top: Val::Px(15.),
                 ..default()
             },
             text: Text::from_section(
                 "PARATROOPER",
                 TextStyle {
                     font: font_handles.handle.clone(),
-                    font_size: 125.0,
+                    font_size: 125.,
                     color: Color::RED,
                 },
             ),
@@ -73,7 +73,7 @@ fn setup_instructions(mut commands: Commands, fonts: Res<FontHandles>) {
                     "Press ENTER to start",
                     TextStyle {
                         font: fonts.handle.clone(),
-                        font_size: 50.0,
+                        font_size: 50.,
                         color: Color::BLUE,
                     },
                 )
@@ -92,7 +92,7 @@ fn setup_instructions(mut commands: Commands, fonts: Res<FontHandles>) {
                     "Move ← →\nShoot SPACE",
                     TextStyle {
                         font: fonts.handle.clone(),
-                        font_size: 30.0,
+                        font_size: 30.,
                         color: Color::WHITE,
                     },
                 )
@@ -143,15 +143,15 @@ fn spawn_game_over_text(mut commands: Commands, font_handles: Res<FontHandles>) 
             style: Style {
                 align_self: AlignSelf::FlexEnd,
                 position_type: PositionType::Absolute,
-                left: Val::Px(50.0),
-                bottom: Val::Px(250.0),
+                left: Val::Px(50.),
+                bottom: Val::Px(250.),
                 ..default()
             },
             text: Text::from_section(
-                "Press the ANY key to continue.",
+                "Press ENTER to continue.",
                 TextStyle {
                     font: font_handles.handle.clone(),
-                    font_size: 75.0,
+                    font_size: 75.,
                     color: Color::RED,
                 },
             ),
@@ -227,7 +227,7 @@ fn spawn_pause_ui(mut commands: Commands, fonts: Res<FontHandles>) {
                     "PAUSED",
                     TextStyle {
                         font: fonts.handle.clone(),
-                        font_size: 75.0,
+                        font_size: 75.,
                         color: Color::BLUE,
                     },
                 ),

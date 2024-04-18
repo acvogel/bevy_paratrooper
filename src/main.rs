@@ -35,25 +35,34 @@ mod terrain;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Paratrooper".to_string(),
-                resolution: (consts::WINDOW_WIDTH, consts::WINDOW_HEIGHT).into(),
-                ..default()
-            }),
-            ..default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "Paratrooper".to_string(),
+                        resolution: (consts::WINDOW_WIDTH, consts::WINDOW_HEIGHT).into(),
+                        ..default()
+                    }),
+                    ..default()
+                })
+                .set(
+                    // This sets image filtering to nearest
+                    // This is done to prevent textures with low resolution (e.g. pixel art) from being blurred
+                    // by linear filtering.
+                    ImagePlugin::default_nearest(),
+                ),
+        )
         .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .insert_state(AppState::MainMenu)
         .add_plugins(ShapePlugin)
         .add_plugins(GunPlugin)
         .add_plugins(BulletPlugin)
-        .add_plugins(AircraftPlugin)
+        .add_plugins(AircraftPlugin) // xxx no troopers
         .add_plugins(BomberPlugin)
         .add_plugins(TerrainPlugin)
         .add_plugins(ParatrooperPlugin)
         .add_plugins(ScorePlugin)
-        .add_plugins(AudioStatePlugin)
+        //.add_plugins(AudioStatePlugin) // xxx mute
         .add_plugins(ExplosionPlugin)
         .add_plugins(MenuPlugin)
         .add_plugins(CloudPlugin)
