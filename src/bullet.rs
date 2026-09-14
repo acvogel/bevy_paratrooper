@@ -25,25 +25,23 @@ fn setup_bullets(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn shoot_gun(
     mut commands: Commands,
-    gamepads: Res<Gamepads>,
+    gamepads: Query<&Gamepad>,
     button_inputs: Res<ButtonInput<GamepadButton>>,
     keyboard_inputs: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Gun, &Transform)>,
     time: Res<Time>,
-    mut event_writer: EventWriter<GunshotEvent>,
+    mut writer: MessageWriter<GunshotEvent>,
     bullet_textures: Res<BulletTextures>,
 ) {
     let keyboard_shot = keyboard_inputs.pressed(KeyCode::Space);
-    let gamepad_shot_button_types = [
-        GamepadButtonType::East,
-        GamepadButtonType::West,
-        GamepadButtonType::South,
-        GamepadButtonType::North,
+    let gamepad_shot_buttons = [
+        GamepadButton::East,
+        GamepadButton::West,
+        GamepadButton::South,
+        GamepadButton::North,
     ];
     let mut gamepad_shot = false;
-    for gamepad in gamepads.iter() {
-        let gamepad_shot_buttons =
-            gamepad_shot_button_types.map(|button_type| GamepadButton::new(gamepad, button_type));
+    for _ in &gamepads {
         if button_inputs.any_pressed(gamepad_shot_buttons) {
             gamepad_shot = true;
             break;
@@ -51,23 +49,19 @@ fn shoot_gun(
     }
     if gamepad_shot || keyboard_shot {
         for (mut gun, transform) in query.iter_mut() {
-            if time.elapsed_seconds_f64() - gun.last_fired > consts::GUN_COOLDOWN {
-                event_writer.send(GunshotEvent);
-                gun.last_fired = time.elapsed_seconds_f64();
+            if time.elapsed_secs_f64() - gun.last_fired > consts::GUN_COOLDOWN {
+                writer.write(GunshotEvent);
+                gun.last_fired = time.elapsed_secs_f64();
 
                 // Spawn bullet
                 let mut bullet_transform = *transform;
                 bullet_transform.translation.z -= 0.1;
                 bullet_transform.translation += bullet_transform.local_y() * 30.;
 
-                let sprite_bundle = SpriteBundle {
-                    texture: bullet_textures.bullet_handle.clone(),
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::splat(24.)),
-                        ..Default::default()
-                    },
-                    transform: bullet_transform,
-                    ..Default::default()
+                let sprite_bundle = Sprite {
+                    image: bullet_textures.bullet_handle.clone(),
+                    custom_size: Some(Vec2::splat(24.)),
+                    ..default()
                 };
 
                 // velocity vector is local_y
@@ -76,11 +70,11 @@ fn shoot_gun(
 
                 commands
                     .spawn(sprite_bundle)
-                    .insert(RigidBody::Dynamic)
                     .insert(bullet_transform)
+                    .insert(RigidBody::Dynamic)
                     .insert(Velocity {
-                        linvel: velocity_vector, //[velocity_vector.x, velocity_vector.y],
-                        angvel: 0.0,
+                        linear: velocity_vector, //[velocity_vector.x, velocity_vector.y],
+                        angular: 0.0,
                     })
                     .insert(Collider::cuboid(12., 12.))
                     .insert(
@@ -101,8 +95,8 @@ fn shoot_gun(
 
 /// Generates BulletCollisionEvents
 fn bullet_collision_system(
-    mut collision_events: EventReader<CollisionEvent>,
-    mut event_writer: EventWriter<BulletCollisionEvent>,
+    mut collision_events: MessageReader<CollisionEvent>,
+    mut writer: MessageWriter<BulletCollisionEvent>,
     bullet_query: Query<(Entity, &Transform), With<Bullet>>,
     paratrooper_query: Query<(Entity, &Transform), With<Paratrooper>>,
     aircraft_query: Query<(Entity, &Transform), With<Aircraft>>,
@@ -123,7 +117,7 @@ fn bullet_collision_system(
                 };
 
                 if let Ok(bomb_transform) = bomb_query.get(target_entity) {
-                    event_writer.send(BulletCollisionEvent {
+                    writer.write(BulletCollisionEvent {
                         collision_type: CollisionType::Bomb,
                         translation: bomb_transform.translation,
                         bullet_entity,
@@ -134,7 +128,7 @@ fn bullet_collision_system(
                 // Aircraft
                 for (aircraft_entity, aircraft_transform) in aircraft_query.iter() {
                     if aircraft_entity == target_entity {
-                        event_writer.send(BulletCollisionEvent {
+                        writer.write(BulletCollisionEvent {
                             collision_type: CollisionType::Aircraft,
                             translation: aircraft_transform.translation,
                             bullet_entity,
@@ -146,7 +140,7 @@ fn bullet_collision_system(
                 // Parachutes
                 for (parachute_entity, parachute_transform) in parachute_query.iter() {
                     if parachute_entity == target_entity {
-                        event_writer.send(BulletCollisionEvent {
+                        writer.write(BulletCollisionEvent {
                             collision_type: CollisionType::Parachute,
                             translation: parachute_transform.translation,
                             bullet_entity,
@@ -158,7 +152,7 @@ fn bullet_collision_system(
                 // Paratroopers
                 for (paratrooper_entity, paratrooper_transform) in paratrooper_query.iter() {
                     if paratrooper_entity == target_entity {
-                        event_writer.send(BulletCollisionEvent {
+                        writer.write(BulletCollisionEvent {
                             collision_type: CollisionType::Paratrooper,
                             translation: paratrooper_transform.translation,
                             bullet_entity,
@@ -174,19 +168,19 @@ fn bullet_collision_system(
 fn bullet_collision_listener(
     mut commands: Commands,
     query: Query<&Transform, With<Bullet>>,
-    mut event_reader: EventReader<BulletCollisionEvent>,
-    mut event_writer: EventWriter<ExplosionEvent>,
+    mut event_reader: MessageReader<BulletCollisionEvent>,
+    mut event_writer: MessageWriter<ExplosionEvent>,
 ) {
     for event in event_reader.read() {
         if event.collision_type == CollisionType::Aircraft
             || event.collision_type == CollisionType::Bomb
         {
             if let Ok(transform) = query.get(event.bullet_entity) {
-                event_writer.send(ExplosionEvent {
+                event_writer.write(ExplosionEvent {
                     transform: *transform,
                     explosion_type: ExplosionType::Bullet,
                 });
-                commands.entity(event.bullet_entity).despawn_recursive();
+                commands.entity(event.bullet_entity).despawn();
             }
         }
     }
@@ -201,7 +195,7 @@ fn despawn_escaped_bullets(
         if transform.translation.x.abs() > OUT_OF_BOUNDS_X
             || transform.translation.y.abs() > OUT_OF_BOUNDS_Y
         {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
     }
 }
