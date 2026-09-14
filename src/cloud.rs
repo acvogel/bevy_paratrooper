@@ -51,9 +51,9 @@ fn spawn_cloud_system(mut commands: Commands, textures: Res<CloudTextures>) {
             SPAWN_RIGHT_X
         };
 
-        let sprite_bundle = SpriteBundle {
-            texture: cloud_handle.clone(),
-            ..Default::default()
+        let sprite_bundle = Sprite {
+            image: cloud_handle.clone(),
+            ..default()
         };
 
         commands
@@ -65,8 +65,8 @@ fn spawn_cloud_system(mut commands: Commands, textures: Res<CloudTextures>) {
                 ..Default::default()
             })
             .insert(Velocity {
-                linvel: Vec2::new(velocity, 0.0).into(),
-                angvel: 0.0,
+                linear: Vec2::new(velocity, 0.0),
+                angular: 0.0,
             })
             .insert(Cloud);
     }
@@ -77,7 +77,7 @@ fn despawn_escaped_clouds(mut commands: Commands, query: Query<(Entity, &Transfo
         if transform.translation.x.abs() > OUT_OF_BOUNDS_X
             || transform.translation.y.abs() > OUT_OF_BOUNDS_Y
         {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
     }
 }
