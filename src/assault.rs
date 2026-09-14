@@ -10,9 +10,9 @@ const PARATROOPER_WALK_SPEED: f32 = 50.;
 fn enable_assault_system(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Paratrooper, &mut CollisionGroups)>,
-    mut event_reader: EventReader<LandingEvent>,
+    mut reader: MessageReader<LandingEvent>,
 ) {
-    for event in event_reader.read() {
+    for event in reader.read() {
         if let Ok((entity, mut paratrooper, mut col_groups)) = query.get_mut(event.0) {
             col_groups.memberships = Group::GROUP_1;
             col_groups.filters = Group::GROUP_1 | Group::GROUP_4;
@@ -31,17 +31,17 @@ fn assault_movement_system(mut query: Query<(&Paratrooper, &Transform, &mut Velo
         // Move towards gun.
         let heading = -1.0 * transform.translation.x.signum();
         //velocity.linvel = Vec2::new(heading * PARATROOPER_WALK_SPEED, 0.0).into();
-        velocity.linvel.x = heading * PARATROOPER_WALK_SPEED;
+        velocity.linear.x = heading * PARATROOPER_WALK_SPEED;
     }
 }
 
 /// Jump paratrooper further from gun when colliding
 fn assault_collision_system(
-    mut collision_events: EventReader<CollisionEvent>,
+    mut collision_events: MessageReader<CollisionEvent>,
     mut paratroopers: Query<(&Paratrooper, &Transform, &mut Velocity)>,
     gun_base_query: Query<Entity, With<GunBase>>,
 ) {
-    let gun_base_entity = gun_base_query.single();
+    let gun_base_entity = gun_base_query.single().unwrap();
     for collision_event in collision_events.read() {
         if let CollisionEvent::Started(entity1, entity2, _) = collision_event {
             if gun_base_entity == *entity1 || gun_base_entity == *entity2 {
@@ -55,7 +55,7 @@ fn assault_collision_system(
                     let x2 = t2.translation.x;
                     if (x1 - x2).abs() < 40. {
                         let mut velocity = if x1.abs() > x2.abs() { v1 } else { v2 };
-                        velocity.linvel.y = 75.;
+                        velocity.linear.y = 75.;
                     }
                 }
             }

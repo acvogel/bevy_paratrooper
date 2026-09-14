@@ -46,14 +46,10 @@ fn spawn_aircraft_system(mut commands: Commands, aircraft_textures: Res<Aircraft
         }
         .with_scale(Vec3::new(AIRCRAFT_SCALE, AIRCRAFT_SCALE, 1.));
 
-        let sprite_bundle = SpriteBundle {
-            // 412 x 114 pixels. 0.3 scale.
-            texture: aircraft_textures.image_handle.clone(),
-            sprite: Sprite {
-                flip_x: !heading_right,
-                ..Default::default()
-            },
-            ..Default::default()
+        let sprite_bundle = Sprite {
+            image: aircraft_textures.image_handle.clone(),
+            flip_x: !heading_right,
+            ..default()
         };
 
         commands
@@ -69,8 +65,8 @@ fn spawn_aircraft_system(mut commands: Commands, aircraft_textures: Res<Aircraft
             ))
             .insert(LockedAxes::TRANSLATION_LOCKED_Y)
             .insert(Velocity {
-                linvel: Vec2::new(velocity, 0.),
-                angvel: 0.0,
+                linear: Vec2::new(velocity, 0.),
+                angular: 0.0,
             })
             .insert(Aircraft::default());
     }
@@ -96,7 +92,8 @@ fn despawn_escaped_aircraft(
         if transform.translation.x.abs() > OUT_OF_BOUNDS_X
             || transform.translation.y.abs() > OUT_OF_BOUNDS_Y
         {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn_children();
+            commands.entity(entity).despawn();
         }
     }
 }
@@ -104,16 +101,16 @@ fn despawn_escaped_aircraft(
 fn bullet_collision_system(
     mut commands: Commands,
     aircraft_query: Query<(Entity, &Transform), With<Aircraft>>,
-    mut event_reader: EventReader<BulletCollisionEvent>,
-    mut event_writer: EventWriter<ExplosionEvent>,
+    mut reader: MessageReader<BulletCollisionEvent>,
+    mut writer: MessageWriter<ExplosionEvent>,
 ) {
-    for event in event_reader.read() {
+    for event in reader.read() {
         if let Ok((aircraft_entity, aircraft_transform)) = aircraft_query.get(event.target_entity) {
-            event_writer.send(ExplosionEvent {
+            writer.write(ExplosionEvent {
                 transform: (*aircraft_transform).with_scale(Vec3::ONE),
                 explosion_type: ExplosionType::Aircraft,
             });
-            commands.entity(aircraft_entity).despawn_recursive();
+            commands.entity(aircraft_entity).despawn();
         }
     }
 }
