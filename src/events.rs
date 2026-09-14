@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct BulletCollisionEvent {
     pub translation: Vec3,
     pub collision_type: CollisionType,
@@ -8,12 +8,12 @@ pub struct BulletCollisionEvent {
     pub target_entity: Entity,
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct GunExplosionEvent {
     pub translation: Vec3,
 }
 
-#[derive(PartialEq, Event)]
+#[derive(PartialEq, Message)]
 pub enum CollisionType {
     Aircraft,
     Paratrooper,
@@ -21,17 +21,17 @@ pub enum CollisionType {
     Bomb,
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct GunshotEvent;
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct LandingEvent(pub Entity);
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct BombDropEvent;
 
 /// Animation events.
-#[derive(Event)]
+#[derive(Message)]
 pub struct ExplosionEvent {
     pub transform: Transform,
     pub explosion_type: ExplosionType,
@@ -44,7 +44,7 @@ pub enum ExplosionType {
     Bomb,
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct GibEvent {
     pub transform: Transform,
 }
