@@ -42,7 +42,7 @@ fn setup_bomber_system(
     asset_server: ResMut<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let bomb_texture_atlas = TextureAtlasLayout::from_grid(Vec2::new(64., 128.), 4, 1, None, None);
+    let bomb_texture_atlas = TextureAtlasLayout::from_grid(UVec2::new(64, 128), 4, 1, None, None);
     commands.insert_resource(BomberTextures {
         bomber_texture_handle: asset_server.load("images/bomber.png"),
         bomb_texture_atlas_handle: texture_atlases.add(bomb_texture_atlas),
@@ -66,12 +66,9 @@ fn spawn_bomber_system(mut commands: Commands, textures: Res<BomberTextures>) {
         }
         .with_scale(Vec3::new(BOMBER_SCALE, BOMBER_SCALE, 1.));
 
-        let sprite_bundle = SpriteBundle {
-            texture: textures.bomber_texture_handle.clone(),
-            sprite: Sprite {
-                flip_x: !heading_right,
-                ..default()
-            },
+        let sprite_bundle = Sprite{
+            image: textures.bomber_texture_handle.clone(),
+            flip_x: !heading_right,
             ..default()
         };
 
@@ -88,8 +85,8 @@ fn spawn_bomber_system(mut commands: Commands, textures: Res<BomberTextures>) {
             ))
             .insert(LockedAxes::TRANSLATION_LOCKED_Y)
             .insert(Velocity {
-                linvel: Vec2::new(velocity, 0.),
-                angvel: 0.0,
+                linear: Vec2::new(velocity, 0.),
+                angular: 0.0,
             })
             .insert(Aircraft { paratroopers: 0 })
             .insert(Bomber { num_dropped: 0 });
@@ -102,7 +99,7 @@ fn should_bomb(bomb_transform: &Transform, velocity: &Velocity, gun_transform: &
     // Drop time without taking into account damping. Will result in short drops.
     let simple_impact_time = (-2.0 * drop_distance / GRAVITY).sqrt();
     let pos_x = bomb_transform.translation.x - gun_transform.translation.x
-        + 0.4 * velocity.linvel.x * (BOMB_DAMPING * simple_impact_time + 1.0).ln() / BOMB_DAMPING;
+        + 0.4 * velocity.linear.x * (BOMB_DAMPING * simple_impact_time + 1.0).ln() / BOMB_DAMPING;
     (pos_x - gun_transform.translation.x).abs() < BOMB_AIM_EPSILON
 }
 
@@ -112,17 +109,17 @@ fn spawn_bombs(
     mut bomber_query: Query<(&mut Bomber, &Transform, &Velocity)>,
     bomber_textures: Res<BomberTextures>,
     gun_query: Query<(&Gun, &Transform)>,
-    mut event_writer: EventWriter<BombDropEvent>,
+    mut writer: MessageWriter<BombDropEvent>,
 ) {
     for (_gun, gun_transform) in gun_query.iter() {
         for (mut bomber, bomber_transform, velocity) in bomber_query.iter_mut() {
             if bomber.num_dropped < BOMB_PAYLOAD
                 && should_bomb(bomber_transform, velocity, gun_transform)
             {
-                event_writer.send(BombDropEvent);
+                writer.write(BombDropEvent);
 
                 bomber.num_dropped += 1;
-                let heading = velocity.linvel.x.signum();
+                let heading = velocity.linear.x.signum();
                 let bomb_pos = Vec2::new(
                     bomber_transform.translation.x - heading * 35.,
                     bomber_transform.translation.y - 25.,
@@ -131,15 +128,11 @@ fn spawn_bombs(
                 commands
                     .spawn(RigidBody::Dynamic)
                     .insert(Sensor)
-                    .insert(SpriteSheetBundle {
-                        atlas: TextureAtlas {
-                            layout: bomber_textures.bomb_texture_atlas_handle.clone(),
-                            index: 0,
-                        },
-
-                        texture: bomber_textures.bomb_texture_handle.clone(),
-                        ..default()
-                    })
+                    .insert(Sprite::from_atlas_image(bomber_textures.bomb_texture_handle.clone(), 
+                TextureAtlas {
+                    layout: bomber_textures.bomb_texture_atlas_handle.clone(),
+                    index: 0,
+                }))
                     .insert(Transform {
                         translation: Vec3::new(bomb_pos.x, bomb_pos.y, BOMB_Z),
                         scale: Vec3::new(BOMB_SCALE, BOMB_SCALE, 1.0),
@@ -157,8 +150,8 @@ fn spawn_bombs(
                         ..Default::default()
                     }))
                     .insert(Velocity {
-                        linvel: velocity.linvel.clone(),
-                        angvel: heading * -1.5,
+                        linear: velocity.linear.clone(),
+                        angular: heading * -1.5,
                     })
                     .insert(Collider::cuboid(
                         BOMB_SCALE * 64.0 / 2.0,
@@ -178,19 +171,19 @@ fn spawn_bombs(
 /// Bombs collisions. Gun: game over. Ground: bomb explode. Just use the same animations for now.
 fn bomb_bullet_collision_system(
     mut commands: Commands,
-    mut events: EventReader<BulletCollisionEvent>,
-    mut event_writer: EventWriter<ExplosionEvent>,
+    mut events: MessageReader<BulletCollisionEvent>,
+    mut writer: MessageWriter<ExplosionEvent>,
     bombs: Query<&Transform, With<Bomb>>,
 ) {
     for event in events.read() {
         if event.collision_type == CollisionType::Bomb {
             if let Ok(transform) = bombs.get(event.target_entity) {
-                event_writer.send(ExplosionEvent {
+                writer.write(ExplosionEvent {
                     transform: transform.with_rotation(Quat::IDENTITY),
                     // TODO mid-air should be different animation
                     explosion_type: ExplosionType::Bomb,
                 });
-                commands.entity(event.target_entity).despawn_recursive();
+                commands.entity(event.target_entity).despawn();
             }
         }
     }
@@ -199,8 +192,8 @@ fn bomb_bullet_collision_system(
 /// Bombs explode when they hit the ground
 fn bomb_terrain_collision_system(
     mut commands: Commands,
-    mut events: EventReader<CollisionEvent>,
-    mut event_writer: EventWriter<ExplosionEvent>,
+    mut events: MessageReader<CollisionEvent>,
+    mut writer: MessageWriter<ExplosionEvent>,
     bomb_query: Query<&Transform, With<Bomb>>,
     ground_query: Query<Entity, With<Ground>>,
 ) {
@@ -212,11 +205,11 @@ fn bomb_terrain_collision_system(
                 _ => None,
             } {
                 let bomb_transform = bomb_query.get(bomb_entity).unwrap();
-                event_writer.send(ExplosionEvent {
+                writer.write(ExplosionEvent {
                     transform: bomb_transform.with_rotation(Quat::IDENTITY),
                     explosion_type: ExplosionType::Bomb,
                 });
-                commands.entity(bomb_entity).despawn_recursive();
+                commands.entity(bomb_entity).despawn();
             }
         }
     }
@@ -227,7 +220,7 @@ fn despawn_bomber_system(
     mut bombers: Query<Entity, Or<(With<Bomber>, With<Bomb>)>>,
 ) {
     for entity in bombers.iter_mut() {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }
 
